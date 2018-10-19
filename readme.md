@@ -62,7 +62,7 @@ Auf folgendes URL-Format ist bei den unterschiedlichen iCal-Servern zu achten:
 
 **Google:**
 `https://calendar.google.com/calendar/ical/(google-username)/private-(secret-hash-string)/basic.ics`  
-Zu findem im Google Kalender. Im Hauptbildschirm rechts oben auf das Zahnrad klicken, dort *"Einstellungen"* auswählen. Im folgenden Bildschirm den Tab *"Kalender"* auswählen, dann in der Kalenderliste links auf den zu importierenden Kalendernamen klicken. Es folgt ein neuer Bildschirm *"Kalenderdetails"*, dort in der Zeile *"Privatadresse"* mit der rechten Maustaste auf das *"ICAL"*-Icon klicken und den dahinter liegenden Link kopieren.  
+Zu findem im Google Kalender. Im Hauptbildschirm rechts oben auf das Zahnrad klicken, dort *"Einstellungen"* auswählen. Im folgenden Bildschirm in der Kalenderliste links auf den zu importierenden Kalendernamen klicken. Es folgt ein neuer Bildschirm *"Kalendereinstellungen"*, dort in der Zeile *"Privatadresse im iCal-Format"* den angezeigten Link kopieren.  
 
 **OwnCloud:**
 `http[s]://(server-name)[:server-port]/remote.php/dav/calendars/(user-name)/(calendar-name)?export`  
