@@ -18,7 +18,7 @@ Diese Bibliothek beinhaltet zwei Module zur Einbindung von Kalenderdateien/-feed
 
 ### 1. Funktionsumfang
 
-Mit dem Modul **iCal Calendar Reader** werden Kalenderdaten eingelesen (getestet mit Google Calendar, ownCloud Calendar, Synology Calendar und iCloud), das Modul **iCal Calendar Notifier** reagiert mit einstellbaren Vor- und Nachlaufzeiten mit einer Statusvariable auf Kalenderereignisse. Zum aktuellen Status kann ein Skript weitere Kalenderdaten des/der auslösende(n) Ereigniss(e) abfragen. Es sind beliebig viele **iCal Calendar Notifier**-Instanzen mit unterschiedlichen Einstellungen an eine **iCal Calendar Reader**-Instanz koppelbar. 
+Mit dem Modul **iCal Calendar Reader** werden Kalenderdaten eingelesen (getestet mit Google Calendar, ownCloud Calendar, Synology Calendar und iCloud), das Modul **iCal Calendar Notifier** reagiert mit einstellbaren Vor- und Nachlaufzeiten mit einer Statusvariable auf Kalenderereignisse. Zum aktuellen Status kann ein Skript weitere Kalenderdaten des oder der auslösenden Ereignisse abfragen. Es sind beliebig viele **iCal Calendar Notifier**-Instanzen mit unterschiedlichen Einstellungen an eine **iCal Calendar Reader**-Instanz koppelbar. 
 
 Damit ist es z.B. sehr einfach möglich einen zentralen Anwesenheitskalender im Internet zu pflegen, IP Symcon steuert damit automatisch Heizung, Alarmanlage und Anwesenheitssimulation. Mit der Auswertung von zusätzlichen Informationen im Kalendereintrag durch ein Skript können z.B. bestimmte Transponder für den Zugang gesperrt bzw. freigeschaltet werden.
 
@@ -33,14 +33,13 @@ Diese Bibliothek nutzt folgende externe Bibliotheken im Verzeichnis `/lib`:
 
 ### 2. Voraussetzungen
 
-- IP-Symcon ab Version 4.x
+- IP-Symcon ab Version 5.1
 - Kalender im iCal-Format
 
 
 ### 3. Software-Installation
 
-Über das Modul-Control folgende URL hinzufügen.
-`git://github.com/skyslasher/iCal-Calendar`
+Das Modul wird über den Modul Store installiert.
 
 
 ### 4. Einrichten der Instanzen in IP-Symcon
@@ -56,7 +55,7 @@ Username            | Benutzer für den Zugriff auf den Feed
 Passwort            | Passwort dieses Benutzers
 Synchronization     | 
 Cachesize (days)    | Anzahl der Tage für die Ereignisse in der Zukunft gelesen werden sollen
-Update-freq. (mins) | Nach wie vielen Minuten soll ein Update des Feeds gelesen werden
+Update-freq. (minutes) | Nach wie vielen Minuten soll ein Update des Feeds gelesen werden
 
 Auf folgendes URL-Format ist bei den unterschiedlichen iCal-Servern zu achten:
 
@@ -87,8 +86,8 @@ __Konfigurationsseite__:
 Name                | Beschreibung
 ------------------- | ---------------------------------
 Lagged Notification | 
-Prenotify (mins)    | Wie viele Minuten vor dem Ereignisstart soll die Statusvariable "Presence" auf "true" gesetzt werden
-Delay (mins)        | Wie viele Minuten nach dem Ereignisende soll die Statusvariable "Presence" auf "false" gesetzt werden
+Prenotify (minutes)    | Wie viele Minuten vor dem Ereignisstart soll die Statusvariable "Presence" auf "true" gesetzt werden
+Delay (minutes)        | Wie viele Minuten nach dem Ereignisende soll die Statusvariable "Presence" auf "false" gesetzt werden
 
 **Wichtig!** Im unteren Teil der Konfigurationsseite als übergeordnete Instanz die zugehörige **iCal Calendar Reader**-Instanz auswählen.
 
@@ -135,7 +134,7 @@ Die Funktion liefert keinerlei Rückgabewert.
 
 `void ICCR_UpdateCalendar(integer $InstanceID);`   
 Forciert eine sofortiges Neuladen des Kalenders.
-Diese Funktion wird intern regelmäßig, wie in "Update-freq. (mins)" konfiguriert, aufgerufen.
+Diese Funktion wird intern regelmäßig, wie in "Update-freq. (minutes)" konfiguriert, aufgerufen.
 Die Funktion liefert keinerlei Rückgabewert.  
 
 `void ICCR_UpdateClientConfig(integer $InstanceID);`   
@@ -149,4 +148,4 @@ Die Funktion liefert keinerlei Rückgabewert.
 Gibt den Wert der Statusvariable "Presence" zurück.  
 
 `json_string ICCN_GetNotifierPresenceReason(integer $InstanceID);`   
-Gibt einen Array der den "Presence"-Status bedingenden Ereignisse als JSON-codierten String aus.
+Gibt einen Array der den "Presence"-Status bedingenden Ereignisse als JSON-kodierten String aus.

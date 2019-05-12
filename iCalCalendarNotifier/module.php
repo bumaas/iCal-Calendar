@@ -1,10 +1,10 @@
-<?
+<?php
 
 include_once __DIR__ . '/../libs/base.php';
 include_once __DIR__ . '/../libs/includes.php';
 
 
-define( 'ICCN_Debug', false );
+define( 'ICCN_Debug', true);
 
 
 define( 'ICCN_RegVar_Presence', 'StatusPresence' );
@@ -16,15 +16,16 @@ define( 'ICCN_Property_PostNotifyMinutes', 'PostNotifyMinutes' );
 class iCalCalendarNotifier extends ErgoIPSModule {
 
     /***********************************************************************
-
-    * customized debug methods
-
-    ************************************************************************/
+     * customized debug methods
+     ***********************************************************************
+     *
+     * @return bool
+     */
 
     /*
         debug on/off is a defined constant
     */
-    protected function IsDebug()
+    protected function IsDebug():bool
     {
         return ICCN_Debug;
     }
@@ -32,7 +33,7 @@ class iCalCalendarNotifier extends ErgoIPSModule {
     /*
         sender for debug messages is set
     */
-    protected function GetLogID()
+    protected function GetLogID(): string
     {
         return IPS_GetName( $this->InstanceID );
     }
@@ -52,22 +53,22 @@ class iCalCalendarNotifier extends ErgoIPSModule {
         parent::Create();
 
         // create status variable
-        $InstanceID = $this->RegisterVariableBoolean( ICCN_RegVar_Presence, 'Presence', '~Presence', $this->InstanceID );
+        $this->RegisterVariableBoolean( ICCN_RegVar_Presence, 'Presence', '~Presence', $this->InstanceID );
 
         // create configuration properties
         $this->RegisterPropertyInteger( ICCN_Property_PreNotifyMinutes, 72 * 60 );
         $this->RegisterPropertyInteger( ICCN_Property_PostNotifyMinutes, 36 * 60);
 
         // initialize persistence
-        $this->SetBuffer( "PresenceReason",  "" );
-        $this->SetBuffer( "OldParentID",  "" );
+        $this->SetBuffer('PresenceReason', '');
+        $this->SetBuffer('OldParentID', '');
 
         // subscribe to IPS messages
-        $this->RegisterMessage( $this->InstanceID, 11101 ); // FM_CONNECT
-        $this->RegisterMessage( $this->InstanceID, 11102 ); // FM_DISCONNECT
+        $this->RegisterMessage( $this->InstanceID, FM_CONNECT );
+        $this->RegisterMessage( $this->InstanceID, FM_DISCONNECT );
 
         // connect to existing iCal Calendar Reader, or create new instance
-        $this->ConnectParent( ICCR_Instance_GUID );
+        $this->ConnectParent(ICCR_INSTANCE_GUID );
     }
 
     /*
@@ -94,15 +95,15 @@ class iCalCalendarNotifier extends ErgoIPSModule {
     public function ApplyChanges() {
         parent::ApplyChanges();
 
-        // filter on messages only for this adress
-        $this->SetReceiveDataFilter( ".*" . $this->InstanceID . ".*" );
+        // filter on messages only for this address
+        $this->SetReceiveDataFilter('.*' . $this->InstanceID . '.*');
 
         // notify parent for new configuration
-        if ( 10103 == IPS_GetKernelRunlevel() ) // KR_READY
+        if ( IPS_GetKernelRunlevel() === KR_READY )
         {
             $this->ClientChanged();
         }
-        $this->SetOldParentID( IPS_GetInstance( $this->InstanceID )[ "ConnectionID" ] );
+        $this->SetOldParentID(IPS_GetInstance( $this->InstanceID )['ConnectionID'] );
     }
 
 
@@ -112,60 +113,51 @@ class iCalCalendarNotifier extends ErgoIPSModule {
 
     ************************************************************************/
 
-    // property persistence (lasts across restarts)
-    private function GetPreNotificationMinutes()
-    {
-        return $this->ReadPropertyInteger( ICCN_Property_PreNotifyMinutes );
-    }
-    private function GetPostNotificationMinutes()
-    {
-        return $this->ReadPropertyInteger( ICCN_Property_PostNotifyMinutes );
-    }
-    private function GetPresence()
+    private function GetPresence(): bool
     {
         return GetValueBoolean( $this->GetIDForIdent( ICCN_RegVar_Presence ) );
     }
-    private function SetPresence( $Value )
+    private function SetPresence( $Value ): void
     {
         SetValue( $this->GetIDForIdent( ICCN_RegVar_Presence ), $Value );
     }
 
     // buffer persistence (does not lasts across restarts)
-    private function GetPresenceReason()
+    private function GetPresenceReason(): string
     {
-        return $this->GetBuffer( "PresenceReason" );
+        return $this->GetBuffer('PresenceReason');
     }
-    private function GetOldParentID()
+    private function GetOldParentID(): int
     {
-        return intval( $this->GetBuffer( "OldParentID" ) );
+        return (int) $this->GetBuffer('OldParentID');
     }
-    private function SetPresenceReason( $Value )
+    private function SetPresenceReason( $Value ): void
     {
-        $this->SetBuffer( "PresenceReason",  $Value );
+        $this->SetBuffer('PresenceReason', $Value );
     }
-    private function SetOldParentID( $Value )
+    private function SetOldParentID( $Value ): void
     {
-        $this->SetBuffer( "OldParentID",  $Value );
+        $this->SetBuffer('OldParentID', $Value );
     }
 
     /*
         set variable and runtime status on notifications from parent
     */
-    private function UpdatePresenceAndReason( $Value )
+    private function UpdatePresenceAndReason( $Value ): void
     {
-        $NewReason = json_encode( $Value[ "Reason" ] );
+        $NewReason = json_encode($Value['Reason'] );
         $OldReason = $this->GetPresenceReason();
-        $NewPresence = $Value[ "Status" ];
+        $NewPresence = $Value['Status'];
         $OldPresence = $this->GetPresence();
 
-        if ( $NewReason != $OldReason )
+        if ( $NewReason !== $OldReason )
         {
             // update reason
             $this->SetPresenceReason( $NewReason );
             // set new presence, even if same value
             $this->SetPresence( $NewPresence );
         }
-        if ( $NewPresence != $OldPresence )
+        if ( $NewPresence !== $OldPresence )
         {
             // this can happen e.g. by a messed up variable
             $this->SetPresence( $NewPresence );
@@ -183,14 +175,15 @@ class iCalCalendarNotifier extends ErgoIPSModule {
         a parent loses one notification instance
         -> inform parent to update its children configuration
     */
-    private function ClientDisconnected()
+    private function ClientDisconnected(): void
     {
         $OldParentID = $this->GetOldParentID();
-        if ( 0 < $OldParentID )
-            ICCR_UpdateClientConfig( $OldParentID );
+        if ( 0 < $OldParentID ) {
+            ICCR_UpdateClientConfig($OldParentID);
+        }
         // no parent connection - reset our state
         $this->SetPresence( false );
-        $this->SetPresenceReason( "" );
+        $this->SetPresenceReason('');
     }
 
     /*
@@ -198,10 +191,10 @@ class iCalCalendarNotifier extends ErgoIPSModule {
         existing notification instance changed its configuration
         -> inform parent to update its children configuration
     */
-    private function ClientChanged()
+    private function ClientChanged(): void
     {
         // config or connection to parent has changed, so trigger update
-        $ParentID = IPS_GetInstance( $this->InstanceID )[ "ConnectionID" ];
+        $ParentID = IPS_GetInstance( $this->InstanceID )['ConnectionID'];
         if ( 0 < $ParentID )
         {
             $this->SetOldParentID( $ParentID );
@@ -212,10 +205,11 @@ class iCalCalendarNotifier extends ErgoIPSModule {
 
 
     /***********************************************************************
-
-    * data flow from the calendar reader
-
-    ************************************************************************/
+     * data flow from the calendar reader
+     ***********************************************************************
+     *
+     * @param $JSONString
+     */
 
     /*
         receiving with internal protocol from parent calendar reader instance
@@ -223,9 +217,9 @@ class iCalCalendarNotifier extends ErgoIPSModule {
     public function ReceiveData( $JSONString )
     {
         $Data = json_decode( $JSONString, true );
-        if ( ( ICCR_TX == $Data[ "DataID" ] ) && ( $this->InstanceID == $Data[ "InstanceID" ] ) )
+        if (( ICCR_TX === $Data['DataID'] ) && ($this->InstanceID === $Data['InstanceID'] ) )
         {
-            $this->UpdatePresenceAndReason( $Data[ "Notify" ] );
+            $this->UpdatePresenceAndReason($Data['Notify'] );
         }
     }
 
@@ -236,16 +230,16 @@ class iCalCalendarNotifier extends ErgoIPSModule {
 
     ************************************************************************/
 
-    public function GetNotifierPresence()
+    public function GetNotifierPresence(): bool
     {
         return $this->GetPresence();
     }
 
-    public function GetNotifierPresenceReason()
+    public function GetNotifierPresenceReason(): string
     {
         return $this->GetPresenceReason();
     }
 
 }
 
-?>
+

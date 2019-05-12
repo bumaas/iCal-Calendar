@@ -1,4 +1,4 @@
-<?
+<?php
 
 use RRule\RRule;
 
@@ -12,342 +12,333 @@ include_once __DIR__ . '/../libs/php-rrule-master/src/RRule.php';
 include_once __DIR__ . '/../libs/php-rrule-master/src/RSet.php';
 
 
-define( 'ICCR_Debug', false );
-
-
-define( 'ICCR_Property_CalendarURL', 'CalendarServerURL' );
-define( 'ICCR_Property_Username', 'Username' );
-define( 'ICCR_Property_Password', 'Password' );
-
-define( 'ICCR_Property_DaysToCache', 'DaysToCache' );
-define( 'ICCR_Property_UpdateFrequency', 'UpdateFrequency' );
-
-define( 'ICCR_Default_DaysToCache', 366 );
-define( 'ICCR_Default_UpdateFrequency', 15 );
+define('ICCR_DEBUG', true);
 
 
 /***********************************************************************
-
-* iCal importer class
-
-************************************************************************/
-
+ * iCal importer class
+ ************************************************************************/
 class ICCR_iCalImporter
 {
-	private $Timezone;
-	private $NowDateTime;
-	private $NowTimestamp;
-	private $PostNotifySeconds = 0;
-	private $SecondsToCache;
-	private $CacheSizeDateTime;
-	private $CalendarTimezones;
+
+    private $Timezone;
+
+    private $NowDateTime;
+
+    private $NowTimestamp;
+
+    private $PostNotifySeconds;
+
+    private $DaysToCache;
+
+    private $CacheSizeDateTime;
+
+    private $CalendarTimezones;
 
     /*
         debug method, depending on defined constant
     */
-	private function LogDebug( $Debug )
+    private function LogDebug($Debug): void
     {
-        if ( ICCR_Debug )
-            IPS_LogMessage( 'iCalImporter Debug', $Debug );
+        if (ICCR_DEBUG) {
+            IPS_LogMessage('iCalImporter Debug', $Debug);
+        }
     }
 
     /*
         convert the timezone RRULE to a datetime object in the given/current year
     */
-	private function TZRRuleToDateTime( $RRule, $Year = '' )
-	{
-		$result = false;
-		// always yearly, once a year
-		if ( array_key_exists( "BYDAY", $RRule ) )
-		{
-			if ( array_key_exists( "0", $RRule[ "BYDAY" ] ) )
-			{
-				$Occ = $RRule[ "BYDAY" ][ "0" ];
-				if ( array_key_exists( "DAY", $RRule[ "BYDAY" ] ) )
-				{
-					$Day = $RRule[ "BYDAY" ][ "DAY" ];
-					if ( array_key_exists( "BYMONTH", $RRule ) )
-					{
-						$Month = $RRule[ "BYMONTH" ];
-						$DateObj = DateTime::createFromFormat( '!m', $Month );
-						$MonthName = $DateObj->format( 'F' );
-						switch ( $Day ) // RFC5545
-						{
-							case "MO": $DayName = "Monday"; break;
-							case "TU": $DayName = "Tuesday"; break;
-							case "WE": $DayName = "Wednesday"; break;
-							case "TH": $DayName = "Thursday"; break;
-							case "FR": $DayName = "Friday"; break;
-							case "SA": $DayName = "Saturday"; break;
-							case "SU": $DayName = "Sunday"; break;
-							default: $DayName = "Sunday"; break;
-						}
-						return date_timestamp_set( new DateTime, strtotime( $Occ . " " . $DayName . " " . $MonthName . " " . $Year . "00:00:00" ) );
-					}
-				}
-			}
-		}
-	}
+    private function TZRRuleToDateTime($RRule, $Year = '')
+    {
+        // always yearly, once a year
+        if (array_key_exists('BYDAY', $RRule) && array_key_exists('0', $RRule['BYDAY'])) {
+            $Occ = $RRule['BYDAY']['0'];
+            if (array_key_exists('DAY', $RRule['BYDAY'])) {
+                $Day = $RRule['BYDAY']['DAY'];
+                if (array_key_exists('BYMONTH', $RRule)) {
+                    $Month     = $RRule['BYMONTH'];
+                    $DateObj   = DateTime::createFromFormat('!m', $Month);
+                    $MonthName = $DateObj->format('F');
+                    switch ($Day) // RFC5545
+                    {
+                        case 'MO':
+                            $DayName = 'Monday';
+                            break;
+                        case 'TU':
+                            $DayName = 'Tuesday';
+                            break;
+                        case 'WE':
+                            $DayName = 'Wednesday';
+                            break;
+                        case 'TH':
+                            $DayName = 'Thursday';
+                            break;
+                        case 'FR':
+                            $DayName = 'Friday';
+                            break;
+                        case 'SA':
+                            $DayName = 'Saturday';
+                            break;
+                        case 'SU':
+                        default:
+                            $DayName = 'Sunday';
+                            break;
+                    }
+                    return date_timestamp_set(new DateTime, strtotime($Occ . ' ' . $DayName . ' ' . $MonthName . ' ' . $Year . '00:00:00'));
+                }
+            }
+        }
+        return null;
+    }
 
     /*
         apply the time offset from a timezone provided by the loaded calendar
     */
-	private function ApplyCustomTimezoneOffset( $EventDateTime, $CustomTimezoneName )
-	{
-		// is timezone in calendar provided timezone?
-		foreach ( $this->CalendarTimezones as $CalendarTimezone )
-		{
-			if ( $CalendarTimezone[ "TZID" ] == $CustomTimezoneName )
-			{
-				$DSTStartDateTime = $this->TZRRuleToDateTime( $CalendarTimezone[ "DSTSTART" ], $EventDateTime->format( "Y" ) );
-				$DSTEndDateTime = $this->TZRRuleToDateTime( $CalendarTimezone[ "DSTEND" ], $EventDateTime->format( "Y" ) );
+    private function ApplyCustomTimezoneOffset(DateTime $EventDateTime, DateTime $CustomTimezoneName): DateTime
+    {
+        // is timezone in calendar provided timezone?
+        foreach ($this->CalendarTimezones as $CalendarTimezone) {
+            if ($CalendarTimezone['TZID'] === $CustomTimezoneName) {
+                $DSTStartDateTime = $this->TZRRuleToDateTime($CalendarTimezone['DSTSTART'], $EventDateTime->format('Y'));
+                $DSTEndDateTime   = $this->TZRRuleToDateTime($CalendarTimezone['DSTEND'], $EventDateTime->format('Y'));
 
-				// between these dates?
-				if ( ( $EventDateTime > $DSTStartDateTime ) && ( $EventDateTime < $DSTEndDateTime ) )
-			    {
-					$EventDateTime->add( DateInterval::createFromDateString( strtotime( $CalendarTimezone[ "DSTOFFSET" ] ) ) );
-			    }
-				else
-				{
-					$EventDateTime->add( DateInterval::createFromDateString( strtotime( $CalendarTimezone[ "OFFSET" ] ) ) );
-				}
-				break;
-			}
-		}
-		return $EventDateTime;
-	}
+                // between these dates?
+                if (($EventDateTime > $DSTStartDateTime) && ($EventDateTime < $DSTEndDateTime)) {
+                    $EventDateTime->add(DateInterval::createFromDateString(strtotime($CalendarTimezone['DSTOFFSET'])));
+                } else {
+                    $EventDateTime->add(DateInterval::createFromDateString(strtotime($CalendarTimezone['OFFSET'])));
+                }
+                break;
+            }
+        }
+        return $EventDateTime;
+    }
 
     /*
         convert iCal format to PHP DateTime respecting timezone information
         every information will be transformed into the current timezone!
     */
-	private function iCalDateTimeArrayToDateTime( $DT )
-	{
-		$Year = $DT[ "value" ][ "year" ];
-		$Month = $DT[ "value" ][ "month" ];
-		$Day = $DT[ "value" ][ "day" ];
+    private function iCalDateTimeArrayToDateTime($DT): DateTime
+    {
+        $Year  = $DT['value']['year'];
+        $Month = $DT['value']['month'];
+        $Day   = $DT['value']['day'];
 
-		$WholeDay = false;
-		if ( array_key_exists( "params", $DT ) && array_key_exists( "VALUE", $DT[ "params" ] ) )
-		{
-			// whole-day, this is not timezone relevant!
-			if ( "DATE" == $DT[ "params" ][ "VALUE" ] )
-				$WholeDay = true;
-		}
+        $WholeDay = false;
+        // whole-day, this is not timezone relevant!
+        if (array_key_exists('params', $DT) && array_key_exists('VALUE', $DT['params']) && ('DATE' === $DT['params']['VALUE'])) {
+            $WholeDay = true;
+        }
 
-		if ( array_key_exists( "hour", $DT[ "value" ] ) )
-			$Hour = $DT[ "value" ][ "hour" ];
-		else
-			$Hour = 0;
-		if ( array_key_exists( "min", $DT[ "value" ] ) )
-			$Min = $DT[ "value" ][ "min" ];
-		else
-			$Min = 0;
-		if ( array_key_exists( "sec", $DT[ "value" ] ) )
-			$Sec = $DT[ "value" ][ "sec" ];
-		else
-			$Sec = 0;
+        if (array_key_exists('hour', $DT['value'])) {
+            $Hour = $DT['value']['hour'];
+        } else {
+            $Hour = 0;
+        }
+        if (array_key_exists('min', $DT['value'])) {
+            $Min = $DT['value']['min'];
+        } else {
+            $Min = 0;
+        }
+        if (array_key_exists('sec', $DT['value'])) {
+            $Sec = $DT['value']['sec'];
+        } else {
+            $Sec = 0;
+        }
         // owncloud calendar
-		if ( array_key_exists( "params", $DT ) && array_key_exists( "TZID", $DT[ "params" ] ) )
-			$Timezone = $DT[ "params" ][ "TZID" ];
-        // google calendar
-        else if ( array_key_exists( "tz", $DT[ "value" ] ) )
-			$Timezone = "UTC";
-        else
-			$Timezone = $this->Timezone;
+        if (array_key_exists('params', $DT) && array_key_exists('TZID', $DT['params'])) {
+            $Timezone = $DT['params']['TZID'];
+        } // google calendar
+        else if (array_key_exists('tz', $DT['value'])) {
+            $Timezone = 'UTC';
+        } else {
+            $Timezone = $this->Timezone;
+        }
 
-		$DateTime = new DateTime();
+        $DateTime = new DateTime();
 
-		if ( $WholeDay )
-		{
-			$DateTime->setTimezone( timezone_open( $this->Timezone ) );
-			$DateTime->setDate( $Year, $Month, $Day );
-			$DateTime->setTime( $Hour, $Min, $Sec );
-		}
-		else
-		{
-			$IsStandardTimezone = true;
-			$SetTZResult = @$DateTime->setTimezone( timezone_open( $Timezone ) );
-			if ( false === $SetTZResult )
-			{
-				// no standard timezone, set to UTC first
-				$DateTime->setTimezone( timezone_open ( 'UTC' ) );
-				$IsStandardTimezone = false;
-		    }
-			$DateTime->setDate( $Year, $Month, $Day );
-			$DateTime->setTime( $Hour, $Min, $Sec );
-			if ( !$IsStandardTimezone )
-			{
-				// set UTC offset if provided in calendar data
-				$DateTime = $this->ApplyCustomTimezoneOffset( $DateTime, $Timezone );
-			}
-			// convert to local timezone
-			$DateTime->setTimezone( timezone_open( $this->Timezone ) );
-		}
-		return $DateTime;
-	}
+        if ($WholeDay) {
+            $DateTime->setTimezone(timezone_open($this->Timezone));
+            $DateTime->setDate($Year, $Month, $Day);
+            $DateTime->setTime($Hour, $Min, $Sec);
+        } else {
+            $IsStandardTimezone = true;
+            $SetTZResult        = @$DateTime->setTimezone(timezone_open($Timezone));
+            if (false === $SetTZResult) {
+                // no standard timezone, set to UTC first
+                $DateTime->setTimezone(timezone_open('UTC'));
+                $IsStandardTimezone = false;
+            }
+            $DateTime->setDate($Year, $Month, $Day);
+            $DateTime->setTime($Hour, $Min, $Sec);
+            if (!$IsStandardTimezone) {
+                // set UTC offset if provided in calendar data
+                $DateTime = $this->ApplyCustomTimezoneOffset($DateTime, $Timezone);
+            }
+            // convert to local timezone
+            $DateTime->setTimezone(timezone_open($this->Timezone));
+        }
+        return $DateTime;
+    }
 
     /*
         basic setup
     */
-	function __construct( $PostNotifyMinutes, $DaysToCache )
-	{
-        $this->Timezone = date_default_timezone_get();
-		$this->NowDateTime = date_create();
-		$this->NowTimestamp = date_timestamp_get( $this->NowDateTime );
+    public function __construct(int $PostNotifyMinutes, int $DaysToCache)
+    {
+        $this->Timezone          = date_default_timezone_get();
+        $this->NowDateTime       = date_create();
+        $this->NowTimestamp      = date_timestamp_get($this->NowDateTime);
         $this->PostNotifySeconds = $PostNotifyMinutes * 60;
-		$this->SecondsToCache = $DaysToCache * 24 * 60 * 60;
-		$this->CacheSizeDateTime = date_timestamp_set( date_create(), $this->NowTimestamp + $this->SecondsToCache );
-	}
+        $this->DaysToCache       = $DaysToCache;
+        $this->CacheSizeDateTime = date_timestamp_set(date_create(), $this->NowTimestamp + $this->DaysToCache);
+    }
 
     /*
         main import method
     */
-	public function ImportCalendar( $iCalData )
-	{
-        $iCalCalendarArray = array();
-		$this->CalendarTimezones = array();
+    public function ImportCalendar(string $iCalData): array
+    {
+        $iCalCalendarArray       = [];
+        $this->CalendarTimezones = [];
 
-		$Config = array(
-            "unique_id" => "ergomation.de",
-            "TZID" => $this->Timezone,
-            "X-WR-TIMEZONE" => $this->Timezone
-        );
-		$vCalendar = new kigkonsult\iCalcreator\vcalendar( $Config );
-		$vCalendar->parse( $iCalData );
+        $Config    = [
+            'unique_id'     => 'ergomation.de',
+            'TZID'          => $this->Timezone,
+            'X-WR-TIMEZONE' => $this->Timezone];
+        $vCalendar = new kigkonsult\iCalcreator\vcalendar($Config);
+        $vCalendar->parse($iCalData);
 
-		// get calendar supplied timezones
-		while( $Comp = $vCalendar->getComponent( "vtimezone" ) )
-		{
-			$ProvidedTZ = array();
-			$Standard = $Comp->getComponent( "STANDARD" );
-			$Daylight = $Comp->getComponent( "DAYLIGHT" );
+        // get calendar supplied timezones
+        while ($Comp = $vCalendar->getComponent('vtimezone')) {
+            $ProvidedTZ = [];
+            $Standard   = $Comp->getComponent('STANDARD');
+            $Daylight   = $Comp->getComponent('DAYLIGHT');
 
-            if ( ( false !== $Standard ) && ( false !== $Daylight ) )
-            {
-                $ProvidedTZ[ "TZID" ] = $Comp->getProperty( "TZID" );
-                $ProvidedTZ[ "DSTSTART" ] = $Daylight->getProperty( "rrule", false, false );
-                $ProvidedTZ[ "DSTEND" ] = $Standard->getProperty( "rrule", false, false );
-                $ProvidedTZ[ "OFFSET" ] = $Standard->getProperty( "TZOFFSETTO" );
-                $ProvidedTZ[ "DSTOFFSET" ] = $Standard->getProperty( "TZOFFSETFROM" );
+            if (($Standard !== false) && ($Daylight !== false)) {
+                $ProvidedTZ['TZID']      = $Comp->getProperty('TZID');
+                $ProvidedTZ['DSTSTART']  = $Daylight->getProperty('rrule', false, false);
+                $ProvidedTZ['DSTEND']    = $Standard->getProperty('rrule', false, false);
+                $ProvidedTZ['OFFSET']    = $Standard->getProperty('TZOFFSETTO');
+                $ProvidedTZ['DSTOFFSET'] = $Standard->getProperty('TZOFFSETFROM');
 
                 $this->CalendarTimezones[] = $ProvidedTZ;
             }
         }
-		while( $Comp = $vCalendar->getComponent( "vevent" ) )
-		{
-			$ThisEventArray = array();
-			$ThisEvent = array();
-			$ThisEvent[ "UID" ] = $Comp->getProperty( "uid", false, false );
-			$ThisEvent[ "Name" ] = $Comp->getProperty( "summary", false, false );
-			$ThisEvent[ "Location" ] = $Comp->getProperty( "location", false, false );
-			$ThisEvent[ "Description" ] = $Comp->getProperty( "description", false, false );
 
-			$StartingTime = $this->iCalDateTimeArrayToDateTime( $Comp->getProperty( "dtstart", false, true ) );
-			$EndingTime = $this->iCalDateTimeArrayToDateTime( $Comp->getProperty( "dtend", false, true ) );
-			$StartingTimestamp = date_timestamp_get( $StartingTime );
-			$EndingTimestamp = date_timestamp_get( $EndingTime );
-			$Duration = $EndingTimestamp - $StartingTimestamp;
+        while ($Comp = $vCalendar->getComponent('vevent')) {
+            $ThisEventArray           = [];
+            $ThisEvent                = [];
+            $ThisEvent['UID']         = $Comp->getProperty('uid', false);
+            $ThisEvent['Name']        = $Comp->getProperty('summary', false);
+            $ThisEvent['Location']    = $Comp->getProperty('location', false);
+            $ThisEvent['Description'] = $Comp->getProperty('description', false);
+            $this->LogDebug('event: ' . print_r($ThisEvent, true));
 
-			if ( $this->NowTimestamp < ( $StartingTimestamp - $this->SecondsToCache ) )
-			{
-				// event is too far in the future, ignore
-				$this->LogDebug( "Event " . $ThisEvent[ "Name" ] . "is too far in the future, ignoring" );
-			}
-			else
-			{
-				// check if recurring
-				$CalRRule = $Comp->getProperty( "rrule", false, false );
-				if ( is_array( $CalRRule ) )
-				{
-					// $this->LogDebug( "Recurring event" );
-					if ( array_key_exists( "UNTIL", $CalRRule ) )
-					{
-						$UntilDateTime = $this->iCalDateTimeArrayToDateTime( array( "value" => $CalRRule[ "UNTIL" ] ) );
-						// replace iCal date array with datetime object
-						$CalRRule[ "UNTIL" ] = $UntilDateTime;
-					}
-					// replace/set iCal date array with datetime object
-					$CalRRule[ "DTSTART" ] = $StartingTime;
-					$RRule = new RRule( $CalRRule );
-					foreach ( $RRule->getOccurrencesBetween( $this->NowDateTime, $this->CacheSizeDateTime ) as $Occurrence )
-                    {
-						$ThisEvent[ "From" ] = date_timestamp_get( $Occurrence );
-						$ThisEvent[ "To" ] = $ThisEvent[ "From" ] + $Duration;
-						$ThisEvent[ "FromS" ] = date( "Y-m-d H:i:s", $ThisEvent[ "From" ] );
-						$ThisEvent[ "ToS" ] = date( "Y-m-d H:i:s", $ThisEvent[ "To" ] );
-						$ThisEventArray[] = $ThisEvent;
-					}
-				}
-				else
-				{
-					$ThisEvent[ "From" ] = $StartingTimestamp;
-					$ThisEvent[ "To" ] = $EndingTimestamp;
-					$ThisEvent[ "FromS" ] = date( "Y-m-d H:i:s", $ThisEvent[ "From" ] );
-					$ThisEvent[ "ToS" ] = date( "Y-m-d H:i:s", $ThisEvent[ "To" ] );
-					$ThisEventArray[] = $ThisEvent;
-				}
-				foreach ( $ThisEventArray as $ThisEvent )
-				{
-					if ( $this->NowTimestamp > ( $ThisEvent[ "To" ] + $this->PostNotifySeconds ) )
-					{
-						// event is past notification times, ignore
-						$this->LogDebug( "Event " . $ThisEvent[ "Name" ] . " is past the notification times, ignoring" );
-					}
-					else
-					{
-						// insert event(s)
-						$iCalCalendarArray[] = $ThisEvent;
-					}
-				}
-			}
-		}
-		// sort by start date/time to make the check on changes work
-		usort( $iCalCalendarArray, function ( $a, $b ) { return $a[ "From" ] - $b[ "From" ]; } );
+            $StartingTime      = $this->iCalDateTimeArrayToDateTime($Comp->getProperty('dtstart', false, true));
+            $EndingTime        = $this->iCalDateTimeArrayToDateTime($Comp->getProperty('dtend', false, true));
+            $StartingTimestamp = date_timestamp_get($StartingTime);
+            $EndingTimestamp   = date_timestamp_get($EndingTime);
+            $Duration          = $EndingTimestamp - $StartingTimestamp;
+
+            if ($this->NowTimestamp < strtotime(sprintf('- %s days', $this->DaysToCache), $StartingTimestamp)) {
+                // event is too far in the future, ignore
+                $this->LogDebug('Event ' . $ThisEvent['Name'] . 'is too far in the future, ignoring');
+            } else {
+                // check if recurring
+                $CalRRule = $Comp->getProperty('rrule', false);
+                if (is_array($CalRRule)) {
+                    $this->LogDebug('Recurring event: ' . print_r($CalRRule, true));
+                    if (array_key_exists('UNTIL', $CalRRule)) {
+                        $UntilDateTime = $this->iCalDateTimeArrayToDateTime(['value' => $CalRRule['UNTIL']]);
+                        // replace iCal date array with datetime object
+                        $CalRRule['UNTIL'] = $UntilDateTime;
+                    }
+                    // replace/set iCal date array with datetime object
+                    $CalRRule['DTSTART'] = $StartingTime;
+                    $RRule               = new RRule($CalRRule);
+                    foreach ($RRule->getOccurrencesBetween($this->NowDateTime, $this->CacheSizeDateTime) as $Occurrence) {
+                        $ThisEvent['From']  = date_timestamp_get($Occurrence);
+                        $ThisEvent['To']    = $ThisEvent['From'] + $Duration;
+                        $ThisEvent['FromS'] = date('Y-m-d H:i:s', $ThisEvent['From']);
+                        $ThisEvent['ToS']   = date('Y-m-d H:i:s', $ThisEvent['To']);
+                        $ThisEventArray[]   = $ThisEvent;
+                    }
+                } else {
+                    $ThisEvent['From']  = $StartingTimestamp;
+                    $ThisEvent['To']    = $EndingTimestamp;
+                    $ThisEvent['FromS'] = date('Y-m-d H:i:s', $ThisEvent['From']);
+                    $ThisEvent['ToS']   = date('Y-m-d H:i:s', $ThisEvent['To']);
+                    $ThisEventArray[]   = $ThisEvent;
+                }
+                foreach ($ThisEventArray as $ThisEvent) {
+                    if ($this->NowTimestamp > ($ThisEvent['To'] + $this->PostNotifySeconds)) {
+                        // event is past notification times, ignore
+                        $this->LogDebug('Event ' . $ThisEvent['Name'] . ' is past the notification times, ignoring');
+                    } else {
+                        // insert event(s)
+                        $iCalCalendarArray[] = $ThisEvent;
+                    }
+                }
+            }
+        }
+        // sort by start date/time to make the check on changes work
+        usort(
+            $iCalCalendarArray, static function($a, $b) {
+            return $a['From'] - $b['From'];
+        }
+        );
         return $iCalCalendarArray;
-	}
+    }
 }
 
 
 /***********************************************************************
+ * module class
+ ************************************************************************/
+class iCalCalendarReader extends ErgoIPSModule
+{
 
-* module class
+    private const STATUS_INST_INVALID_URL = 201;
+    private const STATUS_INST_SSL_ERROR = 202;
+    private const STATUS_INST_INVALID_USER_PASSWORD = 203;
+    private const STATUS_INST_CONNECTION_ERROR = 204;
+    private const STATUS_INST_UNEXPECTED_RESPONSE = 205;
 
-************************************************************************/
+    private const ICCR_PROPERTY_CALENDAR_URL = 'CalendarServerURL';
+    private const ICCR_PROPERTY_USERNAME = 'Username';
+    private const ICCR_PROPERTY_PASSWORD = 'Password';
+    private const ICCR_PROPERTY_DAYSTOCACHE = 'DaysToCache';
+    private const ICCR_PROPERTY_UPDATE_FREQUENCY = 'UpdateFrequency';
 
-class iCalCalendarReader extends ErgoIPSModule {
 
-    // buffer for ical calendar stream between function calls
-    private $curl_result = '';
-
-    /***********************************************************************
-
-    * customized debug methods
-
-    ************************************************************************/
+     /***********************************************************************
+     * customized debug methods
+     ***********************************************************************
+     *
+     * @return bool
+     */
 
     /*
         debug on/off is a defined constant
     */
-    protected function IsDebug()
+    protected function IsDebug(): bool
     {
-        return ICCR_Debug;
+        return ICCR_DEBUG;
     }
 
     /*
         sender for debug messages is set
     */
-    protected function GetLogID()
+    protected function GetLogID(): string
     {
-        return IPS_GetName( $this->InstanceID );
+        return IPS_GetName($this->InstanceID);
     }
 
 
     /***********************************************************************
-
-    * standard module methods
-
-    ************************************************************************/
+     * standard module methods
+     ************************************************************************/
 
     /*
         basic setup
@@ -357,238 +348,169 @@ class iCalCalendarReader extends ErgoIPSModule {
         parent::Create();
 
         // create configuration properties
-        $this->RegisterPropertyString( ICCR_Property_CalendarURL, '' );
-        $this->RegisterPropertyString( ICCR_Property_Username, '' );
-        $this->RegisterPropertyString( ICCR_Property_Password, '' );
+        $this->RegisterPropertyString(self::ICCR_PROPERTY_CALENDAR_URL, '');
+        $this->RegisterPropertyString(self::ICCR_PROPERTY_USERNAME, '');
+        $this->RegisterPropertyString(self::ICCR_PROPERTY_PASSWORD, '');
 
-        $this->RegisterPropertyInteger( ICCR_Property_DaysToCache, ICCR_Default_DaysToCache );
-        $this->RegisterPropertyInteger( ICCR_Property_UpdateFrequency, ICCR_Default_UpdateFrequency );
+        $this->RegisterPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHE, 365);
+        $this->RegisterPropertyInteger(self::ICCR_PROPERTY_UPDATE_FREQUENCY, 15);
 
-        // initialize persistence
-        $this->SetBuffer( "CalendarBuffer",  "" );
-        $this->SetBuffer( "Notifications",  "" );
-        $this->SetBuffer( "MaxPreNotifySeconds",  "" );
-        $this->SetBuffer( "MaxPostNotifySeconds",  "" );
+        // create Attributes
+        $this->RegisterAttributeString('CalendarBuffer', '');
+        $this->RegisterAttributeString('Notifications', '');
+        $this->RegisterAttributeInteger('MaxPreNotifySeconds', 0);
+        $this->RegisterAttributeInteger('MaxPostNotifySeconds', 0);
 
         // create timer
-        $this->RegisterTimer( "Update", 0, 'ICCR_UpdateCalendar( $_IPS["TARGET"] );' ); // no update on init
-        $this->RegisterTimer( "Cron", 1000 * 60 , 'ICCR_TriggerNotifications( $_IPS["TARGET"] );' ); // cron runs every minute
+        $this->RegisterTimer('Update', 0, 'ICCR_UpdateCalendar( $_IPS["TARGET"] );'); // no update on init
+        $this->RegisterTimer('Cron1', 1000 * 60, 'ICCR_TriggerNotifications( $_IPS["TARGET"] );'); // cron runs every minute
+        $this->RegisterTimer( 'Cron5', 5000 * 60 , 'ICCR_UpdateClientConfig( $_IPS["TARGET"] );' ); // cron runs every 5 minutes
     }
 
     /*
         react on user configuration dialog
     */
-    public function ApplyChanges() {
+    public function ApplyChanges():bool
+    {
         parent::ApplyChanges();
 
-        $this->SetTimerInterval( "Update", $this->GetUpdateFrequency() * 1000 * 60 );
+        $this->SetTimerInterval('Update', $this->ReadPropertyInteger(self::ICCR_PROPERTY_UPDATE_FREQUENCY) * 1000 * 60);
 
-        $Status = $this->CheckCalendarURLSyntax();
-        $this->SetStatus( $Status );
+        if (!$this->CheckCalendarURLSyntax()){
+            $Status = self::STATUS_INST_INVALID_URL;
+        } else{
+            $curl_result = '';
+            $Status = $this->LoadCalendarURL($curl_result);
+        }
+
+        $this->SetStatus($Status);
+
         // ready to run an update?
-        if ( 102 == $Status )
+        if ($Status === IS_ACTIVE){
             $this->UpdateClientConfig();
+            return true;
+        }
+
+        return false;
     }
 
 
-    /***********************************************************************
-
-    * access methods to persistence
-
-    ************************************************************************/
-
-    // property persistence (lasts across restarts)
-    private function GetCalendarServerURL()
-    {
-        return $this->ReadPropertyString( ICCR_Property_CalendarURL );
-    }
-    private function GetUsername()
-    {
-        return $this->ReadPropertyString( ICCR_Property_Username );
-    }
-    private function GetPassword()
-    {
-        return $this->ReadPropertyString( ICCR_Property_Password );
-    }
-    private function GetDaysToCache()
-    {
-        return $this->ReadPropertyInteger( ICCR_Property_DaysToCache );
-    }
-    private function GetUpdateFrequency()
-    {
-        return $this->ReadPropertyInteger( ICCR_Property_UpdateFrequency );
-    }
-
-    // runtime persistence (does not lasts across restarts)
-    private function GetCalendar()
-    {
-        return $this->GetBuffer( "CalendarBuffer" );
-    }
-    private function SetCalendar( $Value )
-    {
-        $this->SetBuffer( "CalendarBuffer",  $Value );
-    }
-
-    private function GetNotifications()
-    {
-        return json_decode( $this->GetBuffer( "Notifications" ), true );
-    }
     /*
         save notifications and find the extremum
     */
-    private function SetNotifications( $Value )
+    private function SetNotifications(array $notifications): void
     {
-        $this->SetBuffer( "Notifications", json_encode( $Value ) );
-        $MaxPreNS = 0;
+        $this->WriteAttributeString('Notifications', json_encode($notifications));
+        $MaxPreNS  = 0;
         $MaxPostNS = 0;
 
-        if ( is_array( $Value ) )
-        {
-			foreach ( $Value as $Entry )
-            {
-                if ( array_key_exists( "PreNS", $Entry ) )
-                    if ( $Entry[ "PreNS" ] > $MaxPreNS )
-                        $MaxPreNS = $Entry[ "PreNS" ];
-                if ( array_key_exists( "PostNS", $Entry ) )
-                    if ( $Entry[ "PostNS" ] > $MaxPostNS )
-                        $MaxPostNS = $Entry[ "PostNS" ];
+        foreach ($notifications as $notification) {
+            if (array_key_exists('PreNS', $notification) && $notification['PreNS'] > $MaxPreNS) {
+                $MaxPreNS = $notification['PreNS'];
+            }
+            if (array_key_exists('PostNS', $notification) && $notification['PostNS'] > $MaxPostNS) {
+                $MaxPostNS = $notification['PostNS'];
             }
         }
-        $this->SetMaxPreNotifySeconds( $MaxPostNS );
-        $this->SetMaxPostNotifySeconds( $MaxPostNS );
+
+        $this->WriteAttributeInteger('MaxPreNotifySeconds', $MaxPreNS);
+        $this->WriteAttributeInteger('MaxPostNotifySeconds', $MaxPostNS);
     }
 
-    private function GetMaxPreNotifySeconds()
-    {
-        $Value = json_decode( $this->GetBuffer( "MaxPreNotifySeconds" ), true );
-        if ( empty( $Value ) )
-            return 0;
-        else
-            return $Value;
-    }
-    private function SetMaxPreNotifySeconds( $Value )
-    {
-        $this->SetBuffer( "MaxPreNotifySeconds",  json_encode( $Value ) );
-    }
-    private function GetMaxPostNotifySeconds()
-    {
-        $Value = json_decode( $this->GetBuffer( "MaxPostNotifySeconds" ), true );
-        if ( empty( $Value ) )
-            return 0;
-        else
-            return $Value;
-    }
-    private function SetMaxPostNotifySeconds( $Value )
-    {
-        $this->SetBuffer( "MaxPostNotifySeconds",  json_encode( $Value ) );
-    }
 
     /*
         check if calendar URL syntax is valid
     */
-    public function CheckCalendarURLSyntax()
+    public function CheckCalendarURLSyntax(): bool
     {
-        $Status = 102;
+        $this->LogDebug(sprintf('Entering %s()', __FUNCTION__));
 
         // validate saved properties
-        $NC_URL = $this->GetCalendarServerURL();
-        if ( '' == $NC_URL )
-        {
-            $Status = 104;
-        }
-        else
-        {
-            // check URL format
-            if ( false === filter_var( $NC_URL, FILTER_VALIDATE_URL ) )
-            {
-                $Status = 200;
-            }
-        }
-        return $Status;
+        $calendarServerURL = $this->ReadPropertyString(self::ICCR_PROPERTY_CALENDAR_URL);
+        return (($calendarServerURL !== '') && filter_var($calendarServerURL, FILTER_VALIDATE_URL));
     }
 
 
     /***********************************************************************
-
-    * configuration helper
-
-    ************************************************************************/
+     * configuration helper
+     ************************************************************************/
 
     /*
         get all notifications information from connected child instances
     */
-    private function GetChildrenConfig()
+    private function GetChildrenConfig(): void
     {
+        $this->LogDebug(sprintf('Entering %s()', __FUNCTION__));
         // empty configuration buffer
-        $Notifications = array();
-        $ChildInstances = IPS_GetInstanceListByModuleID( ICCN_Instance_GUID );
-        if ( sizeof( $ChildInstances ) > 0 )
+        $Notifications  = [];
+        $ChildInstances = IPS_GetInstanceListByModuleID(ICCN_INSTANCE_GUID);
+        if (count($ChildInstances) === 0) {
             return;
+        }
         // transfer configuration
-        foreach( $ChildInstances as $ChInstance )
-            if ( IPS_GetInstance( $ChInstance )[ "ConnectionID" ] == $this->InstanceID )
-            {
-                $ClientConfig = json_decode( IPS_GetConfiguration( $ChInstance ), true );
-                $ClientPreNotifyMinutes = $ClientConfig[ "PreNotifyMinutes" ];
-                $ClientPostNotifyMinutes = $ClientConfig[ "PostNotifyMinutes" ];
+        $this->LogDebug( 'Transfering configuration from notifier children' );
+        foreach ($ChildInstances as $ChInstance) {
+            if (IPS_GetInstance($ChInstance)['ConnectionID'] === $this->InstanceID) {
+                $ClientConfig            = json_decode(IPS_GetConfiguration($ChInstance), true);
+                $ClientPreNotifyMinutes  = $ClientConfig['PreNotifyMinutes'];
+                $ClientPostNotifyMinutes = $ClientConfig['PostNotifyMinutes'];
                 // new entry
-                $Notifications[ $ChInstance ] = array(
-                    "PreNS" => $ClientPreNotifyMinutes * 60,
-                    "PostNS" => $ClientPostNotifyMinutes * 60,
-                    "Status" => 0,
-                    "Reason" => array()
-                );
+                $Notifications[$ChInstance] = [
+                    'PreNS'  => $ClientPreNotifyMinutes * 60,
+                    'PostNS' => $ClientPostNotifyMinutes * 60,
+                    'Status' => 0,
+                    'Reason' => []];
             }
-        $this->SetNotifications( $Notifications );
+        }
+        $this->SetNotifications($Notifications);
     }
 
 
     /***********************************************************************
-
-    * calendar loading and conversion methods
-
-    ************************************************************************/
+     * calendar loading and conversion methods
+     ***********************************************************************
+     *
+     * @return int
+     */
 
     /*
         load calendar from URL into $this->curl_result, returns IPS status value
     */
-    private function LoadCalendarURL( $URL )
+    private function LoadCalendarURL(string &$curl_result): int
     {
-        $result = 102;
-        $username = $this->GetUsername();
-        $password = $this->GetPassword();
+        $result   = IS_ACTIVE;
+        $url = $this->ReadPropertyString(self::ICCR_PROPERTY_CALENDAR_URL);
+        $username = $this->ReadPropertyString(self::ICCR_PROPERTY_USERNAME);
+        $password = $this->ReadPropertyString(self::ICCR_PROPERTY_PASSWORD);
 
-        $this->LogDebug( 'Entering LoadCalendarURL()' );
+        $this->LogDebug(sprintf('Entering %s(\'%s\')', __FUNCTION__, $url));
 
         $curl = curl_init();
-		curl_setopt( $curl, CURLOPT_URL, $URL );
-		curl_setopt( $curl, CURLOPT_SSL_VERIFYPEER, false ); // yes, easy but lazy
-		curl_setopt( $curl, CURLOPT_CONNECTTIMEOUT, 25 ); // 30s maximum script execution time
-		curl_setopt( $curl, CURLOPT_TIMEOUT, 25 ); // 30s maximum script execution time
-		curl_setopt( $curl, CURLOPT_FOLLOWLOCATION, 1 );
-		curl_setopt( $curl, CURLOPT_MAXREDIRS, 5 ); // educated guess
-		curl_setopt( $curl, CURLOPT_RETURNTRANSFER, 1 );
-        if ( '' != $username )
-            curl_setopt( $curl, CURLOPT_USERPWD, $username . ':' . $password );
-        $this->LogDebug( 'Loading from URL...' );
-		$this->curl_result = curl_exec ( $curl );
-        $this->LogDebug( 'Loaded' );
-        $curl_error_nr = curl_errno( $curl );
-        $curl_error_str = curl_error( $curl );
-		curl_close( $curl );
+        curl_setopt($curl, CURLOPT_URL, $url);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true); // yes, easy but lazy
+        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 2); // 30s maximum script execution time
+        curl_setopt($curl, CURLOPT_TIMEOUT, 10); // 30s maximum script execution time
+        curl_setopt($curl, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($curl, CURLOPT_MAXREDIRS, 5); // educated guess
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+        if ($username !== '') {
+            curl_setopt($curl, CURLOPT_USERPWD, $username . ':' . $password);
+        }
+        $curl_result = curl_exec($curl);
+        $curl_error_nr     = curl_errno($curl);
+        $curl_error_str    = curl_error($curl);
+        curl_close($curl);
 
         // check on curl error
-        if ( $curl_error_nr )
-        {
-            $this->LogError( 'Error on connect - ' . $curl_error_str . ', for ' . $URL );
+        if ($curl_error_nr) {
+            $this->LogError(sprintf('Error on connect - (%s) %s for %s' , $curl_error_nr, $curl_error_str, $url));
             // only differentiate between invalid, connect, SSL and auth
-            switch ( $curl_error_nr )
-            {
+            switch ($curl_error_nr) {
                 case 1:
                 case 3:
                 case 4:
                     // invalid URL
-                    $result = 201;
+                    $result = self::STATUS_INST_INVALID_URL;
                     break;
                 case 35:
                 case 53:
@@ -603,81 +525,74 @@ class iCalCalendarReader extends ErgoIPSModule {
                 case 82:
                 case 83:
                     // SSL error
-                    $result = 202;
+                    $result = self::STATUS_INST_SSL_ERROR;
                     break;
-                case 35:
                 case 67:
                     // auth error
-                    $result = 203;
+                    $result = self::STATUS_INST_INVALID_USER_PASSWORD;
                     break;
                 default:
                     // connect error
-                    $result = 204;
+                    $result = self::STATUS_INST_CONNECTION_ERROR;
                     break;
             }
-        }
-        // no curl error, continue
-        else
-        {
-            if ( substr( $this->curl_result, 0 ,15 ) != "BEGIN:VCALENDAR" )
-            {
-                // handle error document
-                $result = 205;
+        } // no curl error, continue
+        elseif (strpos($curl_result, 'BEGIN:VCALENDAR') === false) {
+            // handle error document
+            $result = self::STATUS_INST_UNEXPECTED_RESPONSE;
 
-                // ownCloud sends XML error messages
-                libxml_use_internal_errors( true );
-                $XML = simplexml_load_string( $this->curl_result );
+            // ownCloud sends XML error messages
+            libxml_use_internal_errors(true);
+            $XML = simplexml_load_string($curl_result);
 
-                // owncloud error?
-                if ( $XML !== false )
-                {
-                    $XML->registerXPathNamespace( 'd', 'DAV:' );
-                    if (0 != count( $XML->xpath( '//d:error' ) ) )
-                    {
-                        // XML error document
-                        $exception = $XML->children( 'http://sabredav.org/ns' )->exception;
-                        $message = $XML->children( 'http://sabredav.org/ns' )->message;
-                        if ( 'Sabre\DAV\Exception\NotAuthenticated' == $exception )
-                        {
-                            $result = 203;
-                        }
-                        $this->LogError( 'Error: ' . $exception . ' - ' . $message );
-                    }
+            // owncloud error?
+            if ($XML !== false) {
+                $XML->registerXPathNamespace('d', 'DAV:');
+                if (count($XML->xpath('//d:error')) > 0) {
+                    // XML error document
+                    $children  = $XML->children('http://sabredav.org/ns');
+                    /** @noinspection PhpUndefinedFieldInspection */
+                    $exception = $children->exception;
+                    /** @noinspection PhpUndefinedFieldInspection */
+                    $message = $XML->children('http://sabredav.org/ns')->message;
+                    $this->LogError(sprintf('Error: %s - Message: %s',$exception, $message));
+                    $result = self::STATUS_INST_INVALID_USER_PASSWORD;
                 }
-                // synology sends plain text
-                else if ( 'Please log in' == substr( $this->curl_result, 0 ,13 ) )
-                {
-                    $this->LogError( 'Error logging on - invalid user/password combination for ' . $URL );
-                    $result = 203;
-                }
-                // everything else goes here
-                else
-                {
-                    $this->LogError( 'Error on connect - this is not a valid calendar URL: ' . $URL );
-                }
+            } // synology sends plain text
+            else if (strpos($curl_result, 'Please log in') === 0) {
+                $this->LogError('Error logging on - invalid user/password combination for ' . $url);
+                $result = self::STATUS_INST_INVALID_USER_PASSWORD;
+            } // everything else goes here
+            else {
+                $this->LogError('Error on connect - this is not a valid calendar URL: ' . $url);
+                $result = self::STATUS_INST_INVALID_URL;
             }
         }
+
+        if ($result === IS_ACTIVE) {
+            $this->LogDebug('Successfully loaded');
+        } elseif (!empty( $curl_result)) {
+            $this->LogDebug('Error, curl_result: ' . $curl_result);
+        }
+
         return $result;
     }
 
     /*
         load calendar, convert calendar, return event array of false
     */
-    private function ReadCalendar()
+    private function ReadCalendar(): ?string
     {
-        $result = $this->CheckCalendarURLSyntax();
-        if ( 102 != $result )
-            return false;
-        $result = $this->LoadCalendarURL( $this->GetCalendarServerURL() );
-        if ( 102 != $result )
-            return false;
+        $curl_result = '';
+        $result = $this->LoadCalendarURL($curl_result);
+        if ($result !== IS_ACTIVE) {
+            $this->SetStatus($result);
+            return null;
+        }
 
-        $MyImporter = new ICCR_iCalImporter(
-            $this->GetMaxPostNotifySeconds(),
-            $this->GetDaysToCache()
-        );
-        $iCalCalendarArray = $MyImporter->ImportCalendar( $this->curl_result );
-        return json_encode( $iCalCalendarArray );
+        $MyImporter        = new ICCR_iCalImporter($this->ReadAttributeInteger('MaxPostNotifySeconds'), $this->ReadPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHE));
+        $iCalCalendarArray = $MyImporter->ImportCalendar($curl_result);
+        return json_encode($iCalCalendarArray);
     }
 
     /*
@@ -685,42 +600,45 @@ class iCalCalendarReader extends ErgoIPSModule {
         also used to trigger manual calendar updates after configuration changes
         accessible for external scripts
     */
-    public function UpdateCalendar()
+    public function UpdateCalendar(): void
     {
-        $this->LogDebug( 'Starting calendar update' );
+        $this->LogDebug(sprintf('Entering %s()', __FUNCTION__));
 
-        $TheOldCalendar = $this->GetCalendar();
+        $TheOldCalendar = $this->ReadAttributeString('CalendarBuffer');
         $TheNewCalendar = $this->ReadCalendar();
-        if ( false === $TheNewCalendar )
-        {
-            $this->LogDebug( 'Failed to load calendar' );
+
+        if ($TheNewCalendar === null) {
+            $this->LogDebug('Failed to load calendar');
             return;
         }
-        if ( 0 !== strcmp( $TheOldCalendar, $TheNewCalendar ) )
-        {
-            $this->LogDebug( 'Updating internal calendar' );
-            $this->SetCalendar( $TheNewCalendar );
+        if (strcmp($TheOldCalendar, $TheNewCalendar) !== 0) {
+            $this->LogDebug('Updating internal calendar');
+            $this->WriteAttributeString('CalendarBuffer', $TheNewCalendar);
+        } else {
+            $this->LogDebug('Calendar still in sync');
         }
-        else
-            $this->LogDebug( 'Calendar still in sync' );
     }
 
 
     /***********************************************************************
-
-    * calendar notifications methods
-
-    ************************************************************************/
+     * calendar notifications methods
+     ***********************************************************************
+     *
+     * @param $Start
+     * @param $End
+     * @param $Pre
+     * @param $Post
+     *
+     * @return bool
+     */
 
     /*
         check if event is triggering a presence notification
     */
-    private function CheckPresence( $Start, $End, $Pre, $Post, $Timestamp )
+    private function CheckPresence(int $Start, int $End, int $Pre, int $Post): bool
     {
-        if ( ( $Start - $Pre ) < $Timestamp )
-            if ( ( $End + $Post ) > $Timestamp )
-                return true;
-        return false;
+        $ts = time();
+        return (($Start - $Pre) < $ts) && ($End + $Post) > $ts;
     }
 
     /*
@@ -728,54 +646,47 @@ class iCalCalendarReader extends ErgoIPSModule {
         also used to trigger manual updates after configuration changes
         accessible for external scripts
     */
-    public function TriggerNotifications()
+    public function TriggerNotifications(): void
     {
-        $this->LogDebug( 'Entering TriggerNotifications()' );
+        $this->LogDebug('Entering TriggerNotifications()');
 
-		$NowTimestamp = date_timestamp_get( date_create() );
-
-        $MaxPreNotifySeconds = $this->GetMaxPreNotifySeconds();
-        $Notifications = $this->GetNotifications();
-        if ( empty( $Notifications ) )
+        $Notifications = json_decode($this->ReadAttributeString('Notifications'), true);
+        if (empty($Notifications)) {
             return;
-
-        foreach ($Notifications as $Notification )
-        {
-            $Notification[ "Status" ] = false;
-            $Notification[ "Reason" ] = array();
         }
 
-        $TheCalendar = $this->GetCalendar();
-        $iCalCalendarArray = json_decode( $TheCalendar, true );
-        if ( !empty( $iCalCalendarArray ) )
-        {
-            foreach ( $iCalCalendarArray as $iCalItem )
-            {
-                foreach ($Notifications as $ChInstanceID => $Notification )
-                {
-                    if ( $this->CheckPresence( $iCalItem[ "From" ], $iCalItem[ "To" ], $Notification[ "PreNS" ], $Notification[ "PostNS" ], $NowTimestamp ) )
-                    {
+        $this->LogDebug( 'Processing notifications' );
+        foreach ($Notifications as $Notification) {
+            $Notification['Status'] = false;
+            $Notification['Reason'] = [];
+        }
+
+        $TheCalendar       = $this->ReadAttributeString('CalendarBuffer');
+        $iCalCalendarArray = json_decode($TheCalendar, true);
+        if (!empty($iCalCalendarArray)) {
+            foreach ($iCalCalendarArray as $iCalItem) {
+                foreach ($Notifications as $ChInstanceID => $Notification) {
+                    if ($this->CheckPresence($iCalItem['From'], $iCalItem['To'], $Notification['PreNS'], $Notification['PostNS'])) {
                         // append status and reason to the corresponding notification
-                        $Notifications[ $ChInstanceID ][ "Status" ] = true;
-                        $Notifications[ $ChInstanceID ][ "Reason" ][] = $iCalItem;
+                        $Notifications[$ChInstanceID]['Status']   = true;
+                        $Notifications[$ChInstanceID]['Reason'][] = $iCalItem;
                     }
                 }
             }
         }
 
         // set status back to children
-        foreach ($Notifications as $ChInstanceID => $Notification )
-        {
-            $this->SendDataToChildren( json_encode(
-                array(
-                    "DataID" => ICCR_TX,
-                    "InstanceID" => $ChInstanceID,
-                    "Notify" => array(
-                        "Status" => $Notification[ "Status" ],
-                        "Reason" => $Notification[ "Reason" ]
-                    )
+        foreach ($Notifications as $ChInstanceID => $Notification) {
+            $this->SendDataToChildren(
+                json_encode(
+                    [
+                        'DataID'     => ICCR_TX,
+                        'InstanceID' => $ChInstanceID,
+                        'Notify'     => [
+                            'Status' => $Notification['Status'],
+                            'Reason' => $Notification['Reason']]]
                 )
-            ) );
+            );
         }
     }
 
@@ -783,7 +694,7 @@ class iCalCalendarReader extends ErgoIPSModule {
         entry point for a child to inform the parent to update its children configuration
         accessible for external scripts
     */
-    public function UpdateClientConfig()
+    public function UpdateClientConfig(): void
     {
         $this->GetChildrenConfig();
         $this->UpdateCalendar();
@@ -791,27 +702,25 @@ class iCalCalendarReader extends ErgoIPSModule {
     }
 
     /***********************************************************************
-
-    * methods for script access
-
-    ************************************************************************/
+     * methods for script access
+     ************************************************************************/
 
     /*
         returns the registered notifications structure
     */
     public function GetClientConfig()
     {
-        return $this->GetNotifications();
+        return json_decode($this->ReadAttributeString('Notifications'), true);
     }
 
     /*
         returns the internal calendar structure
     */
-    public function GetCachedCalendar()
+    public function GetCachedCalendar(): string
     {
-        return $this->GetCalendar();
+        return $this->ReadAttributeString('CalendarBuffer');
     }
 
 }
 
-?>
+

@@ -20,7 +20,7 @@ Kalendereinträge sind auf ID, Titel, Start- und Endzeitpunkt beschränkt.
 
 ### 2. Voraussetzungen
 
-- IP-Symcon ab Version 4.x
+- IP-Symcon ab Version 5.1
 - Kalender im iCal-Format
 - Installierte und lauffähige **iCalCalendarReader**-Instanzen
 - Optional installierte und lauffähige **iCalCalendarNotifier**-Instanzen

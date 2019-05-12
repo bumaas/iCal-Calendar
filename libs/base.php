@@ -1,33 +1,34 @@
-<?
+<?php
 
-if( !defined( '_ErgomationBase' ) )
-{
-    define( '_ErgomationBase', 1 );
+if (!defined('_ErgomationBase')) {
+    define('_ErgomationBase', 1);
 
-    class ErgoIPSModule extends IPSModule {
+    class ErgoIPSModule extends IPSModule
+    {
 
-        protected function IsDebug()
+        protected function IsDebug(): bool
         {
             return false;
         }
 
-        protected function GetLogID()
+        protected function GetLogID(): string
         {
-            return get_class( $this );
+            return get_class($this);
         }
 
-        protected function LogError( $Error )
+        protected function LogError($Error): void
         {
-            IPS_LogMessage( $this->GetLogID(), $Error );
+            IPS_LogMessage($this->GetLogID(), $Error);
         }
 
-        protected function LogDebug( $Debug )
+        protected function LogDebug($Debug): void
         {
-            if ( $this->IsDebug() )
-                IPS_LogMessage( $this->GetLogID() . ' Debug', $Debug );
+            if ($this->IsDebug()) {
+                IPS_LogMessage($this->GetLogID() . ' Debug', $Debug);
+            }
         }
 
     }
 }
 
-?>
+
