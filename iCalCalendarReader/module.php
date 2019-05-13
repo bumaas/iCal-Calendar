@@ -1,16 +1,17 @@
 <?php
-
-use RRule\RRule;
+declare(strict_types=1);
 
 include_once __DIR__ . '/../libs/base.php';
 include_once __DIR__ . '/../libs/includes.php';
 
 include_once __DIR__ . '/../libs/iCalcreator-master/autoload.php';
+include_once __DIR__ . '/../libs/php-rrule-master/src/RRuleTrait.php';
 include_once __DIR__ . '/../libs/php-rrule-master/src/RRuleInterface.php';
 include_once __DIR__ . '/../libs/php-rrule-master/src/RfcParser.php';
 include_once __DIR__ . '/../libs/php-rrule-master/src/RRule.php';
 include_once __DIR__ . '/../libs/php-rrule-master/src/RSet.php';
 
+use RRule\RRule;
 
 define('ICCR_DEBUG', true);
 
@@ -118,11 +119,11 @@ class ICCR_iCalImporter
         convert iCal format to PHP DateTime respecting timezone information
         every information will be transformed into the current timezone!
     */
-    private function iCalDateTimeArrayToDateTime($DT): DateTime
+    private function iCalDateTimeArrayToDateTime(array $DT): DateTime
     {
-        $Year  = $DT['value']['year'];
-        $Month = $DT['value']['month'];
-        $Day   = $DT['value']['day'];
+        $Year  = (int) $DT['value']['year'];
+        $Month = (int) $DT['value']['month'];
+        $Day   = (int) $DT['value']['day'];
 
         $WholeDay = false;
         // whole-day, this is not timezone relevant!
@@ -131,17 +132,17 @@ class ICCR_iCalImporter
         }
 
         if (array_key_exists('hour', $DT['value'])) {
-            $Hour = $DT['value']['hour'];
+            $Hour = (int) $DT['value']['hour'];
         } else {
             $Hour = 0;
         }
         if (array_key_exists('min', $DT['value'])) {
-            $Min = $DT['value']['min'];
+            $Min = (int) $DT['value']['min'];
         } else {
             $Min = 0;
         }
         if (array_key_exists('sec', $DT['value'])) {
-            $Sec = $DT['value']['sec'];
+            $Sec = (int) $DT['value']['sec'];
         } else {
             $Sec = 0;
         }
@@ -205,8 +206,9 @@ class ICCR_iCalImporter
         $Config    = [
             'unique_id'     => 'ergomation.de',
             'TZID'          => $this->Timezone,
-            'X-WR-TIMEZONE' => $this->Timezone];
-        $vCalendar = new kigkonsult\iCalcreator\vcalendar($Config);
+            'X-WR-TIMEZONE' => $this->Timezone
+        ];
+        $vCalendar = new Kigkonsult\Icalcreator\Vcalendar();
         $vCalendar->parse($iCalData);
 
         // get calendar supplied timezones
@@ -234,9 +236,17 @@ class ICCR_iCalImporter
             $ThisEvent['Location']    = $Comp->getProperty('location', false);
             $ThisEvent['Description'] = $Comp->getProperty('description', false);
             $this->LogDebug('event: ' . print_r($ThisEvent, true));
+            //$this->LogDebug('Component objName: ' . $Comp->objName);
+            $dtstart = $Comp->getProperty('dtstart', false, true);
+            $dtend = $Comp->getProperty('dtend', false, true);
 
-            $StartingTime      = $this->iCalDateTimeArrayToDateTime($Comp->getProperty('dtstart', false, true));
-            $EndingTime        = $this->iCalDateTimeArrayToDateTime($Comp->getProperty('dtend', false, true));
+            if (($dtstart === false) || ($dtend === false)){
+                $this->LogDebug(sprintf('Uncomplete vevent: %s, DTSTART: %s, DTEND: %s', json_encode($ThisEvent), json_encode($dtstart), json_encode($dtend)));
+                trigger_error(sprintf('Uncomplete vevent: %s, DTSTART: %s, DTEND: %s', json_encode($ThisEvent), json_encode($dtstart), json_encode($dtend)), E_USER_WARNING);
+                continue;
+            }
+            $StartingTime      = $this->iCalDateTimeArrayToDateTime($dtstart);
+            $EndingTime        = $this->iCalDateTimeArrayToDateTime($dtend);
             $StartingTimestamp = date_timestamp_get($StartingTime);
             $EndingTimestamp   = date_timestamp_get($EndingTime);
             $Duration          = $EndingTimestamp - $StartingTimestamp;
@@ -256,7 +266,13 @@ class ICCR_iCalImporter
                     }
                     // replace/set iCal date array with datetime object
                     $CalRRule['DTSTART'] = $StartingTime;
-                    $RRule               = new RRule($CalRRule);
+
+                    try{
+                        $RRule               = new RRule($CalRRule);
+                    } catch (Exception $e){
+                        $this->LogDebug(sprintf('Error in CalRRule: %s', json_encode($CalRRule)));
+                        continue;
+                    }
                     foreach ($RRule->getOccurrencesBetween($this->NowDateTime, $this->CacheSizeDateTime) as $Occurrence) {
                         $ThisEvent['From']  = date_timestamp_get($Occurrence);
                         $ThisEvent['To']    = $ThisEvent['From'] + $Duration;
@@ -348,6 +364,7 @@ class iCalCalendarReader extends ErgoIPSModule
         parent::Create();
 
         // create configuration properties
+        $this->RegisterPropertyBoolean('active', true);
         $this->RegisterPropertyString(self::ICCR_PROPERTY_CALENDAR_URL, '');
         $this->RegisterPropertyString(self::ICCR_PROPERTY_USERNAME, '');
         $this->RegisterPropertyString(self::ICCR_PROPERTY_PASSWORD, '');
@@ -374,23 +391,29 @@ class iCalCalendarReader extends ErgoIPSModule
     {
         parent::ApplyChanges();
 
-        $this->SetTimerInterval('Update', $this->ReadPropertyInteger(self::ICCR_PROPERTY_UPDATE_FREQUENCY) * 1000 * 60);
-
-        if (!$this->CheckCalendarURLSyntax()){
-            $Status = self::STATUS_INST_INVALID_URL;
-        } else{
-            $curl_result = '';
-            $Status = $this->LoadCalendarURL($curl_result);
+        if ($this->ReadPropertyBoolean('active')) {
+            //validate Configuration
+            if (!$this->CheckCalendarURLSyntax()){
+                $Status = self::STATUS_INST_INVALID_URL;
+            } else{
+                $curl_result = '';
+                $Status = $this->LoadCalendarURL($curl_result);
+            }
+            $this->SetStatus($Status);
+        } else {
+            $Status = IS_INACTIVE;
         }
 
         $this->SetStatus($Status);
 
         // ready to run an update?
         if ($Status === IS_ACTIVE){
+            $this->SetTimerInterval('Update', $this->ReadPropertyInteger(self::ICCR_PROPERTY_UPDATE_FREQUENCY) * 1000 * 60);
             $this->UpdateClientConfig();
             return true;
         }
 
+        $this->SetTimerInterval('Update', 0);
         return false;
     }
 
@@ -469,6 +492,8 @@ class iCalCalendarReader extends ErgoIPSModule
     /***********************************************************************
      * calendar loading and conversion methods
      ***********************************************************************
+     *
+     * @param string $curl_result
      *
      * @return int
      */
@@ -570,6 +595,7 @@ class iCalCalendarReader extends ErgoIPSModule
         }
 
         if ($result === IS_ACTIVE) {
+            $this->LogDebug('curl_result: ' . $curl_result);
             $this->LogDebug('Successfully loaded');
         } elseif (!empty( $curl_result)) {
             $this->LogDebug('Error, curl_result: ' . $curl_result);
@@ -604,6 +630,11 @@ class iCalCalendarReader extends ErgoIPSModule
     {
         $this->LogDebug(sprintf('Entering %s()', __FUNCTION__));
 
+        if(!$this->ReadPropertyBoolean('active')){
+            $this->LogDebug('Instance is inactive');
+            return;
+        }
+        
         $TheOldCalendar = $this->ReadAttributeString('CalendarBuffer');
         $TheNewCalendar = $this->ReadCalendar();
 

@@ -1,7 +1,7 @@
 {
     "elements":
     [
-        { "type": "Label", "label": "Lagged notification" },
+        { "type": "Label", "caption": "Lagged notification" },
         { "type": "NumberSpinner", "name": "PreNotifyMinutes", "caption": "Prenotify (minutes)" },
         { "type": "NumberSpinner", "name": "PostNotifyMinutes", "caption": "Delay (minutes)" }
     ]

@@ -1,19 +1,19 @@
 {
     "elements":
     [
-        { "type": "Label", "label": "Calendar access" },
+        { "type": "CheckBox", "name": "active", "caption": "active" },
+        { "type": "Label", "caption": "Calendar access" },
         { "type": "ValidationTextBox", "name": "CalendarServerURL", "caption": "Calendar URL" },
         { "type": "ValidationTextBox", "name": "Username", "caption": "Username" },
         { "type": "PasswordTextBox", "name": "Password", "caption": "Password" },
-
-        { "type": "Label", "label": "Synchronization" },
+        { "type": "Label", "caption": "Synchronization" },
         { "type": "NumberSpinner", "name": "DaysToCache", "caption": "Cachesize (days)" },
         { "type": "NumberSpinner", "name": "UpdateFrequency", "caption": "Update freq. (minutes)" }
     ],
     "actions":
     [
-        { "type": "Button", "label": "Check calendar URL", "onClick": "ICCR_CheckCalendarURLSyntax($id);" },
-        { "type": "Button", "label": "Update calendar", "onClick": "ICCR_UpdateCalendar($id);" }
+        { "type": "Button", "caption": "Check calendar URL", "onClick": "ICCR_CheckCalendarURLSyntax($id);" },
+        { "type": "Button", "caption": "Update calendar", "onClick": "ICCR_UpdateCalendar($id);" }
     ],
     "status":
     [

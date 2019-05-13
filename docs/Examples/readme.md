@@ -1,9 +1,9 @@
 Kalender im Webfront anzeigen
 ===
 
-In diesem Beispiel wird gezeigt, wie Kalenderdaten aus mehrerern **iCalCalendarReader**-Instanzen in einer Calendar-Control im Webfront angezeigt werden können. Die Kalendereinträge haben für jeden Kalender eine unterschiedliche Farbe.
+In diesem Beispiel wird gezeigt, wie Kalenderdaten aus mehrerern **iCalCalendarReader**-Instanzen in einem Calendar-Control im Webfront angezeigt werden können. Die Kalendereinträge haben für jeden Kalender eine unterschiedliche Farbe.
 
-Grundlage für die Visualisierung ist die Calendar-Control [Full Calendar](https://fullcalendar.io/)
+Grundlage für die Visualisierung ist das Calendar-Control [Full Calendar](https://fullcalendar.io/)
 
 
 **Inhaltverzeichnis**
@@ -14,7 +14,7 @@ Grundlage für die Visualisierung ist die Calendar-Control [Full Calendar](https
 
 ### 1. Funktionsumfang
 
-Full-Blown Calendar-Control, die umfangreich den eigenen Wünschen angepasst werden kann. Siehe hierzu die Dokumentation der Control unter https://fullcalendar.io/docs/  
+Full-Blown Calendar-Control, die umfangreich den eigenen Wünschen angepasst werden kann. Siehe hierzu die Dokumentation des Controls unter https://fullcalendar.io/docs/  
 Kalendereinträge sind auf ID, Titel, Start- und Endzeitpunkt beschränkt.
 
 
