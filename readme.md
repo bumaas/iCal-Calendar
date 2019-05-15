@@ -1,7 +1,7 @@
 iCal Calender in IP Symcon lesen und verarbeiten
 ===
 
-Diese Bibliothek beinhaltet zwei Module zur Einbindung von Kalenderdateien/-feeds im iCal-Format in IP Symcon:
+Diese Bibliothek beinhaltet zwei Module zur Einspeisung von Kalenderinformationen im iCal-Format in IP Symcon:
 * **iCal Calendar Reader**
 * **iCal Calendar Notifier**
 
@@ -50,12 +50,12 @@ __Konfigurationsseite__:
 
 Name                | Beschreibung
 ------------------- | ---------------------------------
-Calendar URL        | URL zum iCal-Feed
-Username            | Benutzer für den Zugriff auf den Feed
+Calendar URL        | URL zur iCal-Quelle
+Username            | Benutzer für den Zugriff auf die Quelle
 Passwort            | Passwort dieses Benutzers
 Synchronization     | 
-Cachesize (days)    | Anzahl der Tage für die Ereignisse in der Zukunft gelesen werden sollen
-Update-freq. (minutes) | Nach wie vielen Minuten soll ein Update des Feeds gelesen werden
+Cachesize (days)    | Anzahl der Tage, für die Ereignisse in der Zukunft gelesen werden sollen
+Update-freq. (minutes) | Alle wieviel Minuten soll die Quelle gelesen werden
 
 Auf folgendes URL-Format ist bei den unterschiedlichen iCal-Servern zu achten:
 

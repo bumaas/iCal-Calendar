@@ -949,7 +949,7 @@ final class Vcalendar extends IcalBase
                 try{
                     $this->components[$ckey]->parse();
                 } catch (Exception $e){
-                    trigger_error(sprintf('Error with component #%s: %s', $ckey, json_encode($this->components[$ckey]->unparsed)));
+                    //trigger_error(sprintf('Error with component #%s(%s, Start:%s): %s', $ckey, $this->components[$ckey]->getProperty('SUMMARY'), json_encode($this->components[$ckey]->getProperty('DTSTART')), json_encode($this->components[$ckey]->unparsed)));
                     continue;
                 }
             }

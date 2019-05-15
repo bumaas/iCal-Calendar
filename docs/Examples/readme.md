@@ -28,16 +28,16 @@ Kalendereinträge sind auf ID, Titel, Start- und Endzeitpunkt beschränkt.
 
 ### 3. Installation
 
-* Die Dateien `calendar.html` und `feed.php` in ein Verzeichnis unterhalb des WebFront-User-Verzeichnisses `user` kopieren.  
+* Die Dateien `calendar.html` und `feed.php` aus dem `iCal-Calendar\docs\Examples` Verzeichnis in ein Verzeichnis unterhalb des WebFront-User-Verzeichnisses `user` kopieren (z.B. `webfront\user\iCal`) .  
 * In der Datei `calendar.html` händisch folgende Anpassungen vornehmen:
   * Ab Zeile 26 werden im Array `eventSources` zwei Kalenderquellen definiert. Quellen können entweder eine **iCalCalendarReader**- oder eine **iCalCalendarNotifier**-Instanz sein. Hier müssen die Instanz-IDs mit gültigen Werten ersetzt werden. Hierfür die Instanz-IDs aus dem IP Symcon Objektbaum heraussuchen und innerhalb des Arrays `eventSources` im Objekt `data` in die Property `InstanceID` eintragen.
   * Es können beliebig viele Quellen zu einem Kalender hinzugefügt werden, hier einfach analog zu den beiden Einträgen verfahren.
   * Die Farbeinstellungen `color` und `textColor` nach Gusto anpassen
 * Im WebFront-Editor an beliebiger Position ein Element "Externe Seite" hinzufügen, mit der URL `/user/[Verzeichnisname]/calendar.html`.  
 
-Wenn alles korrekt gelaufen ist wird im WebFront nun eine Calendar Control mit den Inhalten der beiden Kalender-Feeds angezeigt.  
+Wenn alles korrekt gelaufen ist wird im WebFront nun ein Calendar Control mit den Inhalten der angegebenen Kalender-Quellen angezeigt.  
 
-Wenn man **iCalCalendarNotifier**-Instanzen als Feed-Quelle verwendet können sie als smarte Filter auf Kalenderdaten eingesetzt werden, um z.B. nur bestimmte Zeiträume um den momentanen Zeitpunkt anzuzeigen. Sie haben auch einen Einfluss darauf, wie von der zugehörigen **iCalCalendarReader**-Instanz Kalendereinträge aus der Vergangenheit geladen werden: Wenn das Ende des Eintrags plus die im Notifier gesetzte Delay-Zeit noch in der Zukunft liegt wird der Eintrag geladen, ansonsten verworfen.  
+Wenn man **iCalCalendarNotifier**-Instanzen als Quelle verwendet können sie als smarte Filter auf Kalenderdaten eingesetzt werden, um z.B. nur bestimmte Zeiträume um den momentanen Zeitpunkt anzuzeigen. Sie haben auch einen Einfluss darauf, wie von der zugehörigen **iCalCalendarReader**-Instanz Kalendereinträge aus der Vergangenheit geladen werden: Wenn das Ende des Eintrags plus die im Notifier gesetzte Delay-Zeit noch in der Zukunft liegt wird der Eintrag geladen, ansonsten verworfen.  
 
 Die Calendar Control ist umfassend dokumentiert (siehe oben), es gibt hier noch genug Spielraum für Anpassungen.  
 
