@@ -254,22 +254,6 @@ class ICCR_iCalImporter
                 throw new RuntimeException('Component is not of type vevent');
             }
 
-            if (($vEvent->getDtstart() === false) || ($vEvent->getDtend() === false)) {
-                $this->LogDebug(
-                    sprintf(
-                        'Uncomplete vevent: %s, DTSTART: %s, DTEND: %s', json_encode($vEvent), json_encode($vEvent->getDtstart()),
-                        json_encode($vEvent->getDtend())
-                    )
-                );
-                trigger_error(
-                    sprintf(
-                        'Uncomplete vevent: %s, DTSTART: %s, DTEND: %s', json_encode($vEvent), json_encode($vEvent->getDtstart()),
-                        json_encode($vEvent->getDtend())
-                    ), E_USER_WARNING
-                );
-                throw new RuntimeException('dtstart or dtend is missing');
-                continue;
-            }
 
             $propDtstart = $vEvent->getDtstart(true); // incl. params
             if (isset($propDtstart['params'])) {
@@ -305,7 +289,9 @@ class ICCR_iCalImporter
 
             $propDtstart = $vEvent->getDtstart(true); // incl. params
             $propDtend   = $vEvent->getDtend(true);   // incl. params
-
+            if ($propDtend === false){
+                $propDtend = $propDtstart;
+            }
 
             $this->LogDebug(sprintf('dtStartingTime %s, dtEndingTime%s', json_encode($propDtstart), json_encode($propDtend)));
             if (isset($propDtstart['params'])) {
