@@ -371,7 +371,7 @@ class ICCR_iCalImporter
 
             //get the occurrences
             $this->LogDebug(
-                sprintf('Occurrences: %s', print_r($RRule->getOccurrencesBetween($CacheSizeDateTimeFrom, $CacheSizeDateTimeUntil), true))
+                sprintf('Occurrences beetween %s and %s: %s', $CacheSizeDateTimeFrom->format('Y-m-d H:i:s'), $CacheSizeDateTimeUntil->format('Y-m-d H:i:s') ,print_r($RRule->getOccurrencesBetween($CacheSizeDateTimeFrom, $CacheSizeDateTimeUntil), true))
             );
 
             foreach ($RRule->getOccurrencesBetween($CacheSizeDateTimeFrom, $CacheSizeDateTimeUntil) as $dtOccurrence) {
@@ -773,7 +773,63 @@ class iCalCalendarReader extends ErgoIPSModule
         } elseif (!empty($curl_result)) {
             $this->LogDebug('Error, curl_result: ' . $curl_result);
         }
-
+        $curl_result = 'BEGIN:VCALENDAR
+PRODID:-//Google Inc//Google Calendar 70.9054//EN
+VERSION:2.0
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Nachtschicht
+X-WR-TIMEZONE:Europe/Berlin
+BEGIN:VTIMEZONE
+TZID:Europe/Berlin
+X-LIC-LOCATION:Europe/Berlin
+BEGIN:DAYLIGHT
+TZOFFSETFROM:+0100
+TZOFFSETTO:+0200
+TZNAME:CEST
+DTSTART:19700329T020000
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU
+END:DAYLIGHT
+BEGIN:STANDARD
+TZOFFSETFROM:+0200
+TZOFFSETTO:+0100
+TZNAME:CET
+DTSTART:19701025T030000
+RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+DTSTART;TZID=Europe/Berlin:20181201T224500
+DTEND;TZID=Europe/Berlin:20181202T064500
+RRULE:FREQ=DAILY;INTERVAL=10
+DTSTAMP:20190518T200351Z
+UID:3dn1ejfqub6hr44euomg6u01nf@google.com
+CREATED:20190518T164158Z
+DESCRIPTION:
+LAST-MODIFIED:20190518T164158Z
+LOCATION:
+SEQUENCE:0
+STATUS:CONFIRMED
+SUMMARY:Nachtschicht
+TRANSP:OPAQUE
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=Europe/Berlin:20181130T224500
+DTEND;TZID=Europe/Berlin:20181201T064500
+RRULE:FREQ=DAILY;INTERVAL=10
+DTSTAMP:20190518T200351Z
+UID:2rt32lc8k15crc1egp5dpueke1@google.com
+CREATED:20190518T164109Z
+DESCRIPTION:
+LAST-MODIFIED:20190518T164109Z
+LOCATION:
+SEQUENCE:0
+STATUS:CONFIRMED
+SUMMARY:Nachtschicht
+TRANSP:OPAQUE
+END:VEVENT
+END:VCALENDAR
+';
         return $result;
     }
 
