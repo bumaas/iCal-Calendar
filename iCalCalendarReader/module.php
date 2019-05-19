@@ -115,11 +115,15 @@ class ICCR_iCalImporter
         convert iCal format to PHP DateTime respecting timezone information
         every information will be transformed into the current timezone!
     */
-    private function iCalDateTimeArrayToDateTime(array $value, array $params = null): DateTime
+    private function iCalDateTimeArrayToDateTime(array $dtValue): DateTime
     {
 
+        $value = $dtValue['value'];
+        if (isset($dtValue['params'])) {
+            $params = $dtValue['params'];
+        }
         // whole-day, this is not timezone relevant!
-        $WholeDay = (isset($params) && array_key_exists('VALUE', $params) && ('DATE' === $params['VALUE']));
+        $WholeDay = (isset($params['VALUE']) && ($params['VALUE'] === 'DATE'));
 
         $Year  = (int) $value['year'];
         $Month = (int) $value['month'];
@@ -183,7 +187,7 @@ class ICCR_iCalImporter
     {
         $this->Timezone          = date_default_timezone_get();
         $this->NowTimestamp      = date_timestamp_get(date_create());
-        $this->PostNotifySeconds = $PostNotifyMinutes * 60;
+        $this->PostNotifySeconds = $PostNotifyMinutes * 60; //currently not used
         $this->DaysToCache       = $DaysToCache;
     }
 
@@ -255,12 +259,8 @@ class ICCR_iCalImporter
             }
 
 
-            $propDtstart = $vEvent->getDtstart(true); // incl. params
-            if (isset($propDtstart['params'])) {
-                $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart['value'], $propDtstart['params']);
-            } else {
-                $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart['value']);
-            }
+            $propDtstart    = $vEvent->getDtstart(true); // incl. params
+            $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart);
 
             if (strtotime(sprintf('- %s days', $this->DaysToCache), $dtStartingTime->getTimestamp()) > $this->NowTimestamp) {
                 // event is too far in the future, ignore
@@ -289,21 +289,13 @@ class ICCR_iCalImporter
 
             $propDtstart = $vEvent->getDtstart(true); // incl. params
             $propDtend   = $vEvent->getDtend(true);   // incl. params
-            if ($propDtend === false){
+            if ($propDtend === false) {
                 $propDtend = $propDtstart;
             }
 
             $this->LogDebug(sprintf('dtStartingTime %s, dtEndingTime%s', json_encode($propDtstart), json_encode($propDtend)));
-            if (isset($propDtstart['params'])) {
-                $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart['value'], $propDtstart['params']);
-            } else {
-                $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart['value']);
-            }
-            if (isset($propDtend['params'])) {
-                $dtEndingTime = $this->iCalDateTimeArrayToDateTime($propDtend['value'], $propDtend['params']);
-            } else {
-                $dtEndingTime = $this->iCalDateTimeArrayToDateTime($propDtend['value']);
-            }
+            $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart);
+            $dtEndingTime   = $this->iCalDateTimeArrayToDateTime($propDtend);
 
             $tsStartingTime = date_timestamp_get($dtStartingTime);
             $tsEndingTime   = date_timestamp_get($dtEndingTime);
@@ -323,23 +315,16 @@ class ICCR_iCalImporter
 
 
             $this->LogDebug(sprintf('dtStartingTime %s, dtEndingTime%s', json_encode($propDtstart), json_encode($propDtend)));
-            if (isset($propDtstart['params'])) {
-                $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart['value'], $propDtstart['params']);
-            } else {
-                $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart['value']);
-            }
-            if (isset($propDtend['params'])) {
-                $dtEndingTime = $this->iCalDateTimeArrayToDateTime($propDtend['value'], $propDtend['params']);
-            } else {
-                $dtEndingTime = $this->iCalDateTimeArrayToDateTime($propDtend['value']);
-            }
+            $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart);
+            $dtEndingTime   = $this->iCalDateTimeArrayToDateTime($propDtend);
 
 
             $CalRRule = $vEvent->getRrule();
 
             if (array_key_exists('UNTIL', $CalRRule)) {
                 // replace iCal date array with datetime object
-                $CalRRule['UNTIL'] = $this->iCalDateTimeArrayToDateTime($CalRRule['UNTIL']);
+
+                $CalRRule['UNTIL'] = $this->iCalDateTimeArrayToDateTime(['value' => $CalRRule['UNTIL']]);
             }
             // replace/set iCal date array with datetime object
             $CalRRule['DTSTART'] = $dtStartingTime;
@@ -360,18 +345,18 @@ class ICCR_iCalImporter
             $dtExDates = [];
             if ($exDates = $vEvent->getExdate(null, true)) {
                 foreach ($exDates['value'] as $exDateValue) {
-                    if (isset($exDates['params'])) {
-                        $dtExDates[] = $this->iCalDateTimeArrayToDateTime($exDateValue, $exDates['params']);
-                    } else {
-                        $dtExDates[] = $this->iCalDateTimeArrayToDateTime($exDateValue);
-                    }
+                    $dtExDates[] = $this->iCalDateTimeArrayToDateTime(['value' => $exDateValue, 'params' => $exDates['params']]);
                 }
             }
 
 
             //get the occurrences
             $this->LogDebug(
-                sprintf('Occurrences beetween %s and %s: %s', $CacheSizeDateTimeFrom->format('Y-m-d H:i:s'), $CacheSizeDateTimeUntil->format('Y-m-d H:i:s') ,print_r($RRule->getOccurrencesBetween($CacheSizeDateTimeFrom, $CacheSizeDateTimeUntil), true))
+                sprintf(
+                    'Occurrences beetween %s and %s: %s', $CacheSizeDateTimeFrom->format('Y-m-d H:i:s'),
+                    $CacheSizeDateTimeUntil->format('Y-m-d H:i:s'),
+                    print_r($RRule->getOccurrencesBetween($CacheSizeDateTimeFrom, $CacheSizeDateTimeUntil), true)
+                )
             );
 
             foreach ($RRule->getOccurrencesBetween($CacheSizeDateTimeFrom, $CacheSizeDateTimeUntil) as $dtOccurrence) {
@@ -391,16 +376,8 @@ class ICCR_iCalImporter
                     $propDtstart = $changedEvent->getDtstart(true); // incl. params
                     $propDtend   = $changedEvent->getDtend(true);   // incl. params
                     $this->LogDebug(sprintf('dtStartingTime %s, dtEndingTime%s', json_encode($propDtstart), json_encode($propDtend)));
-                    if (isset($propDtstart['params'])) {
-                        $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart['value'], $propDtstart['params']);
-                    } else {
-                        $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart['value']);
-                    }
-                    if (isset($propDtend['params'])) {
-                        $dtEndingTime = $this->iCalDateTimeArrayToDateTime($propDtend['value'], $propDtend['params']);
-                    } else {
-                        $dtEndingTime = $this->iCalDateTimeArrayToDateTime($propDtend['value']);
-                    }
+                    $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart);
+                    $dtEndingTime   = $this->iCalDateTimeArrayToDateTime($propDtend);
 
                     $eventArray[] = $this->GetEventAttributes($changedEvent, $dtStartingTime->getTimestamp(), $dtEndingTime->getTimestamp());
 
@@ -414,9 +391,15 @@ class ICCR_iCalImporter
         }
 
         foreach ($eventArray as $ThisEvent) {
-            if ($this->NowTimestamp > ($ThisEvent['To'] + $this->PostNotifySeconds)) {
-                // event is past notification times, ignore
-                $this->LogDebug('Event ' . $ThisEvent['Name'] . ' is past the notification times, ignoring');
+            if ((strtotime(sprintf('+ %s days', $this->DaysToCache), $ThisEvent['To']) < $this->NowTimestamp)
+                || (strtotime(sprintf('- %s days', $this->DaysToCache), $ThisEvent['From']) > $this->NowTimestamp)) {
+
+                // event not in the cached time, ignore
+                $this->LogDebug(
+                    sprintf(
+                        'Event \'%s\' (%s - %s) is outside the cached time (DaysToCache: %s), ignoring', $ThisEvent['Name'], $ThisEvent['FromS'],
+                        $ThisEvent['ToS'], $this->DaysToCache)
+                );
             } else {
                 // insert event(s)
                 $iCalCalendarArray[] = $ThisEvent;
@@ -440,8 +423,7 @@ class ICCR_iCalImporter
             }
 
             if ($vEvent->getUid() === $uid) {
-                $recurrenceId = $vEvent->getRecurrenceid(true);
-                $dtFound      = $this->iCalDateTimeArrayToDateTime($recurrenceId['value'], $recurrenceId['params']);
+                $dtFound = $this->iCalDateTimeArrayToDateTime($vEvent->getRecurrenceid(true));
                 if ($dtOccurrence == $dtFound) {
                     $this->LogDebug(sprintf('ChangedEvent found: %s', $dtOccurrence->getTimestamp()));
                     return $vEvent;
@@ -472,6 +454,10 @@ class ICCR_iCalImporter
         $Event['To']    = $tsTo;
         $Event['FromS'] = date('Y-m-d H:i:s', $tsFrom);
         $Event['ToS']   = date('Y-m-d H:i:s', $tsTo);
+        $propDtstart    = $vEvent->getDtstart(true); // incl. params
+        if ($propDtstart) {
+            $Event['allDay'] = (isset($propDtstart['params']['VALUE']) && ($propDtstart['params']['VALUE'] === 'DATE'));
+        }
 
 
         $this->LogDebug(sprintf('Event: %s', json_encode($Event)));
@@ -695,64 +681,6 @@ class iCalCalendarReader extends ErgoIPSModule
             curl_setopt($curl, CURLOPT_USERPWD, $username . ':' . $password);
         }
         $curl_result    = curl_exec($curl);
-        $curl_result = 'BEGIN:VCALENDAR
-PRODID:-//Google Inc//Google Calendar 70.9054//EN
-VERSION:2.0
-CALSCALE:GREGORIAN
-METHOD:PUBLISH
-X-WR-CALNAME:Nachtschicht
-X-WR-TIMEZONE:Europe/Berlin
-BEGIN:VTIMEZONE
-TZID:Europe/Berlin
-X-LIC-LOCATION:Europe/Berlin
-BEGIN:DAYLIGHT
-TZOFFSETFROM:+0100
-TZOFFSETTO:+0200
-TZNAME:CEST
-DTSTART:19700329T020000
-RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU
-END:DAYLIGHT
-BEGIN:STANDARD
-TZOFFSETFROM:+0200
-TZOFFSETTO:+0100
-TZNAME:CET
-DTSTART:19701025T030000
-RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU
-END:STANDARD
-END:VTIMEZONE
-BEGIN:VEVENT
-DTSTART;TZID=Europe/Berlin:20181201T224500
-DTEND;TZID=Europe/Berlin:20181202T064500
-RRULE:FREQ=DAILY;INTERVAL=10
-DTSTAMP:20190518T200351Z
-UID:3dn1ejfqub6hr44euomg6u01nf@google.com
-CREATED:20190518T164158Z
-DESCRIPTION:
-LAST-MODIFIED:20190518T164158Z
-LOCATION:
-SEQUENCE:0
-STATUS:CONFIRMED
-SUMMARY:Nachtschicht 2
-TRANSP:OPAQUE
-END:VEVENT
-BEGIN:VEVENT
-DTSTART;TZID=Europe/Berlin:20181130T224500
-DTEND;TZID=Europe/Berlin:20181201T064500
-RRULE:FREQ=DAILY;INTERVAL=10
-DTSTAMP:20190518T200351Z
-UID:2rt32lc8k15crc1egp5dpueke1@google.com
-CREATED:20190518T164109Z
-DESCRIPTION:
-LAST-MODIFIED:20190518T164109Z
-LOCATION:
-SEQUENCE:0
-STATUS:CONFIRMED
-SUMMARY:Nachtschicht 1
-TRANSP:OPAQUE
-END:VEVENT
-END:VCALENDAR
-';
-
         $curl_error_nr  = curl_errno($curl);
         $curl_error_str = curl_error($curl);
         curl_close($curl);

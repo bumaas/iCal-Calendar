@@ -35,15 +35,16 @@ switch ($InstanceInfo['ModuleInfo']['ModuleID']) {
 
 $result = [];
 // convert to calendar format
-if (!empty($CalendarFeed)) {
-    foreach ($CalendarFeed as $Event) {
-        $CalEvent          = [];
-        $CalEvent['id']    = $Event['UID'];
-        $CalEvent['title'] = $Event['Name'];
-        $CalEvent['start'] = $Event['FromS'];
-        $CalEvent['end']   = $Event['ToS'];
-        $result[]          = $CalEvent;
+foreach ($CalendarFeed as $Event) {
+    $CalEvent          = [];
+    $CalEvent['id']    = $Event['UID'];
+    $CalEvent['title'] = $Event['Name'];
+    $CalEvent['start'] = $Event['FromS'];
+    $CalEvent['end']   = $Event['ToS'];
+    if (isset($Event['allDay'])){
+        $CalEvent['allDay'] = $Event['allDay'];
     }
+    $result[]          = $CalEvent;
 }
 
 echo json_encode($result);
