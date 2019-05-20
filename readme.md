@@ -125,7 +125,7 @@ Die Statusvariable ist mit Profilen für das WebFront vorbereitet.
 Gibt ein Array mit sämtlichen registrierten Notifier-Konfigurationen als JSON-codierten String aus. 
 
 `json_string ICCR_GetCachedCalendar(integer $InstanceID);`   
-Gibt ein Array mit dem zwischengespeicherten und in die lokale Zeitzone übertragenen Kalenderdaten als JSON-codierten String aus.
+Gibt ein Array mit den zwischengespeicherten und in die lokale Zeitzone übertragenen Kalenderdaten als JSON-codierten String aus.
 
 `void ICCR_TriggerNotifications(integer $InstanceID);`   
 Forciert eine sofortige Überprüfung, ob Notifications an die registrierten Notifier gesendet werden müssen.
@@ -148,4 +148,4 @@ Die Funktion liefert keinerlei Rückgabewert.
 Gibt den Wert der Statusvariable "Presence" zurück.  
 
 `json_string ICCN_GetNotifierPresenceReason(integer $InstanceID);`   
-Gibt einen Array der den "Presence"-Status bedingenden Ereignisse als JSON-kodierten String aus.
+Gibt ein Array der den "Presence"-Status bedingenden Ereignisse als JSON-kodierten String aus.
