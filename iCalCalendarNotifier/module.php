@@ -1,7 +1,6 @@
 <?php
 declare(strict_types=1);
 
-include_once __DIR__ . '/../libs/base.php';
 include_once __DIR__ . '/../libs/includes.php';
 
 
@@ -14,7 +13,7 @@ define( 'ICCN_Property_PreNotifyMinutes', 'PreNotifyMinutes' );
 define( 'ICCN_Property_PostNotifyMinutes', 'PostNotifyMinutes' );
 
 
-class iCalCalendarNotifier extends ErgoIPSModule {
+class iCalCalendarNotifier extends IPSModule {
 
     /***********************************************************************
      * customized debug methods

@@ -8,7 +8,14 @@
         { "type": "PasswordTextBox", "name": "Password", "caption": "Password" },
         { "type": "Label", "caption": "Synchronization" },
         { "type": "NumberSpinner", "name": "DaysToCache", "caption": "Cachesize (days)" },
-        { "type": "NumberSpinner", "name": "UpdateFrequency", "caption": "Update freq. (minutes)" }
+        {
+            "type":  "ExpansionPanel", "caption": "Expert Parameters",
+            "items": [
+                {"type": "NumberSpinner", "name": "UpdateFrequency", "caption": "Update Interval", "suffix": "Minutes"},
+                {"type": "CheckBox", "name": "WriteDebugInformationToLogfile", "caption": "Debug information are written additionally to standard logfile"}
+            ]
+        }
+
     ],
     "actions":
     [

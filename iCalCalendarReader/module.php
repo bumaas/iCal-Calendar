@@ -1,7 +1,6 @@
 <?php
 declare(strict_types=1);
 
-include_once __DIR__ . '/../libs/base.php';
 include_once __DIR__ . '/../libs/includes.php';
 
 include_once __DIR__ . '/../libs/iCalcreator-master/autoload.php';
@@ -14,7 +13,6 @@ include_once __DIR__ . '/../libs/php-rrule-master/src/RSet.php';
 use RRule\RRule;
 
 define('ICCR_DEBUG', true);
-
 
 /***********************************************************************
  * iCal importer class
@@ -183,12 +181,14 @@ class ICCR_iCalImporter
     /*
         basic setup
     */
-    public function __construct(int $PostNotifyMinutes, int $DaysToCache)
+    public function __construct(int $PostNotifyMinutes, int $DaysToCache, callable $Logger_Dbg, callable $Logger_Err)
     {
         $this->Timezone          = date_default_timezone_get();
         $this->NowTimestamp      = date_timestamp_get(date_create());
         $this->PostNotifySeconds = $PostNotifyMinutes * 60; //currently not used
         $this->DaysToCache       = $DaysToCache;
+        $this->Logger_Dbg        = $Logger_Dbg;
+        $this->Logger_Err        = $Logger_Err;
     }
 
     /*
@@ -206,7 +206,7 @@ class ICCR_iCalImporter
             $vCalendar->parse($iCalData);
         }
         catch(Exception $e) {
-            $this->LogDebug($e->getMessage());
+            call_user_func($this->Logger_Dbg, __FUNCTION__, $e->getMessage());
             return [];
         }
 
@@ -398,7 +398,8 @@ class ICCR_iCalImporter
                 $this->LogDebug(
                     sprintf(
                         'Event \'%s\' (%s - %s) is outside the cached time (DaysToCache: %s), ignoring', $ThisEvent['Name'], $ThisEvent['FromS'],
-                        $ThisEvent['ToS'], $this->DaysToCache)
+                        $ThisEvent['ToS'], $this->DaysToCache
+                    )
                 );
             } else {
                 // insert event(s)
@@ -460,6 +461,10 @@ class ICCR_iCalImporter
         }
 
 
+        call_user_func(
+            $this->Logger_Dbg, __FUNCTION__, sprintf('Event: %s', json_encode($Event))
+        );
+
         $this->LogDebug(sprintf('Event: %s', json_encode($Event)));
         return $Event;
     }
@@ -469,7 +474,7 @@ class ICCR_iCalImporter
 /***********************************************************************
  * module class
  ************************************************************************/
-class iCalCalendarReader extends ErgoIPSModule
+class iCalCalendarReader extends IPSModule
 {
 
     private const STATUS_INST_INVALID_URL = 201;
@@ -483,30 +488,7 @@ class iCalCalendarReader extends ErgoIPSModule
     private const ICCR_PROPERTY_PASSWORD = 'Password';
     private const ICCR_PROPERTY_DAYSTOCACHE = 'DaysToCache';
     private const ICCR_PROPERTY_UPDATE_FREQUENCY = 'UpdateFrequency';
-
-
-    /***********************************************************************
-     * customized debug methods
-     ***********************************************************************
-     *
-     * @return bool
-     */
-
-    /*
-        debug on/off is a defined constant
-    */
-    protected function IsDebug(): bool
-    {
-        return ICCR_DEBUG;
-    }
-
-    /*
-        sender for debug messages is set
-    */
-    protected function GetLogID(): string
-    {
-        return IPS_GetName($this->InstanceID);
-    }
+    private const ICCR_PROPERTY_WRITE_DEBUG_INFORMATION_TO_LOGFILE = 'WriteDebugInformationToLogfile';
 
 
     /***********************************************************************
@@ -528,6 +510,7 @@ class iCalCalendarReader extends ErgoIPSModule
 
         $this->RegisterPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHE, 365);
         $this->RegisterPropertyInteger(self::ICCR_PROPERTY_UPDATE_FREQUENCY, 15);
+        $this->RegisterPropertyBoolean(self::ICCR_PROPERTY_WRITE_DEBUG_INFORMATION_TO_LOGFILE, false);
 
         // create Attributes
         $this->RegisterAttributeString('CalendarBuffer', '');
@@ -774,8 +757,15 @@ class iCalCalendarReader extends ErgoIPSModule
             return null;
         }
 
-        $MyImporter        =
-            new ICCR_iCalImporter($this->ReadAttributeInteger('MaxPostNotifySeconds'), $this->ReadPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHE));
+        $MyImporter        = new ICCR_iCalImporter(
+            $this->ReadAttributeInteger('MaxPostNotifySeconds'), $this->ReadPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHE),
+            function(string $message, string $data) {
+                $this->Logger_Dbg($message, $data);
+            },
+            function(string $message, string $data) {
+                $this->Logger_Err($message, $data);
+            }
+        );
         $iCalCalendarArray = $MyImporter->ImportCalendar($curl_result);
         return json_encode($iCalCalendarArray);
     }
@@ -785,6 +775,45 @@ class iCalCalendarReader extends ErgoIPSModule
         also used to trigger manual calendar updates after configuration changes
         accessible for external scripts
     */
+
+
+    private function LogError($Error): void
+    {
+        $this->LogMessage('\'' . IPS_GetName($this->InstanceID) . '\': ' . $Error, KL_ERROR);
+
+    }
+
+    private function LogDebug($Debug): void
+    {
+        $this->LogMessage('\'' . IPS_GetName($this->InstanceID) . '\': ' . $Debug, KL_MESSAGE);
+    }
+
+    private function Logger_Err(string $message): void
+    {
+        $this->SendDebug('LOG_ERR', $message, 0);
+        /*
+        if (function_exists('IPSLogger_Err') && $this->ReadPropertyBoolean('WriteLogInformationToIPSLogger')) {
+            IPSLogger_Err(__CLASS__, $message);
+        }
+        */
+        $this->LogMessage($message, KL_ERROR);
+
+        $this->SetValue('LAST_MESSAGE', $message);
+    }
+
+    private function Logger_Dbg(string $message, string $data): void
+    {
+        $this->SendDebug($message, $data, 0);
+        /*
+        if (function_exists('IPSLogger_Dbg') && $this->ReadPropertyBoolean('WriteDebugInformationToIPSLogger')) {
+            IPSLogger_Dbg(__CLASS__ . '.' . IPS_GetObject($this->InstanceID)['ObjectName'] . '.' . $message, $data);
+        }
+        */
+        if ($this->ReadPropertyBoolean(self::ICCR_PROPERTY_WRITE_DEBUG_INFORMATION_TO_LOGFILE)) {
+            $this->LogMessage(sprintf('%s: %s', $message, $data), KL_DEBUG);
+        }
+    }
+
     public function UpdateCalendar(): void
     {
         $this->LogDebug(sprintf('Entering %s()', __FUNCTION__));
