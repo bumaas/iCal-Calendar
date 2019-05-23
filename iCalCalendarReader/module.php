@@ -344,15 +344,14 @@ class ICCR_iCalImporter
             }
             // replace/set iCal date array with datetime object
             $CalRRule['DTSTART'] = $dtStartingTime;
-            call_user_func($this->Logger_Dbg, __FUNCTION__, 'Recurring event: ' . print_r($CalRRule, true));
 
             try {
-                call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('CalRRule: %s', json_encode($CalRRule)));
+                call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('CalRRule \'%s\': %s', $vEvent->getSummary(), json_encode($CalRRule)));
 
                 $RRule = new RRule($CalRRule);
             }
             catch(Exception $e) {
-                call_user_func($this->Logger_Err, sprintf('Error in CalRRule: %s', json_encode($CalRRule)));
+                call_user_func($this->Logger_Err, sprintf('Error in CalRRule \'%s\': %s', $vEvent->getSummary(), json_encode($CalRRule)));
                 continue;
             }
             $CacheSizeDateTimeFrom  = date_timestamp_set(date_create(), strtotime('- ' . $this->DaysToCache . ' days', $this->NowTimestamp));
@@ -941,7 +940,9 @@ class iCalCalendarReader extends IPSModule
     */
     public function GetCachedCalendar(): string
     {
-        return $this->ReadAttributeString('CalendarBuffer');
+        $CalendarBuffer = $this->ReadAttributeString('CalendarBuffer');
+        $this->Logger_Dbg(__FUNCTION__, $CalendarBuffer);
+        return $CalendarBuffer;
     }
 
 }

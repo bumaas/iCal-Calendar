@@ -1,15 +1,10 @@
 <?php
-
 // get instance ID
-if (!array_key_exists('InstanceID', $_GET)) {
-    if (!array_key_exists('InstanceID', $_POST)) {
-        doReturn();
-    } else {
-        $InstanceID = (int) $_POST['InstanceID'];
-    }
-} else {
-    $InstanceID = (int) $_GET['InstanceID'];
+if (!isset($_GET['InstanceID'])) {
+    doReturn();
 }
+
+$InstanceID = (int) $_GET['InstanceID'];
 
 // instance existing?
 if (!IPS_ObjectExists($InstanceID)) {
@@ -41,10 +36,10 @@ foreach ($CalendarFeed as $Event) {
     $CalEvent['title'] = $Event['Name'];
     $CalEvent['start'] = $Event['FromS'];
     $CalEvent['end']   = $Event['ToS'];
-    if (isset($Event['allDay'])){
+    if (isset($Event['allDay'])) {
         $CalEvent['allDay'] = $Event['allDay'];
     }
-    $result[]          = $CalEvent;
+    $result[] = $CalEvent;
 }
 
 echo json_encode($result);

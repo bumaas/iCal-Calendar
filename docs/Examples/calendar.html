@@ -1,104 +1,99 @@
 <!DOCTYPE html>
+<!--suppress JSUnresolvedLibraryURL, JSUnresolvedFunction, JSUnresolvedVariable -->
 <html lang="de">
 <head>
-<meta charset='utf-8' />
-<link rel='stylesheet' href='//cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.5.1/fullcalendar.min.css' />
-<link rel="stylesheet" type="text/css" href="https://bootswatch.com/darkly/bootstrap.min.css">
-<script type="text/javascript" src='//cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js'></script>
-<script type="text/javascript" src='//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>
-<script type="text/javascript" src='//cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.5.1/fullcalendar.min.js'></script>
-<script type="text/javascript" src='//cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.5.1/locale-all.js'></script>
-<script>
+    <meta charset='utf-8'/>
 
-	$(document).ready(function() {
+    <!-- bootstrap Theme -->
+    <link href='https://use.fontawesome.com/releases/v5.0.6/css/all.css' rel='stylesheet'>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css' rel='stylesheet'/>
 
-		$('#calendar').fullCalendar({
-            themeSystem: 'bootstrap3',
-			header: {
-				left: 'prev,next today',
-				center: 'title',
-				right: 'month,basicWeek,basicDay'
-			},
-            locale: navigator.language,
-			navLinks: true, // can click day/week names to navigate views
-			editable: false,
-			eventLimit: true, // allow "more" link when too many events
-			eventSources: [
-                {
-                    url: 'feed.php',
-                    data: {
-                        InstanceID: 12345 // <- ändern!
+    <!-- fullcalendar 4.1 -->
+    <link rel='stylesheet' href='https://unpkg.com/@fullcalendar/core@4.1.0/main.min.css'/>
+    <link rel='stylesheet' href='https://unpkg.com/@fullcalendar/daygrid@4.1.0/main.min.css'/>
+    <link rel='stylesheet' href='https://unpkg.com/@fullcalendar/timegrid@4.1.0/main.min.css'/>
+    <link rel='stylesheet' href='https://unpkg.com/@fullcalendar/list@4.1.0/main.min.css'/>
+
+    <script type="text/javascript" src='https://unpkg.com/@fullcalendar/core@4.1.0/locales-all.min.js'></script>
+    <script type="text/javascript" src='https://unpkg.com/@fullcalendar/core@4.1.0/main-min.js'></script>
+    <script type="text/javascript" src='https://unpkg.com/@fullcalendar/daygrid@4.1.0/main.min.js'></script>
+    <script type="text/javascript" src='https://unpkg.com/@fullcalendar/timegrid@4.1.0/main.min.js'></script>
+    <script type="text/javascript" src='https://unpkg.com/@fullcalendar/list@4.1.0/main.min.js'></script>
+
+
+    <script>
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const calendarEl = document.getElementById('calendar');
+
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                plugins: ['dayGrid', 'timeGrid', 'list'],
+                defaultView: 'dayGridWeek', //unterstützte Views: dayGridMonth, dayGridWeek, dayGridDay, timeGridWeek, timeGridDay, listYear, listMonth, listWeek, listDay
+                locale: navigator.language, //siehe https://fullcalendar.io/docs/locale
+                themeSystem: 'bootstrap', // siehe https://fullcalendar.io/docs/themeSystem
+                weekNumbers: true, // https://fullcalendar.io/docs/weekNumbers
+                //displayEventTime: true, // siehe https://fullcalendar.io/docs/event-display
+                //displayEventEnd: true, // https://fullcalendar.io/docs/event-display
+                navLinks: true, // siehe https://fullcalendar.io/docs/date-nav-links
+
+
+                eventSources: [ // siehe https://fullcalendar.io/docs/eventSources
+                    {
+                        url: 'feed.php',
+                        extraParams: {
+                            InstanceID: 56714 // <---- ändern
+                        },
+                        color: 'yellow', // siehe https://fullcalendar.io/docs/event-source-object
+                        textColor: 'black', // siehe https://fullcalendar.io/docs/event-source-object
+
+                        failure: function () {
+                            $('#script-warning').show();
+                        }
+                    }, // hier kann auch Schluss sein falls nur ein einziger Feed angezeigt werden soll
+                    {
+                        url: 'feed.php',
+                        extraParams: {
+                            InstanceID: 12345 // <---- ändern
+                        },
+                        color: 'orange', // siehe https://fullcalendar.io/docs/event-source-object
+                        textColor: 'black', // siehe https://fullcalendar.io/docs/event-source-object
+                        failure: function () {
+                            $('#script-warning').show();
+                        }
+                    } // hier können noch weitere Feeds angehängt werden
+                ],
+
+                views: { // Seperate Einstellungen der einzelnen Ansichten, siehe https://fullcalendar.io/docs/view-specific-options
+                    dayGridWeek: {
+                        titleFormat: {year: 'numeric', month: 'long', day: 'numeric'}, // siehe https://fullcalendar.io/docs/titleFormat
+                        columnHeaderFormat: {weekday: 'short', month: 'numeric', day: 'numeric', omitCommas: true} // siehe https://fullcalendar.io/docs/columnHeaderFormat
                     },
-                    color: 'yellow', // <- frei konfigurierbar
-                    textColor: 'black', // <- frei konfigurierbar
-                    error: function() {
-                        $('#script-warning').show();
-                    }
-                }, // hier kann auch Schluss sein falls nur ein einziger Feed angezeigt werden soll
-                {
-                    url: 'feed.php',
-                    data: {
-                        InstanceID: 12345 // <- ändern!
-                    },
-                    color: 'orange', // <- frei konfigurierbar
-                    textColor: 'black', // <- frei konfigurierbar
-                    error: function() {
-                        $('#script-warning').show();
-                    }
-                } // hier können noch weitere Feeds angehängt werden
-            ]
-		});
+                    dayGridDay: {},
+                    timeGridWeek: {},
+                },
+                header: { // Ansicht Kopfzeile
+                    left: 'dayGridMonth,dayGridWeek,dayGridDay timeGridWeek,timeGridDay', // Ansicht und Auswahl des Kalenders
+                    center: 'title',
+                    right: 'prevYear,prev,today,next,nextYear'
 
-	});
+                },
+                buttonText: { // Button Text umbenennung
+                    timeGridDay: 'Timeline Tag',
+                    timeGridWeek: 'Timeline Woche',
+                },
 
-</script>
-<style>
+            });
 
-	body {
-		margin: 0;
-		padding: 0;
-		font-size: 14px;
-	}
+            calendar.render();
+        });
 
-	#top,
-	#calendar.fc-unthemed {
-		font-family: "Lucida Grande",Helvetica,Arial,Verdana,sans-serif;
-	}
+    </script>
+    <title></title>
 
-	#top {
-		background: #eee;
-		border-bottom: 1px solid #ddd;
-		padding: 0 10px;
-		line-height: 40px;
-		font-size: 12px;
-		color: #000;
-	}
-
-	#top .selector {
-		display: inline-block;
-		margin-right: 10px;
-	}
-
-	#top select {
-		font: inherit; /* mock what Boostrap does, don't compete  */
-	}
-
-	.left { float: left }
-	.right { float: right }
-	.clear { clear: both }
-
-	#calendar {
-		max-width: 900px;
-		margin: 40px auto;
-		padding: 0 10px;
-	}
-
-</style>
-	<title></title>
 </head>
 <body>
 
-	<div id='calendar'></div>
+<div id='calendar'></div>
 
 </body>
 </html>

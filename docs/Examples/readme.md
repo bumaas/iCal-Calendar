@@ -14,8 +14,8 @@ Grundlage für die Visualisierung ist das Calendar-Control [Full Calendar](https
 
 ### 1. Funktionsumfang
 
-Full-Blown Calendar-Control, die umfangreich den eigenen Wünschen angepasst werden kann. Siehe hierzu die Dokumentation des Controls unter https://fullcalendar.io/docs/  
-Kalendereinträge sind auf ID, Titel, Start- und Endzeitpunkt beschränkt.
+Umfangreiches Calendar-Control, das den eigenen Wünschen angepasst werden kann. Siehe hierzu die Dokumentation des Controls unter https://fullcalendar.io/docs/  
+Kalendereinträge sind auf ID, Titel, Start- und Endzeitpunkt sowie ein Ganztages-Flag beschränkt.
 
 
 ### 2. Voraussetzungen
@@ -30,7 +30,7 @@ Kalendereinträge sind auf ID, Titel, Start- und Endzeitpunkt beschränkt.
 
 * Die Dateien `calendar.html` und `feed.php` aus dem `iCal-Calendar\docs\Examples` Verzeichnis in ein Verzeichnis unterhalb des WebFront-User-Verzeichnisses `user` kopieren (z.B. `webfront\user\iCal`) .  
 * In der Datei `calendar.html` händisch folgende Anpassungen vornehmen:
-  * Ab Zeile 26 werden im Array `eventSources` zwei Kalenderquellen definiert. Quellen können entweder eine **iCalCalendarReader**- oder eine **iCalCalendarNotifier**-Instanz sein. Hier müssen die Instanz-IDs mit gültigen Werten ersetzt werden. Hierfür die Instanz-IDs aus dem IP Symcon Objektbaum heraussuchen und innerhalb des Arrays `eventSources` im Objekt `data` in die Property `InstanceID` eintragen.
+  * Ab Zeile 40 werden im Array `eventSources` zwei Kalenderquellen definiert. Quellen können entweder eine **iCalCalendarReader**- oder eine **iCalCalendarNotifier**-Instanz sein. Hier müssen die Instanz-IDs mit gültigen Werten ersetzt werden. Hierfür die Instanz-IDs aus dem IP Symcon Objektbaum heraussuchen und innerhalb des Arrays `eventSources` im Objekt `extraParams` in die Property `InstanceID` eintragen.
   * Es können beliebig viele Quellen zu einem Kalender hinzugefügt werden, hier einfach analog zu den beiden Einträgen verfahren.
   * Die Farbeinstellungen `color` und `textColor` nach Gusto anpassen
 * Im WebFront-Editor an beliebiger Position ein Element "Externe Seite" hinzufügen, mit der URL `/user/[Verzeichnisname]/calendar.html`.  
@@ -40,6 +40,3 @@ Wenn alles korrekt gelaufen ist wird im WebFront nun ein Calendar Control mit de
 Wenn man **iCalCalendarNotifier**-Instanzen als Quelle verwendet können sie als smarte Filter auf Kalenderdaten eingesetzt werden, um z.B. nur bestimmte Zeiträume um den momentanen Zeitpunkt anzuzeigen. Sie haben auch einen Einfluss darauf, wie von der zugehörigen **iCalCalendarReader**-Instanz Kalendereinträge aus der Vergangenheit geladen werden: Wenn das Ende des Eintrags plus die im Notifier gesetzte Delay-Zeit noch in der Zukunft liegt wird der Eintrag geladen, ansonsten verworfen.  
 
 Die Calendar Control ist umfassend dokumentiert (siehe oben), es gibt hier noch genug Spielraum für Anpassungen.  
-
-Das Theming kann in Zeile 6 angepasst werden. Für andere Bootstrap-Themes den Theme-Namen `darkly` im CSS-Pfad durch einen dieser Theme-Namen ersetzen:
-cosmo, cyborg, darkly, flatly, journal, lumen, paper, readable, sandstone, simplex, slate, solar, spacelab, superhero, united oder yeti.
