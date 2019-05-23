@@ -40,3 +40,10 @@ Wenn alles korrekt gelaufen ist wird im WebFront nun ein Calendar Control mit de
 Wenn man **iCalCalendarNotifier**-Instanzen als Quelle verwendet können sie als smarte Filter auf Kalenderdaten eingesetzt werden, um z.B. nur bestimmte Zeiträume um den momentanen Zeitpunkt anzuzeigen. Sie haben auch einen Einfluss darauf, wie von der zugehörigen **iCalCalendarReader**-Instanz Kalendereinträge aus der Vergangenheit geladen werden: Wenn das Ende des Eintrags plus die im Notifier gesetzte Delay-Zeit noch in der Zukunft liegt wird der Eintrag geladen, ansonsten verworfen.  
 
 Die Calendar Control ist umfassend dokumentiert (siehe oben), es gibt hier noch genug Spielraum für Anpassungen.  
+
+Das Theming kann in Zeile 16 angepasst werden. 
+Hier wird die CSS `darkly` von [Bootswatch](https://bootswatch.com/) eingebunden.
+Von Bootswatch gibt es auch Reihe weiterer Themes, die sich auf der Homepage auch ansehen lassen.
+
+Für andere Themes dieser Seite kann einfach der Theme-Namen `darkly` im CSS-Pfad durch einen dieser Themenamen ersetzt werden:
+cerulean, cosmo, cyborg, darkly, flatly, journal, litera, lumen, lux, materia, minty, pulse, sandstone, simplex, sketchy, slate, solar, spacelab, superhero, united oder yeti.
