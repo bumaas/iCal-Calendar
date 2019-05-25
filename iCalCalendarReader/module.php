@@ -39,7 +39,7 @@ class ICCR_iCalImporter
 
     private $NowTimestamp;
 
-    private $DaysToCache;
+    private $DaysToCacheAhead, $DaysToCacheBack;
 
     private $CalendarTimezones;
 
@@ -189,13 +189,14 @@ class ICCR_iCalImporter
     /*
         basic setup
     */
-    public function __construct(int $PostNotifyMinutes, int $DaysToCache, callable $Logger_Dbg, callable $Logger_Err)
+    public function __construct(int $PostNotifyMinutes, int $DaysToCacheAhead, int $DaysToCacheBack, callable $Logger_Dbg, callable $Logger_Err)
     {
-        $this->Timezone     = date_default_timezone_get();
-        $this->NowTimestamp = date_timestamp_get(date_create());
-        $this->DaysToCache  = $DaysToCache;
-        $this->Logger_Dbg   = $Logger_Dbg;
-        $this->Logger_Err   = $Logger_Err;
+        $this->Timezone         = date_default_timezone_get();
+        $this->NowTimestamp     = date_timestamp_get(date_create());
+        $this->DaysToCacheAhead = $DaysToCacheAhead;
+        $this->DaysToCacheBack  = $DaysToCacheBack;
+        $this->Logger_Dbg       = $Logger_Dbg;
+        $this->Logger_Err       = $Logger_Err;
     }
 
     /*
@@ -271,7 +272,7 @@ class ICCR_iCalImporter
             $propDtstart    = $vEvent->getDtstart(true); // incl. params
             $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart);
 
-            if (strtotime(sprintf('- %s days', $this->DaysToCache), $dtStartingTime->getTimestamp()) > $this->NowTimestamp) {
+            if (strtotime(sprintf('- %s days', $this->DaysToCacheAhead), $dtStartingTime->getTimestamp()) > $this->NowTimestamp) {
                 // event is too far in the future, ignore
                 call_user_func(
                     $this->Logger_Dbg, __FUNCTION__, 'Event \'' . $vEvent->getSummary() . '\' is too far in the future, ignoring'
@@ -354,8 +355,8 @@ class ICCR_iCalImporter
                 call_user_func($this->Logger_Err, sprintf('Error in CalRRule \'%s\': %s', $vEvent->getSummary(), json_encode($CalRRule)));
                 continue;
             }
-            $CacheSizeDateTimeFrom  = date_timestamp_set(date_create(), strtotime('- ' . $this->DaysToCache . ' days', $this->NowTimestamp));
-            $CacheSizeDateTimeUntil = date_timestamp_set(date_create(), strtotime('+ ' . $this->DaysToCache . ' days', $this->NowTimestamp));
+            $CacheSizeDateTimeFrom  = date_timestamp_set(date_create(), strtotime('- ' . $this->DaysToCacheBack . ' days', $this->NowTimestamp));
+            $CacheSizeDateTimeUntil = date_timestamp_set(date_create(), strtotime('+ ' . $this->DaysToCacheAhead . ' days', $this->NowTimestamp));
 
             //get the EXDATES
             $dtExDates = [];
@@ -398,14 +399,14 @@ class ICCR_iCalImporter
         }
 
         foreach ($eventArray as $ThisEvent) {
-            if ((strtotime(sprintf('+ %s days', $this->DaysToCache), $ThisEvent['To']) < $this->NowTimestamp)
-                || (strtotime(sprintf('- %s days', $this->DaysToCache), $ThisEvent['From']) > $this->NowTimestamp)) {
+            if ((strtotime(sprintf('+ %s days', $this->DaysToCacheAhead), $ThisEvent['To']) < $this->NowTimestamp)
+                || (strtotime(sprintf('- %s days', $this->DaysToCacheBack), $ThisEvent['From']) > $this->NowTimestamp)) {
 
                 // event not in the cached time, ignore
                 call_user_func(
                     $this->Logger_Dbg, __FUNCTION__, sprintf(
-                    'Event \'%s\' (%s - %s) is outside the cached time (DaysToCache: %s), ignoring', $ThisEvent['Name'], $ThisEvent['FromS'],
-                    $ThisEvent['ToS'], $this->DaysToCache
+                    'Event \'%s\' (%s - %s) is outside the cached time (DaysToCacheBack: %s, DaysToCache: %s), ignoring', $ThisEvent['Name'], $ThisEvent['FromS'],
+                    $ThisEvent['ToS'], $this->DaysToCacheBack, $this->DaysToCacheAhead
                 )
                 );
             } else {
@@ -493,6 +494,7 @@ class iCalCalendarReader extends IPSModule
     private const ICCR_PROPERTY_USERNAME = 'Username';
     private const ICCR_PROPERTY_PASSWORD = 'Password';
     private const ICCR_PROPERTY_DAYSTOCACHE = 'DaysToCache';
+    private const ICCR_PROPERTY_DAYSTOCACHEBACK = 'DaysToCacheBack';
     private const ICCR_PROPERTY_UPDATE_FREQUENCY = 'UpdateFrequency';
     private const ICCR_PROPERTY_WRITE_DEBUG_INFORMATION_TO_LOGFILE = 'WriteDebugInformationToLogfile';
 
@@ -514,7 +516,8 @@ class iCalCalendarReader extends IPSModule
         $this->RegisterPropertyString(self::ICCR_PROPERTY_USERNAME, '');
         $this->RegisterPropertyString(self::ICCR_PROPERTY_PASSWORD, '');
 
-        $this->RegisterPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHE, 365);
+        $this->RegisterPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHE, 30);
+        $this->RegisterPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHEBACK, 30);
         $this->RegisterPropertyInteger(self::ICCR_PROPERTY_UPDATE_FREQUENCY, 15);
         $this->RegisterPropertyBoolean(self::ICCR_PROPERTY_WRITE_DEBUG_INFORMATION_TO_LOGFILE, false);
 
@@ -771,7 +774,9 @@ class iCalCalendarReader extends IPSModule
 
         //$MyObject->DoIt();
         $MyImporter        = new ICCR_iCalImporter(
-            $this->ReadAttributeInteger('MaxPostNotifySeconds'), $this->ReadPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHE),
+            $this->ReadAttributeInteger('MaxPostNotifySeconds'),
+            $this->ReadPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHEBACK),
+            $this->ReadPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHE),
             function(string $message, string $data) {
                 $this->Logger_Dbg($message, $data);
             }, function(string $message) {

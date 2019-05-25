@@ -1,27 +1,32 @@
 <html lang="de">
 <head>
-    <meta charset='utf-8' />
+    <meta charset='utf-8'/>
 
     <!-- available plugins see https://fullcalendar.io/docs/plugin-index -->
 
     <!----- StyleSheets -->
 
     <!-- bootstrap Stylesheet + Font Awesome-->
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css" integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
-    <link rel='stylesheet' href='https://unpkg.com/@fullcalendar/list@4.1.0/main.min.css' />
-    <!--<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">-->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css"
+          integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
+    <link rel='stylesheet' href='https://unpkg.com/@fullcalendar/list@4.1.0/main.min.css'/>
 
-    <!-- z.B. cerulean, cosmo, cyborg, darkly, flatly, journal, litera, lumen, lux, materia, minty, pulse,
-    sandstone, simplex, sketchy, slate, solar, spacelab, superhero, united oder yeti-->
-    <link rel='stylesheet' href='https://bootswatch.com/3/darkly/bootstrap.min.css' />
+    <!--
+    =================== hier lassen sich verschiedene Styles auswählen =============================
+    z.B. cerulean, cosmo, cyborg, darkly, flatly, journal, litera, lumen, lux, materia, minty, pulse,
+    sandstone, simplex, sketchy, slate, solar, spacelab, superhero, united oder yeti
+
+    einen Überblick gibt es hier: https://bootswatch.com/
+    -->
+    <link rel='stylesheet' href='https://bootswatch.com/4/darkly/bootstrap.min.css'/>
 
     <!-- fullcalendar -->
     <!-- fullcalendar 4.1 -->
-    <link rel='stylesheet' href='https://unpkg.com/@fullcalendar/core@4.1.0/main.min.css' />
-    <link rel='stylesheet' href='https://unpkg.com/@fullcalendar/daygrid@4.1.0/main.min.css' />
-    <link rel='stylesheet' href='https://unpkg.com/@fullcalendar/timegrid@4.1.0/main.min.css' />
-    <link rel='stylesheet' href='https://unpkg.com/@fullcalendar/list@4.1.0/main.min.css' />
-    <link  rel='stylesheet' href='https://fullcalendar.io/releases/bootstrap/4.1.0/main.min.css'/>
+    <link rel='stylesheet' href='https://unpkg.com/@fullcalendar/core@4.1.0/main.min.css'/>
+    <link rel='stylesheet' href='https://unpkg.com/@fullcalendar/daygrid@4.1.0/main.min.css'/>
+    <link rel='stylesheet' href='https://unpkg.com/@fullcalendar/timegrid@4.1.0/main.min.css'/>
+    <link rel='stylesheet' href='https://unpkg.com/@fullcalendar/list@4.1.0/main.min.css'/>
+    <link rel='stylesheet' href='https://fullcalendar.io/releases/bootstrap/4.1.0/main.min.css'/>
 
 
     <!----- Scripts -->
@@ -35,67 +40,106 @@
 
     <script>
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const calendarEl = document.getElementById('calendar');
+        document.addEventListener('DOMContentLoaded', function () {
 
-            const calendar = new FullCalendar.Calendar(calendarEl, {
-                plugins: [ 'dayGrid', 'timeGrid', 'list', 'bootstrap'],
+            const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+                    plugins: ['dayGrid', 'timeGrid', 'list', 'bootstrap'],
 
-                defaultView: 'dayGridWeek', //unterstützte Views: dayGridMonth, dayGridWeek, dayGridDay, timeGridWeek, timeGridDay, listYear, listMonth, listWeek, listDay
-                locale: navigator.language, //siehe https://fullcalendar.io/docs/locale
-                themeSystem: 'bootstrap', // siehe https://fullcalendar.io/docs/themeSystem
-                weekNumbers: true, // https://fullcalendar.io/docs/weekNumbers
-                //displayEventTime: true, // siehe https://fullcalendar.io/docs/event-display
-                //displayEventEnd: true, // https://fullcalendar.io/docs/event-display
-                navLinks: true, // siehe https://fullcalendar.io/docs/date-nav-links
+                    defaultView: 'dayGridWeek', //unterstützte Views: dayGridMonth, dayGridWeek, dayGridDay, timeGridWeek, timeGridDay, listYear, listMonth, listWeek, listDay
 
+                    locale: navigator.language, //siehe https://fullcalendar.io/docs/locale
+                    themeSystem: 'bootstrap', // siehe https://fullcalendar.io/docs/themeSystem
+                    weekNumbers: true, // https://fullcalendar.io/docs/weekNumbers
+                    //displayEventTime: true, // siehe https://fullcalendar.io/docs/event-display
+                    //displayEventEnd: true, // https://fullcalendar.io/docs/event-display
+                    navLinks: true, // siehe https://fullcalendar.io/docs/date-nav-links
 
-                eventSources: [ // siehe https://fullcalendar.io/docs/eventSources
-                    {
-                        url: 'feed.php',
-                        extraParams: {
-                            InstanceID: 12345 // <---- ändern
-                        },
-                        color: 'yellow', // siehe https://fullcalendar.io/docs/event-source-object
-                        textColor: 'black', // siehe https://fullcalendar.io/docs/event-source-object
+                    eventSources: [ // siehe https://fullcalendar.io/docs/eventSources
+                        {
+                            url: 'feed.php',
+                            extraParams: {
+                                InstanceID: 12345 // <---- ändern
+                            },
+                            color: 'yellow', // siehe https://fullcalendar.io/docs/event-source-object
+                            textColor: 'black', // siehe https://fullcalendar.io/docs/event-source-object
 
-                        failure: function () {
-                            $('#script-warning').show();
+                            failure: function () {
+                                $('#script-warning').show();
+                            }
+                        }, // hier kann auch Schluss sein falls nur ein einziger Feed angezeigt werden soll
+                        {
+                            url: 'feed.php',
+                            extraParams: {
+                                InstanceID: 12345 // <---- ändern
+                            },
+                            color: 'orange', // siehe https://fullcalendar.io/docs/event-source-object
+                            textColor: 'black', // siehe https://fullcalendar.io/docs/event-source-object
+                            failure: function () {
+                                $('#script-warning').show();
+                            }
+                        },// hier können noch weitere Feeds angehängt werden
+                    ],
+
+                    views:
+                        { // Seperate Einstellungen der einzelnen Ansichten, siehe https://fullcalendar.io/docs/view-specific-options
+                            timeGridDay: {
+                                columnHeaderFormat: {
+                                    weekday: 'long', day:
+                                        'numeric', omitCommas:
+                                        true
+                                } // siehe https://fullcalendar.io/docs/columnHeaderFormat
+                            }
+                            ,
+                            timeGridWeek: {
+                                columnHeaderFormat: {
+                                    weekday: 'short', day:
+                                        'numeric', omitCommas:
+                                        true
+                                } // siehe https://fullcalendar.io/docs/columnHeaderFormat
+                            }
+                            ,
+                            dayGridMonth: {
+                                columnHeaderFormat: {
+                                    weekday: 'short'
+                                } // siehe https://fullcalendar.io/docs/columnHeaderFormat
+                            }
+                            ,
                         }
-                    }, // hier kann auch Schluss sein falls nur ein einziger Feed angezeigt werden soll
-                    {
-                        url: 'feed.php',
-                        extraParams: {
-                            InstanceID: 12345 // <---- ändern
-                        },
-                        color: 'orange', // siehe https://fullcalendar.io/docs/event-source-object
-                        textColor: 'black', // siehe https://fullcalendar.io/docs/event-source-object
-                        failure: function () {
-                            $('#script-warning').show();
-                        }
-                    } // hier können noch weitere Feeds angehängt werden
-                ],
+                    ,
 
-                views: { // Seperate Einstellungen der einzelnen Ansichten, siehe https://fullcalendar.io/docs/view-specific-options
-                    dayGridWeek: {
-                        titleFormat: {year: 'numeric', month: 'long', day: 'numeric'}, // siehe https://fullcalendar.io/docs/titleFormat
-                        columnHeaderFormat: {weekday: 'short', month: 'numeric', day: 'numeric', omitCommas: true} // siehe https://fullcalendar.io/docs/columnHeaderFormat
-                    },
-                    dayGridDay: {},
-                    timeGridWeek: {},
-                },
-                header: { // Ansicht Kopfzeile
-                    left: 'dayGridMonth,dayGridWeek,dayGridDay timeGridWeek,timeGridDay', // Ansicht und Auswahl des Kalenders
-                    center: 'title',
-                    right: 'prevYear,prev,today,next,nextYear'
+                    titleFormat: { // siehe https://fullcalendar.io/docs/titleFormat
+                        year: 'numeric',
+                        month:
+                            'long'
+                    }
+                    ,
 
-                },
-                buttonText: { // Button Text umbenennung
-                    timeGridDay: 'Timeline Tag',
-                    timeGridWeek: 'Timeline Woche',
-                },
+                    slotLabelFormat: {
+                        hour: 'numeric',
+                        minute:
+                            '2-digit',
+                        meridiem:
+                            'short'
+                    }
+                    ,
+                    header: { // Ansicht Kopfzeile
+                        left: 'title',
+                        center:
+                            'timeGridDay,timeGridWeek,dayGridMonth', // Ansicht und Auswahl des Kalenders
+                        right:
+                            'prev,next today'
 
-            });
+                    }
+                    ,
+                    buttonText: { // Button Text umbenennung
+                        timeGridDay: 'Tag',
+                        timeGridWeek:
+                            'Woche',
+                    }
+                    ,
+
+                })
+            ;
 
             calendar.render();
         });
