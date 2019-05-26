@@ -16,6 +16,7 @@ define('ICCR_DEBUG', true);
 
 class DebugClass
 {
+
     //private $sendDebug = null; // <--- Neu
 
     public function __construct(callable $sendDebug)
@@ -29,6 +30,7 @@ class DebugClass
         $this->sendDebug('message', 'data', KL_DEBUG);
     }
 }
+
 /***********************************************************************
  * iCal importer class
  ************************************************************************/
@@ -189,7 +191,7 @@ class ICCR_iCalImporter
     /*
         basic setup
     */
-    public function __construct(int $PostNotifyMinutes, int $DaysToCacheAhead, int $DaysToCacheBack, callable $Logger_Dbg, callable $Logger_Err)
+    public function __construct(int $PostNotifyMinutes, int $DaysToCacheBack, int $DaysToCacheAhead, callable $Logger_Dbg, callable $Logger_Err)
     {
         $this->Timezone         = date_default_timezone_get();
         $this->NowTimestamp     = date_timestamp_get(date_create());
@@ -291,7 +293,15 @@ class ICCR_iCalImporter
         }
 
 
-        $eventArray = [];
+        $eventArray         = [];
+        $CacheDateTimeFrom  = (new DateTime('today'))->sub(new DateInterval('P' . $this->DaysToCacheBack . 'D'));
+        $CacheDateTimeUntil = (new DateTime('today'))->add(new DateInterval('P' . ($this->DaysToCacheAhead + 1) . 'D'));
+        call_user_func(
+            $this->Logger_Dbg, __FUNCTION__, sprintf(
+                                 'cached time: (DaysToCacheBack: %s, DaysToCache: %s, %s - %s)', $this->DaysToCacheBack, $this->DaysToCacheAhead,
+                                 $CacheDateTimeFrom->format('Y-m-d H:i:s'), $CacheDateTimeUntil->format('Y-m-d H:i:s')
+                             )
+        );
 
         foreach ($vEvents as $vEvent) {
 
@@ -355,8 +365,6 @@ class ICCR_iCalImporter
                 call_user_func($this->Logger_Err, sprintf('Error in CalRRule \'%s\': %s', $vEvent->getSummary(), json_encode($CalRRule)));
                 continue;
             }
-            $CacheSizeDateTimeFrom  = date_timestamp_set(date_create(), strtotime('- ' . $this->DaysToCacheBack . ' days', $this->NowTimestamp));
-            $CacheSizeDateTimeUntil = date_timestamp_set(date_create(), strtotime('+ ' . $this->DaysToCacheAhead . ' days', $this->NowTimestamp));
 
             //get the EXDATES
             $dtExDates = [];
@@ -368,7 +376,7 @@ class ICCR_iCalImporter
 
 
             //get the occurrences
-            foreach ($RRule->getOccurrencesBetween($CacheSizeDateTimeFrom, $CacheSizeDateTimeUntil) as $dtOccurrence) {
+            foreach ($RRule->getOccurrencesBetween($CacheDateTimeFrom, $CacheDateTimeUntil) as $dtOccurrence) {
                 if (!($dtOccurrence instanceof DateTime)) {
                     throw new RuntimeException('Component is not of type DateTime');
                 }
@@ -399,15 +407,13 @@ class ICCR_iCalImporter
         }
 
         foreach ($eventArray as $ThisEvent) {
-            if ((strtotime(sprintf('+ %s days', $this->DaysToCacheAhead), $ThisEvent['To']) < $this->NowTimestamp)
-                || (strtotime(sprintf('- %s days', $this->DaysToCacheBack), $ThisEvent['From']) > $this->NowTimestamp)) {
-
+            if (($ThisEvent['To'] < $CacheDateTimeFrom->getTimestamp()) || ($ThisEvent['From'] > $CacheDateTimeUntil->getTimestamp())) {
                 // event not in the cached time, ignore
                 call_user_func(
                     $this->Logger_Dbg, __FUNCTION__, sprintf(
-                    'Event \'%s\' (%s - %s) is outside the cached time (DaysToCacheBack: %s, DaysToCache: %s), ignoring', $ThisEvent['Name'], $ThisEvent['FromS'],
-                    $ThisEvent['ToS'], $this->DaysToCacheBack, $this->DaysToCacheAhead
-                )
+                                         'Event \'%s\' (%s - %s) is outside the cached time, ignoring', $ThisEvent['Name'], $ThisEvent['FromS'],
+                                         $ThisEvent['ToS']
+                                     )
                 );
             } else {
                 // insert event(s)
@@ -774,12 +780,10 @@ class iCalCalendarReader extends IPSModule
 
         //$MyObject->DoIt();
         $MyImporter        = new ICCR_iCalImporter(
-            $this->ReadAttributeInteger('MaxPostNotifySeconds'),
-            $this->ReadPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHEBACK),
-            $this->ReadPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHE),
-            function(string $message, string $data) {
-                $this->Logger_Dbg($message, $data);
-            }, function(string $message) {
+            $this->ReadAttributeInteger('MaxPostNotifySeconds'), $this->ReadPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHEBACK),
+            $this->ReadPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHE), function(string $message, string $data) {
+            $this->Logger_Dbg($message, $data);
+        }, function(string $message) {
             $this->Logger_Err($message);
         }
         );
