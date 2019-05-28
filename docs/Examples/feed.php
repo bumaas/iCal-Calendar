@@ -1,4 +1,6 @@
 <?php
+// version: 2.10 build 15
+
 // get instance ID
 if (!isset($_GET['InstanceID'])) {
     doReturn();

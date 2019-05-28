@@ -41,7 +41,7 @@ Wenn man **iCalCalendarNotifier**-Instanzen als Quelle verwendet können sie als
 
 Die Calendar Control ist umfassend dokumentiert (siehe oben), es gibt hier noch genug Spielraum für Anpassungen.  
 
-Das Theming kann in Zeile 21 angepasst werden. 
+Das Theming kann in Zeile 23 angepasst werden. 
 Standardmäßig wird die CSS `darkly` von [Bootswatch](https://bootswatch.com/) eingebunden.
 Von Bootswatch gibt es auch Reihe weiterer Themes, die sich auf der Homepage auch ansehen lassen.
 
