@@ -1,5 +1,6 @@
-<!-- version: 2.10 build 15 -->
+<!-- version: 2.10 build 16 -->
 
+<!--suppress ALL -->
 <html lang="de">
 <head>
     <meta charset='utf-8'/>
@@ -47,11 +48,11 @@
             const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
                     plugins: ['dayGrid', 'timeGrid', 'list', 'bootstrap'],
 
-                    defaultView: 'dayGridWeek', //unterstützte Views: dayGridMonth, dayGridWeek, dayGridDay, timeGridWeek, timeGridDay, listYear, listMonth, listWeek, listDay
+                    defaultView: 'timeGridWeek', //unterstützte Views: dayGridMonth, dayGridWeek, dayGridDay, timeGridWeek, timeGridDay, listYear, listMonth, listWeek, listDay
 
                     locale: navigator.language, //siehe https://fullcalendar.io/docs/locale
                     themeSystem: 'bootstrap', // siehe https://fullcalendar.io/docs/themeSystem
-                    weekNumbers: true, // https://fullcalendar.io/docs/weekNumbers
+                    //weekNumbers: false, // https://fullcalendar.io/docs/weekNumbers
                     //displayEventTime: true, // siehe https://fullcalendar.io/docs/event-display
                     //displayEventEnd: true, // https://fullcalendar.io/docs/event-display
                     navLinks: true, // siehe https://fullcalendar.io/docs/date-nav-links
@@ -79,7 +80,7 @@
                             failure: function () {
                                 $('#script-warning').show();
                             }
-                        },// hier können noch weitere Feeds angehängt werden
+                        }// hier können noch weitere Feeds angehängt werden
                     ],
 
                     views:

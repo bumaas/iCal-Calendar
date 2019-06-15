@@ -18,11 +18,12 @@ Diese Bibliothek beinhaltet zwei Module zur Einspeisung von Kalenderinformatione
 
 ### 1. Funktionsumfang
 
-Mit dem Modul **iCal Calendar Reader** werden Kalenderdaten eingelesen (getestet mit Google Calendar, ownCloud Calendar, Synology Calendar und iCloud), das Modul **iCal Calendar Notifier** reagiert mit einstellbaren Vor- und Nachlaufzeiten mit einer Statusvariable auf Kalenderereignisse. Zum aktuellen Status kann ein Skript weitere Kalenderdaten des oder der auslösenden Ereignisse abfragen. Es sind beliebig viele **iCal Calendar Notifier**-Instanzen mit unterschiedlichen Einstellungen an eine **iCal Calendar Reader**-Instanz koppelbar. 
+Mit dem Modul **iCal Calendar Reader** werden Kalenderdaten eingelesen (getestet mit Google Calendar, ownCloud Calendar, Synology Calendar und iCloud). Zum einen können die eingelesenen Kalender auf einfache Weise im Webfront angezeigt werden, zum anderen können eingetragene Termine zum Setzen von Statusvariablen ausgewertet werden.
+Zum aktuellen Status kann ein Skript weitere Kalenderdaten des oder der auslösenden Ereignisse abfragen. 
 
 Damit ist es z.B. sehr einfach möglich einen zentralen Anwesenheitskalender im Internet zu pflegen, IP Symcon steuert damit automatisch Heizung, Alarmanlage und Anwesenheitssimulation. Mit der Auswertung von zusätzlichen Informationen im Kalendereintrag durch ein Skript können z.B. bestimmte Transponder für den Zugang gesperrt bzw. freigeschaltet werden.
 
-Auch die Visualisierung von Einträgen in öffentlichen Kalendern (z.B. Müllabfuhrtermine, Kinoprogramm, ...) im Webfront können mit mehreren **iCal Calendar Notifier**-Instanzen ohne viel Skript-Programmierung gesteuert werden. Z.B. können Abfuhrtermine immer bereits 1 Tag vorher angezeigt werden, das Kinoprogramm zeigt prominent den Spielplan des aktuellen Tages, weiter unten folgt die restliche Woche.
+Auch die Visualisierung von Einträgen in öffentlichen Kalendern (z.B. Müllabfuhrtermine, Kinoprogramm, ...) im Webfront können ohne viel Skript-Programmierung gesteuert werden. Z.B. können Abfuhrtermine immer bereits 1 Tag vorher angezeigt werden, das Kinoprogramm zeigt prominent den Spielplan des aktuellen Tages, weiter unten folgt die restliche Woche.
 
 Kalender werden beim Laden unter Berücksichtigung ihrer jeweiligen Zeitzone in die lokale Zeitzone umgerechnet, sich wiederholende Termine als mehrere Einzeltermine abgespeichert.
 
@@ -44,18 +45,27 @@ Das Modul wird über den Modul Store installiert.
 
 ### 4. Einrichten der Instanzen in IP-Symcon
 
-Unter "Instanz hinzufügen" eine I/O-Instanz **iCal Calendar Reader** hinzufügen. Dieser ist unter dem Hersteller **ergomation systems** aufgeführt.  
+Unter "Instanz hinzufügen" eine Instanz **iCal Calendar Reader** hinzufügen.  
 
 __Konfigurationsseite__:
 
-Name                | Beschreibung
-------------------- | ---------------------------------
-Calendar URL        | URL zur iCal-Quelle
-Username            | Benutzer für den Zugriff auf die Quelle
-Passwort            | Passwort dieses Benutzers
-Synchronization     | 
-Cachesize (days)    | Anzahl der Tage, für die Ereignisse in der Zukunft gelesen werden sollen
-Update-freq. (minutes) | Alle wieviel Minuten soll die Quelle gelesen werden
+Eigenschaft          |Typ     | Standardwert|Beschreibung
+------------------- | ---------|------------|------------
+CalendarServerURL   |string|     | URL zur iCal-Quelle
+Username            |string|  |    Benutzer für den Zugriff auf die Quelle
+Password            |string|   |   Passwort dieses Benutzers
+DaysToCache    |integer|30| Anzahl der Tage, für die Ereignisse in der Zukunft gelesen werden sollen
+DaysToCacheBack    |integer|30|  Anzahl der Tage, für die Ereignisse in der Vergangenheit gelesen werden sollen
+UpdateFrequency |integer|15|  Alle wieviel Minuten soll die Quelle gelesen werden
+WriteDebugInformationToLogfile |boolean|false|legt fest, ob die Debug Informationen zusätzlich in das Standard Logfile geschrieben werden sollen. <b>Wichtig:</b> dazu muss der Symcon Spezialschalter 'LogfileVerbose' aktiviert sein
+<b>Notifiers</b> ||
+Ident |string|      
+Name |string|     
+Find |string|     
+RegExpression |boolean|false
+Prenotify |integer|0| Wie viele Minuten vor dem Ereignisstart soll die Statusvariable auf "true" gesetzt werden
+Postnotify |integer|0| Wie viele Minuten nach dem Ereignisstart soll die Statusvariable auf "true" gesetzt bleiben
+
 
 Auf folgendes URL-Format ist bei den unterschiedlichen iCal-Servern zu achten:
 
@@ -77,37 +87,12 @@ Im macOS Kalender-Programm mit der rechten Maustaste auf den zu importierenden i
 
 Sobald eine URL angegeben und gespeichert wurde beginnt die Synchronisierung. Fehler beim Zugriff auf den Kalender stehen im Systemlog (Tabreiter **Meldungen** in der IP-Symcon Management Konsole). Bei jeder Änderung der Parameter wird eine sofortige Synchronisation und ein Update auf alle angemeldeten Notifier gegeben.
 
-Mit "Instanz hinzufügen" nun eine Instanz **iCal Calendar Notifier** hinzufügen. Diese ist ebenfalls unter dem Hersteller **ergomation systems** aufgeführt.
-
-Die **iCal Calendar Notifier** haben folgende Konfigurationsoptionen:
-
-__Konfigurationsseite__:
-
-Name                | Beschreibung
-------------------- | ---------------------------------
-Lagged Notification | 
-Prenotify (minutes)    | Wie viele Minuten vor dem Ereignisstart soll die Statusvariable "Presence" auf "true" gesetzt werden
-Delay (minutes)        | Wie viele Minuten nach dem Ereignisende soll die Statusvariable "Presence" auf "false" gesetzt werden
-
-**Wichtig!** Im unteren Teil der Konfigurationsseite als übergeordnete Instanz die zugehörige **iCal Calendar Reader**-Instanz auswählen.
-
-Bei jeder Änderung der Parameter oder der übergeordneten Instanz wird eine sofortige Synchronisation angestoßen und ein Update auf alle angemeldeten Notifier gegeben.
+Bei jeder Änderung der Parameter oder der übergeordneten Instanz wird eine sofortige Synchronisation angestoßen.
 
 ### 5. Statusvariablen und Profile
 
-Nur **iCal Calendar Notifier**-Instanzen haben eine Statusvariable, diese wird automatisch angelegt. Das Löschen führt zu Fehlfunktionen.
-
-
-#### Statusvariablen
-
-Die **iCal Calendar Notifier**-Instanzen haben folgende Statusvariable:
-
-Name     | Typ     | Beschreibung
--------- | ------- | ----------------
-Presence | Boolean | Zeigt an ob ein Kalendereintrag unter Berücksichtigung der im Modul angegebenen Zeiten aktiv ist
-
-
-#### Profile:
+Für jeden Notifier wird eine Statusvariable mit dem Ident 'Notifier' und einer laufenden Nummer angelegt.
+Die jeweilige Statusvariable zeigt an ob ein Kalendereintrag unter Berücksichtigung der im Modul angegebenen Zeiten und des angegebenen Filters aktiv ist.
 
 Es werden keine Variablenprofile angelegt.
 
@@ -119,33 +104,17 @@ Die Statusvariable ist mit Profilen für das WebFront vorbereitet.
 
 ### 7. PHP-Befehlsreferenz
 
-#### iCal Calendar Reader
-
-`json_string ICCR_GetClientConfig(integer $InstanceID);`   
-Gibt ein Array mit sämtlichen registrierten Notifier-Konfigurationen als JSON-codierten String aus. 
-
 `json_string ICCR_GetCachedCalendar(integer $InstanceID);`   
 Gibt ein Array mit den zwischengespeicherten und in die lokale Zeitzone übertragenen Kalenderdaten als JSON-codierten String aus.
 
 `void ICCR_TriggerNotifications(integer $InstanceID);`   
-Forciert eine sofortige Überprüfung, ob Notifications an die registrierten Notifier gesendet werden müssen.
-Diese Funktion wird intern jede Minute aufgerufen.
-Die Funktion liefert keinerlei Rückgabewert.  
+Forciert eine sofortige Überprüfung, ob die Statusvariablen aktualisiert werden müssen.
+Diese Funktion wird intern jede Minute aufgerufen.  
 
-`void ICCR_UpdateCalendar(integer $InstanceID);`   
+`json_string ICCR_UpdateCalendar(integer $InstanceID);`   
 Forciert eine sofortiges Neuladen des Kalenders.
 Diese Funktion wird intern regelmäßig, wie in "Update-freq. (minutes)" konfiguriert, aufgerufen.
-Die Funktion liefert keinerlei Rückgabewert.  
-
-`void ICCR_UpdateClientConfig(integer $InstanceID);`   
-Forciert ein sofortiges Neuladen der Konfigurationen aller registrierten Notifier.
-Die Funktion liefert keinerlei Rückgabewert.  
-
-
-#### iCal Calendar Notifier
-
-`boolean ICCN_GetNotifierPresence(integer $InstanceID);`   
-Gibt den Wert der Statusvariable "Presence" zurück.  
-
-`json_string ICCN_GetNotifierPresenceReason(integer $InstanceID);`   
-Gibt ein Array der den "Presence"-Status bedingenden Ereignisse als JSON-kodierten String aus.
+Gibt ein Array mit den zwischengespeicherten und in die lokale Zeitzone übertragenen Kalenderdaten als JSON-kodierten String aus. 
+ 
+`json_string ICCR_GetNotifierPresenceReason(integer $InstanceID, string $ident);`   
+Gibt ein Array der den Status bedingenden Ereignisse als JSON-kodierten String aus. 

@@ -1,8 +1,10 @@
 {
     "elements":
     [
+        { "type": "Label", "caption": "This instance has no funktion since version 2.0!! Please configure the notifiers in the iCal Calendar Reader instance now!" },
         { "type": "Label", "caption": "Lagged notification" },
         { "type": "NumberSpinner", "name": "PreNotifyMinutes", "caption": "Prenotify (minutes)" },
         { "type": "NumberSpinner", "name": "PostNotifyMinutes", "caption": "Delay (minutes)" }
-    ]
+    ],
+    "status": []
 }
