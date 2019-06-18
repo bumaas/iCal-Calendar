@@ -35,10 +35,10 @@ class iCalCalendarReader extends IPSModule
     private const ICCR_PROPERTY_NOTIFIERS = 'Notifiers';
     private const ICCR_PROPERTY_NOTIFIER_IDENT = 'Ident';
     private const ICCR_PROPERTY_NOTIFIER_NAME = 'Name';
-    private const ICCR_PROPERTY_NOTIFIER_FIND= 'Find';
-    private const ICCR_PROPERTY_NOTIFIER_REGEXPRESSION= 'RegExpression';
-    private const ICCR_PROPERTY_NOTIFIER_PRENOTIFY= 'Prenotify';
-    private const ICCR_PROPERTY_NOTIFIER_POSTNOTIFY= 'Postnotify';
+    private const ICCR_PROPERTY_NOTIFIER_FIND = 'Find';
+    private const ICCR_PROPERTY_NOTIFIER_REGEXPRESSION = 'RegExpression';
+    private const ICCR_PROPERTY_NOTIFIER_PRENOTIFY = 'Prenotify';
+    private const ICCR_PROPERTY_NOTIFIER_POSTNOTIFY = 'Postnotify';
 
     private const ICCR_ATTRIBUTE_CALENDAR_BUFFER = 'CalendarBuffer';
     private const ICCR_ATTRIBUTE_NOTIFICATIONS = 'Notifications';
@@ -76,6 +76,9 @@ class iCalCalendarReader extends IPSModule
         // create timer
         $this->RegisterTimer(self::TIMER_UPDATECALENDAR, 0, 'ICCR_UpdateCalendar( $_IPS["TARGET"] );'); // cron runs every 5 minutes, when active
         $this->RegisterTimer(self::TIMER_CRON1, 0, 'ICCR_TriggerNotifications( $_IPS["TARGET"] );'); // cron runs every minute
+
+        //we will wait until the kernel is ready
+        $this->RegisterMessage(0, IPS_KERNELMESSAGE);
     }
 
     /*
@@ -84,6 +87,10 @@ class iCalCalendarReader extends IPSModule
     public function ApplyChanges(): bool
     {
         parent::ApplyChanges();
+
+        if (IPS_GetKernelRunlevel() !== KR_READY) {
+            return false;
+        }
 
         if ($this->ReadPropertyBoolean('active')) {
             //validate Configuration
@@ -102,7 +109,7 @@ class iCalCalendarReader extends IPSModule
 
 
         // ready to run an update?
-        if (($Status === IS_ACTIVE) && (IPS_GetKernelRunlevel() === KR_READY)) {
+        if ($Status === IS_ACTIVE) {
 
             //print_r(json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true));
             $prop          = [];
@@ -115,10 +122,13 @@ class iCalCalendarReader extends IPSModule
                 }
 
                 //Variable registrieren
-                $this->RegisterVariableBoolean($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT], $notifier[self::ICCR_PROPERTY_NOTIFIER_NAME], '~Switch');
+                $this->RegisterVariableBoolean(
+                    $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT], $notifier[self::ICCR_PROPERTY_NOTIFIER_NAME], '~Switch'
+                );
 
                 //Variablennamen auslesen
-                $notifier[self::ICCR_PROPERTY_NOTIFIER_NAME] = IPS_GetObject($this->GetIDForIdent($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]))['ObjectName'];
+                $notifier[self::ICCR_PROPERTY_NOTIFIER_NAME] =
+                    IPS_GetObject($this->GetIDForIdent($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]))['ObjectName'];
 
                 $prop[] = $notifier;
             }
@@ -205,8 +215,16 @@ class iCalCalendarReader extends IPSModule
                 [
                     'type'  => 'RowLayout',
                     'items' => [
-                        ['type' => 'NumberSpinner', 'name' => self::ICCR_PROPERTY_DAYSTOCACHEBACK, 'caption' => 'Cachesize (Past)', 'suffix' => 'days'],
-                        ['type' => 'NumberSpinner', 'name' => self::ICCR_PROPERTY_DAYSTOCACHE, 'caption' => 'Cachesize (Future)', 'suffix' => 'days']]]]];
+                        [
+                            'type'    => 'NumberSpinner',
+                            'name'    => self::ICCR_PROPERTY_DAYSTOCACHEBACK,
+                            'caption' => 'Cachesize (Past)',
+                            'suffix'  => 'days'],
+                        [
+                            'type'    => 'NumberSpinner',
+                            'name'    => self::ICCR_PROPERTY_DAYSTOCACHE,
+                            'caption' => 'Cachesize (Future)',
+                            'suffix'  => 'days']]]]];
 
         $form['elements'][] = [
             'type'     => 'List',
@@ -217,10 +235,30 @@ class iCalCalendarReader extends IPSModule
             'delete'   => true,
             'sort'     => ['column' => self::ICCR_PROPERTY_NOTIFIER_NAME, 'direction' => 'ascending'],
             'columns'  => [
-                ['caption' => 'Ident', 'name' => self::ICCR_PROPERTY_NOTIFIER_IDENT, 'width' => '100px', 'add' => $this->Translate('new'), 'save' => true],
-                ['caption' => 'Name', 'name' => self::ICCR_PROPERTY_NOTIFIER_NAME, 'width' => '150px', 'add' => '', 'edit' => ['type' => 'ValidationTextBox']],
-                ['caption' => 'Find', 'name' => self::ICCR_PROPERTY_NOTIFIER_FIND, 'width' => '150px', 'add' => '', 'edit' => ['type' => 'ValidationTextBox']],
-                ['caption' => 'Regular Expression', 'name' => self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION, 'width' => '100px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
+                [
+                    'caption' => 'Ident',
+                    'name'    => self::ICCR_PROPERTY_NOTIFIER_IDENT,
+                    'width'   => '100px',
+                    'add'     => $this->Translate('new'),
+                    'save'    => true],
+                [
+                    'caption' => 'Name',
+                    'name'    => self::ICCR_PROPERTY_NOTIFIER_NAME,
+                    'width'   => '150px',
+                    'add'     => '',
+                    'edit'    => ['type' => 'ValidationTextBox']],
+                [
+                    'caption' => 'Find',
+                    'name'    => self::ICCR_PROPERTY_NOTIFIER_FIND,
+                    'width'   => '150px',
+                    'add'     => '',
+                    'edit'    => ['type' => 'ValidationTextBox']],
+                [
+                    'caption' => 'Regular Expression',
+                    'name'    => self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION,
+                    'width'   => '100px',
+                    'add'     => false,
+                    'edit'    => ['type' => 'CheckBox']],
                 [
                     'caption' => 'Prenotify',
                     'name'    => self::ICCR_PROPERTY_NOTIFIER_PRENOTIFY,
@@ -295,6 +333,17 @@ class iCalCalendarReader extends IPSModule
 
     }
 
+    public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
+    {
+        $this->Logger_Dbg(__FUNCTION__, 'SenderID: ' . $SenderID . ', Message: ' . $Message . ', Data:' . json_encode($Data));
+        /** @noinspection DegradedSwitchInspection */
+        switch ($Message) {
+            case IPS_KERNELMESSAGE:
+                if ($Data[0] === KR_READY) {
+                    $this->ApplyChanges();
+                }
+        }
+    }
 
     /*
         check if calendar URL syntax is valid
@@ -508,20 +557,31 @@ class iCalCalendarReader extends IPSModule
                                    int $notPost): bool
     {
         $ts = time();
-        $this->Logger_Dbg(__FUNCTION__, sprintf('Now: %s, Start: %s, End: %s, Pre: %s, $Post: %s', $ts, $calStart, $calEnd, $notPre, $notPost));
+        $this->Logger_Dbg(
+            __FUNCTION__, sprintf(
+                            'Now: %s, Start: %s, End: %s, Pre: %s, $Post: %s', $this->formatDate($ts), $this->formatDate($calStart),
+                            $this->formatDate($calEnd), $notPre, $notPost
+                        )
+        );
 
         if ((($calStart - $notPre) < $ts) && (($calEnd + $notPost) > $ts)) {
-            $this->Logger_Dbg(__FUNCTION__, sprintf('find: %s, description: %s', $notFind, $calDescription));
-            if ($calDescription && $notFind) {
+            $this->Logger_Dbg(__FUNCTION__, sprintf('find: \'%s\', description: \'%s\'', $notFind, $calDescription));
+            if ($calDescription !== '' && $notFind !== '') {
                 if ($notRegExpression) {
                     return @preg_match($notFind, $calDescription) !== false;
                 }
-                return strpos($notFind, $calDescription) !== false;
+                $this->Logger_Dbg(__FUNCTION__, sprintf('strpos: %s', (int) strpos($notFind, $calDescription)));
+                return strpos($calDescription, $notFind) !== false;
             }
             return $notFind === '';
         }
 
         return false;
+    }
+
+    private function formatDate(int $ts): string
+    {
+        return date('Y-m-d H:i:s', $ts);
     }
 
     /*
@@ -542,22 +602,26 @@ class iCalCalendarReader extends IPSModule
         $notifications = [];
         foreach ($Notifiers as $notifier) {
             $this->Logger_Dbg(__FUNCTION__, 'Process notifier: ' . json_encode($notifier));
-            $active = false;
+            $active                            = false;
             $notifications[$notifier['Ident']] = [];
             foreach (json_decode($this->ReadAttributeString(self::ICCR_ATTRIBUTE_CALENDAR_BUFFER), true) as $iCalItem) {
                 $active = $this->CheckPresence(
-                        $iCalItem['Name'], $iCalItem['From'], $iCalItem['To'], $notifier['Find'], $notifier['RegExpression'],
-                        $notifier[self::ICCR_PROPERTY_NOTIFIER_PRENOTIFY] * 60, $notifier[self::ICCR_PROPERTY_NOTIFIER_POSTNOTIFY] * 60
-                    );
+                    $iCalItem['Name'], $iCalItem['From'], $iCalItem['To'], $notifier['Find'], $notifier['RegExpression'],
+                    $notifier[self::ICCR_PROPERTY_NOTIFIER_PRENOTIFY] * 60, $notifier[self::ICCR_PROPERTY_NOTIFIER_POSTNOTIFY] * 60
+                );
                 $this->Logger_Dbg(__FUNCTION__, 'Result: ' . (int) $active);
-                if ($active){
+                if ($active) {
                     $notifications[$notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]] = $iCalItem;
                     break;
                 }
             }
             $idNotifier = @$this->GetIDForIdent($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]);
             if ($idNotifier && ($this->GetValue($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]) !== $active)) {
-                $this->Logger_Dbg(__FUNCTION__, sprintf('Ident \'%s\' (#%s) auf %s gesetzt', $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT], $idNotifier, (int) $active));
+                $this->Logger_Dbg(
+                    __FUNCTION__, sprintf(
+                                    'Ident \'%s\' (#%s) auf %s gesetzt', $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT], $idNotifier, (int) $active
+                                )
+                );
 
                 $this->SetValue($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT], $active);
             }

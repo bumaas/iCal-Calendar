@@ -59,12 +59,12 @@ DaysToCacheBack    |integer|30|  Anzahl der Tage, für die Ereignisse in der Ver
 UpdateFrequency |integer|15|  Alle wieviel Minuten soll die Quelle gelesen werden
 WriteDebugInformationToLogfile |boolean|false|legt fest, ob die Debug Informationen zusätzlich in das Standard Logfile geschrieben werden sollen. <b>Wichtig:</b> dazu muss der Symcon Spezialschalter 'LogfileVerbose' aktiviert sein
 <b>Notifiers</b> ||
-Ident |string|      
-Name |string|     
-Find |string|     
-RegExpression |boolean|false
+Ident |string| NOTIFIER + lfd. Nummer| Ident der Statusvariablen     
+Name |string| | Bezeichnung der Statusvariablen    
+Find |string| | Suchmuster mit dem der Kalendereintrag verglichen wird    
+RegExpression |boolean|false|Kennzeichnung, ob es sich bei dem Suchmuster um einen regulären Ausdruck ("RegExpr") handelt
 Prenotify |integer|0| Wie viele Minuten vor dem Ereignisstart soll die Statusvariable auf "true" gesetzt werden
-Postnotify |integer|0| Wie viele Minuten nach dem Ereignisstart soll die Statusvariable auf "true" gesetzt bleiben
+Postnotify |integer|0| Wie viele Minuten nach dem Ereignisende soll die Statusvariable auf "true" gesetzt bleiben
 
 
 Auf folgendes URL-Format ist bei den unterschiedlichen iCal-Servern zu achten:
