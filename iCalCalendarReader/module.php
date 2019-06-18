@@ -218,12 +218,12 @@ class iCalCalendarReader extends IPSModule
                         [
                             'type'    => 'NumberSpinner',
                             'name'    => self::ICCR_PROPERTY_DAYSTOCACHEBACK,
-                            'caption' => 'Cachesize (Past)',
+                            'caption' => 'Cache size (Past)',
                             'suffix'  => 'days'],
                         [
                             'type'    => 'NumberSpinner',
                             'name'    => self::ICCR_PROPERTY_DAYSTOCACHE,
-                            'caption' => 'Cachesize (Future)',
+                            'caption' => 'Cache size (Future)',
                             'suffix'  => 'days']]]]];
 
         $form['elements'][] = [
@@ -296,11 +296,11 @@ class iCalCalendarReader extends IPSModule
                  $module = new IPSModule($id);
                  $calendarReturn = ICCR_UpdateCalendar($id);
                  if ($calendarReturn === null){
-                    echo $module->Translate("Fehler");
+                    echo $module->Translate("Error!");
                  } else {
                     $calendarEntries = json_decode($calendarReturn, true);
                     if (count($calendarEntries)){
-                        echo $module->Translate("The following dates are read:" . PHP_EOL . PHP_EOL);
+                        echo $module->Translate("The following dates are read:") . PHP_EOL . PHP_EOL;
                         print_r($calendarEntries);
                     } else { 
                         echo $module->Translate("No dates are found");
@@ -310,7 +310,7 @@ class iCalCalendarReader extends IPSModule
             [
                 'type'    => 'Button',
                 'caption' => 'Check Notifications',
-                'onClick' => '$module = new IPSModule($id); ICCR_TriggerNotifications($id); echo $module->Translate("Finished");'],
+                'onClick' => '$module = new IPSModule($id); ICCR_TriggerNotifications($id); echo $module->Translate("Finished!");'],
             [
                 'type'  => 'RowLayout',
                 'items' => [

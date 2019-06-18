@@ -1,9 +1,8 @@
 iCal Calender in IP Symcon lesen und verarbeiten
 ===
 
-Diese Bibliothek beinhaltet zwei Module zur Einspeisung von Kalenderinformationen im iCal-Format in IP Symcon:
+Diese Bibliothek beinhaltet ein Modul zur Einspeisung von Kalenderinformationen im iCal-Format in IP Symcon:
 * **iCal Calendar Reader**
-* **iCal Calendar Notifier**
 
 
 **Inhaltverzeichnis**
@@ -85,21 +84,19 @@ Zu finden in der Calendar-App. Rechts in der Liste der Kalender das nach unten z
 `https://(server).icloud.com/published/(number)/(secret-hash-string-1)-(secret-hash-string-2)`  
 Im macOS Kalender-Programm mit der rechten Maustaste auf den zu importierenden iCloud-Kalender klicken, *"Teilen"* auswählen und *"Öffentlicher Kalender"* auswählen. Den erscheinenden Link kopieren und das Protokoll `webcal` gegen `https` tauschen.  
 
-Sobald eine URL angegeben und gespeichert wurde beginnt die Synchronisierung. Fehler beim Zugriff auf den Kalender stehen im Systemlog (Tabreiter **Meldungen** in der IP-Symcon Management Konsole). Bei jeder Änderung der Parameter wird eine sofortige Synchronisation und ein Update auf alle angemeldeten Notifier gegeben.
-
-Bei jeder Änderung der Parameter oder der übergeordneten Instanz wird eine sofortige Synchronisation angestoßen.
+Sobald eine URL angegeben und gespeichert wurde beginnt die Synchronisierung. Fehler beim Zugriff auf den Kalender stehen im Systemlog (Tabreiter **Meldungen** in der IP-Symcon Management Konsole). Bei jeder Änderung der Parameter wird eine sofortige Synchronisation und ein Update auf alle Meldevariablen gegeben.
 
 ### 5. Statusvariablen und Profile
 
-Für jeden Notifier wird eine Statusvariable mit dem Ident 'Notifier' und einer laufenden Nummer angelegt.
-Die jeweilige Statusvariable zeigt an ob ein Kalendereintrag unter Berücksichtigung der im Modul angegebenen Zeiten und des angegebenen Filters aktiv ist.
+Für jede eingetragene Meldung wird eine Meldevariable mit dem Ident 'Notifier' und einer laufenden Nummer angelegt.
+Die jeweilige Meldevariable zeigt an, ob ein Kalendereintrag unter Berücksichtigung der im Modul angegebenen Zeiten und des angegebenen Filters aktiv ist.
 
-Es werden keine Variablenprofile angelegt.
+Es werden keine eigenen Variablenprofile angelegt.
 
 
 ### 6. WebFront
 
-Die Statusvariable ist mit Profilen für das WebFront vorbereitet.
+Die Meldevariablen sind mit Profilen für das WebFront vorbereitet.
 
 
 ### 7. PHP-Befehlsreferenz

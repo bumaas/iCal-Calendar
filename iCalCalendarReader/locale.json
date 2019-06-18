@@ -1,0 +1,42 @@
+{
+  "translations": {
+    "de": {
+      "In this instance, the parameters for a single calendar access are set. The description of the individual parameters can be found in the documentation.": "In dieser Instanz werden alle Parameter für den Zugriff eines einzelnen Kalenders hinterlegt. Die Beschreibung der einzelnen Parameter ist in der Dokumentation zu finden.",
+      "Show Documentation": "Dokumentation anzeigen",
+      "active": "aktiv",
+      "Calendar access": "Kalenderzugriff",
+      "Calendar URL": "Kalender URL",
+      "Username": "Benutzername",
+      "Password": "Kennwort",
+      "Synchronization": "Synchronisation",
+      "Cache size (Past)": "Cache-Größe (Vergangenheit)",
+      "Cache size (Future)": "Cache-Größe (Zukunft)",
+      "days": "Tage",
+      "Notifiers": "Meldevariablen",
+      "Ident": "Ident",
+      "Name": "Name",
+      "Find": "Suche",
+      "Regular Expression": "Reg. Ausdruck",
+      "Prenotify": "Vorlauf",
+      "Postnotify": "Nachlauf",
+      "Expert Parameters": "Expertenparameter",
+      "Update Interval": "Aktualisierungsintervall",
+      "Load calendar": "Kalender laden",
+      "The following dates are read:": "Die folgenden Einträge wurden gelesen:",
+      "No dates are found": "Es wurden keine Einträge gefunden",
+      "Check Notifications": "Auf Termine prüfen",
+      "Pattern": "Suchmuster",
+      "Subject": "Thema",
+      "Test Regular Expression": "Regulären Ausdruck testen",
+      "Hit!": "Treffer!",
+      "No Hit!": "Kein Treffer!",
+      "Invalid URL, see log for details": "Ungültige URL, siehe Logfile für Details",
+      "SSL error, see log for details": "SSL Fehler, siehe Logfile für Details",
+      "Invalid user or password": "Benutzername oder Kennwort sind ungültig",
+      "Connection error, see log for details": "Verbindungsfehler, siehe Logfile für Details",
+      "Unexpected response from calendar server": "Unerwartete Anwort vom Kalender Server",
+      "Finished!": "Fertig!",
+      "Error!": "Fehler!"
+    }
+  }
+}
