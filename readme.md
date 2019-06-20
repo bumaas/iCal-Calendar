@@ -4,6 +4,10 @@ iCal Calender in IP Symcon lesen und verarbeiten
 Diese Bibliothek beinhaltet ein Modul zur Einspeisung von Kalenderinformationen im iCal-Format in IP Symcon:
 * **iCal Calendar Reader**
 
+Um Daten aus früheren iCal Installationen übernehmen zu können, gibt es noch das nunmehr veraltete Modul
+* **iCal Calendar Notifier** (veraltet)<br>
+Es hat keinerlei Funktion mehr und dient lediglich der Möglichkeit, Daten übernehmen zu können. Es wird in einer der nächsten Versionen ganz entfallen.
+
 
 **Inhaltverzeichnis**
 
@@ -17,14 +21,13 @@ Diese Bibliothek beinhaltet ein Modul zur Einspeisung von Kalenderinformationen 
 
 ### 1. Funktionsumfang
 
-Mit dem Modul **iCal Calendar Reader** werden Kalenderdaten eingelesen (getestet mit Google Calendar, ownCloud Calendar, Synology Calendar und iCloud). Zum einen können die eingelesenen Kalender auf einfache Weise im Webfront angezeigt werden, zum anderen können eingetragene Termine zum Setzen von Statusvariablen ausgewertet werden.
-Zum aktuellen Status kann ein Skript weitere Kalenderdaten des oder der auslösenden Ereignisse abfragen. 
+Das Modul dient dem Einlesen von Kalenderdaten in IP-Symcon (getestet mit Google Calendar, ownCloud Calendar, Synology Calendar und iCloud). Zum einen können die eingebundenen Kalender auf einfache Weise im Webfront angezeigt werden, zum anderen können eingetragene Termine zum Setzen von Statusvariablen ausgewertet werden.
 
-Damit ist es z.B. sehr einfach möglich einen zentralen Anwesenheitskalender im Internet zu pflegen, IP Symcon steuert damit automatisch Heizung, Alarmanlage und Anwesenheitssimulation. Mit der Auswertung von zusätzlichen Informationen im Kalendereintrag durch ein Skript können z.B. bestimmte Transponder für den Zugang gesperrt bzw. freigeschaltet werden.
+Damit ist es z.B. sehr einfach möglich einen zentralen Anwesenheitskalender im Internet zu pflegen, IP Symcon steuert damit automatisch Heizung, Alarmanlage und Anwesenheitssimulation.
 
-Auch die Visualisierung von Einträgen in öffentlichen Kalendern (z.B. Müllabfuhrtermine, Kinoprogramm, ...) im Webfront können ohne viel Skript-Programmierung gesteuert werden. Z.B. können Abfuhrtermine immer bereits 1 Tag vorher angezeigt werden, das Kinoprogramm zeigt prominent den Spielplan des aktuellen Tages, weiter unten folgt die restliche Woche.
+Auch die Visualisierungen von Einträgen in öffentlichen Kalendern (z.B. Müllabfuhrtermine, Kinoprogramm, ...) im Webfront können ohne viel Skript-Programmierung realisiert werden. Z.B. können Abfuhrtermine immer bereits 1 Tag vorher angezeigt werden.
 
-Kalender werden beim Laden unter Berücksichtigung ihrer jeweiligen Zeitzone in die lokale Zeitzone umgerechnet, sich wiederholende Termine als mehrere Einzeltermine abgespeichert.
+Kalender werden beim Laden unter Berücksichtigung ihrer jeweiligen Zeitzone in die lokale Zeitzone umgerechnet, sich wiederholende Termine werden als mehrere Einzeltermine abgespeichert.
 
 Diese Bibliothek nutzt folgende externe Bibliotheken im Verzeichnis `/lib`:
 * iCalcreator (Version 2.27.19) `https://github.com/iCalcreator/iCalcreator/releases/tag/v2.27.19`, AGPLv3-Lizenz
