@@ -56,8 +56,8 @@ class iCalCalendarNotifier extends IPSModule {
         $this->RegisterVariableBoolean( ICCN_RegVar_Presence, 'Presence', '~Presence', $this->InstanceID );
 
         // create configuration properties
-        $this->RegisterPropertyInteger( ICCN_Property_PreNotifyMinutes, 72 * 60 );
-        $this->RegisterPropertyInteger( ICCN_Property_PostNotifyMinutes, 36 * 60);
+        $this->RegisterPropertyInteger( ICCN_Property_PreNotifyMinutes, 0 );
+        $this->RegisterPropertyInteger( ICCN_Property_PostNotifyMinutes, 0);
 
         // initialize persistence
         $this->SetBuffer('PresenceReason', '');
@@ -68,7 +68,7 @@ class iCalCalendarNotifier extends IPSModule {
         $this->RegisterMessage( $this->InstanceID, FM_DISCONNECT );
 
         // connect to existing iCal Calendar Reader, or create new instance
-        $this->ConnectParent(ICCR_INSTANCE_GUID );
+        //$this->ConnectParent(ICCR_INSTANCE_GUID );
     }
 
     /*
