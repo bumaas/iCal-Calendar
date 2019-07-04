@@ -512,11 +512,7 @@ class iCalCalendarReader extends IPSModule
     private function Logger_Dbg(string $message, string $data): void
     {
         $this->SendDebug($message, $data, 0);
-        /*
-        if (function_exists('IPSLogger_Dbg') && $this->ReadPropertyBoolean('WriteDebugInformationToIPSLogger')) {
-            IPSLogger_Dbg(__CLASS__ . '.' . IPS_GetObject($this->InstanceID)['ObjectName'] . '.' . $message, $data);
-        }
-        */
+
         if ($this->ReadPropertyBoolean(self::ICCR_PROPERTY_WRITE_DEBUG_INFORMATION_TO_LOGFILE)) {
             $this->LogMessage(sprintf('%s: %s', $message, $data), KL_DEBUG);
         }

@@ -142,6 +142,7 @@ class iCalImporter
             $IsStandardTimezone = true;
             $SetTZResult        = @$DateTime->setTimezone(timezone_open($Timezone));
             if (!$SetTZResult) {
+                trigger_error('No Standard Timezone');
                 // no standard timezone, set to UTC first
                 $DateTime->setTimezone(timezone_open('UTC'));
                 $IsStandardTimezone = false;
@@ -196,31 +197,35 @@ class iCalImporter
             }
 
             $Standard = $vTimezone->getComponent('STANDARD');
-            $Daylight = $vTimezone->getComponent('DAYLIGHT');
 
-            if (($Standard === false) || ($Daylight === false)) {
+            if ($Standard === false) {
                 call_user_func(
                     $this->Logger_Err, sprintf(
-                                         'Uncomplete vtimezone: %s, STANDARD: %s, DAYLIGHT: %s', $vTimezone->getTzid(), json_encode($Standard),
-                                         json_encode($Daylight)
-                                     )
-                );
-
-                throw new RuntimeException('Standard or Daylight component is missing');
+                                         'Uncomplete vtimezone: %s, STANDARD: %s', $vTimezone->getTzid(), json_encode($Standard)));
                 continue;
             }
 
             if (!($Standard instanceof Kigkonsult\Icalcreator\Standard)) {
                 throw new RuntimeException('Component is not of type Standard');
             }
-            if (!($Daylight instanceof Kigkonsult\Icalcreator\Daylight)) {
-                throw new RuntimeException('Component is not of type Daylight');
-            }
+
 
             $ProvidedTZ                   = [];
             $ProvidedTZ['TZID']           = $vTimezone->getTzid();
-            $ProvidedTZ['DAYLIGHT_RRULE'] = $Daylight->getRrule();
-            $ProvidedTZ['STANDARD_RRULE'] = $Standard->getRrule();
+
+            $Daylight = $vTimezone->getComponent('DAYLIGHT');
+            if ($Daylight){
+                if (!($Daylight instanceof Kigkonsult\Icalcreator\Daylight)) {
+                    throw new RuntimeException('Component is not of type Daylight');
+                }
+                if ($Daylight->getRrule()) {
+                    $ProvidedTZ['DAYLIGHT_RRULE'] = $Daylight->getRrule();
+                }
+            }
+
+            if ($Standard->getRrule()){
+                $ProvidedTZ['STANDARD_RRULE'] = $Standard->getRrule();
+            }
             $ProvidedTZ['TZOFFSETTO']     = $Standard->getTzoffsetto(); //todo
             $ProvidedTZ['TZOFFSETFROM']   = $Standard->getTzoffsetfrom(); //todo
 
@@ -247,7 +252,6 @@ class iCalImporter
             if (!($vEvent instanceof Kigkonsult\Icalcreator\Vevent)) {
                 throw new RuntimeException('Component is not of type vevent');
             }
-
 
             $propDtstart    = $vEvent->getDtstart(true); // incl. params
             $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart);
@@ -316,7 +320,9 @@ class iCalImporter
                 $this->Logger_Dbg, __FUNCTION__, sprintf('dtStartingTime %s, dtEndingTime%s', json_encode($propDtstart), json_encode($propDtend))
             );
             $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart);
-            $dtEndingTime   = $this->iCalDateTimeArrayToDateTime($propDtend);
+            if ($propDtend){
+                $dtEndingTime   = $this->iCalDateTimeArrayToDateTime($propDtend);
+            }
 
             try {
                 call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('CalRRule \'%s\': %s', $vEvent->getSummary(), $vEvent->createRrule()));
