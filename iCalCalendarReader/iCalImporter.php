@@ -101,6 +101,7 @@ class iCalImporter
             $params = $dtValue['params'];
         }
         // whole-day, this is not timezone relevant!
+        /** @noinspection PhpUndefinedVariableInspection */
         $WholeDay = (isset($params['VALUE']) && ($params['VALUE'] === 'DATE'));
 
         $Year  = (int) $value['year'];
@@ -124,6 +125,7 @@ class iCalImporter
         }
         // owncloud calendar
         if (isset($params['TZID'])) {
+            /** @noinspection PhpUndefinedVariableInspection */
             $Timezone = $params['TZID'];
         } // google calendar
         elseif (isset($value['tz'])) {
@@ -201,8 +203,8 @@ class iCalImporter
             if ($Standard === false) {
                 call_user_func(
                     $this->Logger_Err, sprintf(
-                    'Uncomplete vtimezone: %s, STANDARD: %s', $vTimezone->getTzid(), json_encode($Standard)
-                )
+                                         'Uncomplete vtimezone: %s, STANDARD: %s', $vTimezone->getTzid(), json_encode($Standard)
+                                     )
                 );
                 continue;
             }
@@ -255,12 +257,13 @@ class iCalImporter
                 throw new RuntimeException('Component is not of type vevent');
             }
 
-            $propDtstart    = $vEvent->getDtstart(true); // incl. params
+            $propDtstart = $vEvent->getDtstart(true); // incl. params
 
-            if ($propDtstart === false){
+            if ($propDtstart === false) {
                 call_user_func(
                     $this->Logger_Err, sprintf(
-                                         'Event \'%s\': DTSTART can\'t be processed, ignoring', $vEvent->getSummary()) //todo
+                    'Event \'%s\': DTSTART can\'t be processed, ignoring', $vEvent->getSummary()
+                ) //todo
                 );
                 continue;
             }
@@ -331,15 +334,12 @@ class iCalImporter
                 $this->Logger_Dbg, __FUNCTION__, sprintf('dtStartingTime %s, dtEndingTime%s', json_encode($propDtstart), json_encode($propDtend))
             );
             $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart);
-            if ($propDtend) {
-                $dtEndingTime = $this->iCalDateTimeArrayToDateTime($propDtend);
-            }
 
             call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('CalRRule \'%s\': %s', $vEvent->getSummary(), $vEvent->createRrule()));
 
             $CalRRule = $vEvent->getRrule();
             if ($CalRRule) {
-                if (array_key_exists("UNTIL", $CalRRule)) {
+                if (array_key_exists('UNTIL', $CalRRule)) {
                     $UntilDateTime = $this->iCalDateTimeArrayToDateTime(['value' => $CalRRule['UNTIL']]);
                     // replace iCal date array with datetime object
                     $CalRRule['UNTIL'] = $UntilDateTime;
@@ -348,21 +348,22 @@ class iCalImporter
                 $CalRRule['DTSTART'] = $dtStartingTime;
 
                 // the array underneath "BYDAY" needs to be exactly one level deep. If not, lift it up
-                foreach ($CalRRule['BYDAY'] as &$day) {
-                    if (is_array($day)) {
-                        if (array_key_exists('DAY', $day)) {
+                if (array_key_exists('BYDAY', $CalRRule)) {
+                    foreach ($CalRRule['BYDAY'] as &$day) {
+                        if (is_array($day) && array_key_exists('DAY', $day)) {
                             $day = $day['DAY'];
                         }
                     }
+                    unset ($day);
                 }
-                unset ($day);
 
                 try {
                     $RRule = new RRule($CalRRule);
                 }
                 catch(Exception $e) {
                     call_user_func(
-                        $this->Logger_Err, sprintf('Error \'%s\' in CalRRule \'%s\': %s', $e->getMessage(), $vEvent->getSummary(), print_r($CalRRule, true))
+                        $this->Logger_Err,
+                        sprintf('Error \'%s\' in CalRRule \'%s\': %s', $e->getMessage(), $vEvent->getSummary(), print_r($CalRRule, true))
                     );
                     continue;
                 }
@@ -376,6 +377,10 @@ class iCalImporter
                 }
             }
 
+
+            if (!isset($RRule)){
+                continue;
+            }
 
             //get the occurrences
             foreach ($RRule->getOccurrencesBetween($CacheDateTimeFrom, $CacheDateTimeUntil) as $dtOccurrence) {
@@ -391,19 +396,13 @@ class iCalImporter
                 //check if occurrence was changed
                 $changedEvent = $this->getChangedEvent($vEvents_with_Recurrence_id, (string) $vEvent->getUid(), $dtOccurrence);
 
-                if ($changedEvent instanceof Kigkonsult\Icalcreator\Vevent) {
+                if ($changedEvent) {
                     $propDtstart    = $changedEvent->getDtstart(true); // incl. params
                     $propDtend      = $changedEvent->getDtend(true);   // incl. params
                     $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart);
                     $dtEndingTime   = $this->iCalDateTimeArrayToDateTime($propDtend);
 
                     $eventArray[] = $this->GetEventAttributes($changedEvent, $dtStartingTime->getTimestamp(), $dtEndingTime->getTimestamp());
-
-                } else {
-                    $tsFrom = $dtOccurrence->getTimestamp();
-                    $tsTo   = $tsFrom + $dtEndingTime->getTimestamp() - $dtStartingTime->getTimestamp();
-
-                    $eventArray[] = $this->GetEventAttributes($vEvent, $tsFrom, $tsTo);
                 }
             }
         }
