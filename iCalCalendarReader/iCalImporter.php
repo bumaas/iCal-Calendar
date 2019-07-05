@@ -201,7 +201,9 @@ class iCalImporter
             if ($Standard === false) {
                 call_user_func(
                     $this->Logger_Err, sprintf(
-                                         'Uncomplete vtimezone: %s, STANDARD: %s', $vTimezone->getTzid(), json_encode($Standard)));
+                    'Uncomplete vtimezone: %s, STANDARD: %s', $vTimezone->getTzid(), json_encode($Standard)
+                )
+                );
                 continue;
             }
 
@@ -210,11 +212,11 @@ class iCalImporter
             }
 
 
-            $ProvidedTZ                   = [];
-            $ProvidedTZ['TZID']           = $vTimezone->getTzid();
+            $ProvidedTZ         = [];
+            $ProvidedTZ['TZID'] = $vTimezone->getTzid();
 
             $Daylight = $vTimezone->getComponent('DAYLIGHT');
-            if ($Daylight){
+            if ($Daylight) {
                 if (!($Daylight instanceof Kigkonsult\Icalcreator\Daylight)) {
                     throw new RuntimeException('Component is not of type Daylight');
                 }
@@ -223,11 +225,11 @@ class iCalImporter
                 }
             }
 
-            if ($Standard->getRrule()){
+            if ($Standard->getRrule()) {
                 $ProvidedTZ['STANDARD_RRULE'] = $Standard->getRrule();
             }
-            $ProvidedTZ['TZOFFSETTO']     = $Standard->getTzoffsetto(); //todo
-            $ProvidedTZ['TZOFFSETFROM']   = $Standard->getTzoffsetfrom(); //todo
+            $ProvidedTZ['TZOFFSETTO']   = $Standard->getTzoffsetto(); //todo
+            $ProvidedTZ['TZOFFSETFROM'] = $Standard->getTzoffsetfrom(); //todo
 
             call_user_func($this->Logger_Dbg, __FUNCTION__, 'ProvidedTZ: ' . print_r($ProvidedTZ, true));
             $this->CalendarTimezones[] = $ProvidedTZ;
@@ -260,7 +262,8 @@ class iCalImporter
                 // event is too far in the future, ignore
                 call_user_func(
                     $this->Logger_Dbg, __FUNCTION__, sprintf(
-                                         'Event \'%s\' (%s) is too far in the future, ignoring', $vEvent->getSummary(), $dtStartingTime->format('Y-m-d H:i:s')
+                                         'Event \'%s\' (%s) is too far in the future, ignoring', $vEvent->getSummary(),
+                                         $dtStartingTime->format('Y-m-d H:i:s')
                                      )
                 );
 
@@ -320,18 +323,41 @@ class iCalImporter
                 $this->Logger_Dbg, __FUNCTION__, sprintf('dtStartingTime %s, dtEndingTime%s', json_encode($propDtstart), json_encode($propDtend))
             );
             $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart);
-            if ($propDtend){
-                $dtEndingTime   = $this->iCalDateTimeArrayToDateTime($propDtend);
+            if ($propDtend) {
+                $dtEndingTime = $this->iCalDateTimeArrayToDateTime($propDtend);
             }
 
-            try {
-                call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('CalRRule \'%s\': %s', $vEvent->getSummary(), $vEvent->createRrule()));
+            call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('CalRRule \'%s\': %s', $vEvent->getSummary(), $vEvent->createRrule()));
 
-                $RRule = new RRule($vEvent->createRrule(), $dtStartingTime);
-            }
-            catch(Exception $e) {
-                call_user_func($this->Logger_Err, sprintf('Error in CalRRule \'%s\': %s', $vEvent->getSummary(), $vEvent->createRrule()));
-                continue;
+            $CalRRule = $vEvent->getRrule();
+            if ($CalRRule) {
+                if (array_key_exists("UNTIL", $CalRRule)) {
+                    $UntilDateTime = $this->iCalDateTimeArrayToDateTime(['value' => $CalRRule['UNTIL']]);
+                    // replace iCal date array with datetime object
+                    $CalRRule['UNTIL'] = $UntilDateTime;
+                }
+                // replace/set iCal date array with datetime object
+                $CalRRule['DTSTART'] = $dtStartingTime;
+
+                // the array underneath "BYDAY" needs to be exactly one level deep. If not, lift it up
+                foreach ($CalRRule['BYDAY'] as &$day) {
+                    if (is_array($day)) {
+                        if (array_key_exists('DAY', $day)) {
+                            $day = $day['DAY'];
+                        }
+                    }
+                }
+                unset ($day);
+
+                try {
+                    $RRule = new RRule($CalRRule);
+                }
+                catch(Exception $e) {
+                    call_user_func(
+                        $this->Logger_Err, sprintf('Error \'%s\' in CalRRule \'%s\': %s', $e->getMessage(), $vEvent->getSummary(), print_r($CalRRule, true))
+                    );
+                    continue;
+                }
             }
 
             //get the EXDATES

@@ -29,6 +29,8 @@ Auch die Visualisierungen von Einträgen in öffentlichen Kalendern (z.B. Mülla
 
 Kalender werden beim Laden unter Berücksichtigung ihrer jeweiligen Zeitzone in die lokale Zeitzone umgerechnet, sich wiederholende Termine werden als mehrere Einzeltermine abgespeichert.
 
+Wie Kalenderdaten aus einer oder mehreren **iCalCalendarReader**-Instanzen in einem Calendar-Control im Webfront angezeigt werden können ist [hier](docs/Examples/readme.md "Kalender im Webfront anzeigen") beschrieben.
+
 Diese Bibliothek nutzt folgende externe Bibliotheken im Verzeichnis `/lib`:
 * iCalcreator (Version 2.27.19) `https://github.com/iCalcreator/iCalcreator/releases/tag/v2.27.19`, AGPLv3-Lizenz
 * RRULE for PHP (Stand 2019-05-04) `https://github.com/rlanvin/php-rrule`, MIT-Lizenz
