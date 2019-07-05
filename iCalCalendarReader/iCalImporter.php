@@ -256,6 +256,14 @@ class iCalImporter
             }
 
             $propDtstart    = $vEvent->getDtstart(true); // incl. params
+
+            if ($propDtstart === false){
+                call_user_func(
+                    $this->Logger_Err, sprintf(
+                                         'Event \'%s\': DTSTART can\'t be processed, ignoring', $vEvent->getSummary()) //todo
+                );
+                continue;
+            }
             $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart);
 
             if ($dtStartingTime->getTimestamp() > $CacheDateTimeUntil->getTimestamp()) {
