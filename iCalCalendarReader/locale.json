@@ -36,7 +36,8 @@
       "Connection error, see log for details": "Verbindungsfehler, siehe Logfile für Details",
       "Unexpected response from calendar server": "Unerwartete Anwort vom Kalender Server",
       "Finished!": "Fertig!",
-      "Error!": "Fehler!"
+      "Error!": "Fehler!",
+      "Debug information are written additionally to standard logfile": "Debug Informationen werden zusätzlich in das Standardlogfile geschrieben"
     }
   }
 }

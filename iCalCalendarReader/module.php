@@ -383,8 +383,8 @@ class iCalCalendarReader extends IPSModule
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $url);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true); // yes, easy but lazy
-        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 2); // 30s maximum script execution time
-        curl_setopt($curl, CURLOPT_TIMEOUT, 10); // 30s maximum script execution time
+        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 2);
+        curl_setopt($curl, CURLOPT_TIMEOUT, 10);
         curl_setopt($curl, CURLOPT_FOLLOWLOCATION, 1);
         curl_setopt($curl, CURLOPT_MAXREDIRS, 5); // educated guess
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
