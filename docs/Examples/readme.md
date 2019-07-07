@@ -17,6 +17,10 @@ Grundlage für die Visualisierung ist das Calendar-Control [Full Calendar](https
 Umfangreiches Calendar-Control, das den eigenen Wünschen angepasst werden kann. Siehe hierzu die Dokumentation des Controls unter https://fullcalendar.io/docs/  
 Kalendereinträge sind auf ID, Titel, Start- und Endzeitpunkt sowie ein Ganztages-Flag beschränkt.
 
+Beispiel einer Ansicht in IP-Symcon:
+
+![image](Kalender_Control.png)
+
 
 ### 2. Voraussetzungen
 
@@ -33,7 +37,8 @@ Kalendereinträge sind auf ID, Titel, Start- und Endzeitpunkt sowie ein Ganztage
   * Ab Zeile 40 werden im Array `eventSources` zwei Kalenderquellen definiert. Quellen können entweder eine **iCalCalendarReader**- oder eine **iCalCalendarNotifier**-Instanz sein. Hier müssen die Instanz-IDs mit gültigen Werten ersetzt werden. Hierfür die Instanz-IDs aus dem IP Symcon Objektbaum heraussuchen und innerhalb des Arrays `eventSources` im Objekt `extraParams` in die Property `InstanceID` eintragen.
   * Es können beliebig viele Quellen zu einem Kalender hinzugefügt werden, hier einfach analog zu den beiden Einträgen verfahren.
   * Die Farbeinstellungen `color` und `textColor` nach Gusto anpassen
-* Im WebFront-Editor an beliebiger Position ein Element "Externe Seite" hinzufügen, mit der URL `/user/[Verzeichnisname]/calendar.html`.  
+* Im WebFront-Editor an beliebiger Position ein Element "Externe Seite" hinzufügen, mit der URL `/user/[Verzeichnisname]/calendar.html`.
+![image](Webfront_Einbindung.png)  
 
 Wenn alles korrekt gelaufen ist wird im WebFront nun ein Calendar Control mit den Inhalten der angegebenen Kalender-Quellen angezeigt.  
 

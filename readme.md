@@ -91,10 +91,34 @@ Im macOS Kalender-Programm mit der rechten Maustaste auf den zu importierenden i
 
 Sobald eine URL angegeben und gespeichert wurde beginnt die Synchronisierung. Fehler beim Zugriff auf den Kalender stehen im Systemlog (Tabreiter **Meldungen** in der IP-Symcon Management Konsole). Bei jeder Änderung der Parameter wird eine sofortige Synchronisation und ein Update auf alle Meldevariablen gegeben.
 
+
+#### Beispiel für Meldevariablen
+Am Beispiel eines Müllkalenders soll die Vorgehensweise bei der Erstellung von Meldevariablen erläutert werden.
+
+**Szenario**:<br> 
+*In einem Kalender gibt es Einträge für die Müllabholtermine. An den Müllabfuhrtagen soll - getrennt nach den Tonnenarten - eine entsprechende Statusvariable auf 'true' gesetzt werden.*
+
+Die Einträge im Google Kalender lauten
+
+![image](docs/Kalender_Termine.png)
+
+Nun wird für jede zu erstellende Statusvariable ein Eintrag unter "Meldevariablen" angelegt. Im Beispiel soll eine Statusvariable mit dem Namen "Papiertonne" erstellt werden. Wenn ein Kalendereintrag mit dem Begriff "Papiertonne" gefunden wird, dann soll die Statusvariable mit 24 Stunden Vorlauf (=1440 Minuten) und 5 Stunden Nachlauf auf "true" gesetzt werden.
+![image](docs/Instanz_Meldevariable_definieren.png)
+
+Das gleiche geschieht für die anderen Tonnen:
+
+![image](docs/Instanz_Meldevariablen_Liste.png)
+
+Nachdem die Instanz gesichert wurde, gibt es dann im Objektbaum die folgenden Variablen:
+
+![image](docs/Objektbaum_Statusvariablen.png)
+
+
+
 ### 5. Statusvariablen und Profile
 
-Für jede eingetragene Meldung wird eine Meldevariable mit dem Ident 'Notifier' und einer laufenden Nummer angelegt.
-Die jeweilige Meldevariable zeigt an, ob ein Kalendereintrag unter Berücksichtigung der im Modul angegebenen Zeiten und des angegebenen Filters aktiv ist.
+Für jede in der Instanz angelegten Meldevariablen wird eine Statusvariable mit dem Ident 'Notifier' und einer laufenden Nummer angelegt.
+Die jeweilige Statusvariable zeigt an, ob ein Kalendereintrag unter Berücksichtigung der im Modul angegebenen Zeiten und des angegebenen Filters aktiv ist.
 
 Es werden keine eigenen Variablenprofile angelegt.
 
