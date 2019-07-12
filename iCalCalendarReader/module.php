@@ -74,8 +74,8 @@ class iCalCalendarReader extends IPSModule
         $this->RegisterAttributeString(self::ICCR_ATTRIBUTE_NOTIFICATIONS, json_encode([]));
 
         // create timer
-        $this->RegisterTimer(self::TIMER_UPDATECALENDAR, 0, 'ICCR_UpdateCalendar( $_IPS["TARGET"] );'); // cron runs every 5 minutes, when active
-        $this->RegisterTimer(self::TIMER_CRON1, 0, 'ICCR_TriggerNotifications( $_IPS["TARGET"] );'); // cron runs every minute
+        $this->RegisterTimer(self::TIMER_UPDATECALENDAR, 0, 'ICCR_UpdateCalendar($_IPS["TARGET"] );'); // cron runs every 5 minutes, when active
+        $this->RegisterTimer(self::TIMER_CRON1, 0, 'ICCR_TriggerNotifications($_IPS["TARGET"] );'); // cron runs every minute
 
         //we will wait until the kernel is ready
         $this->RegisterMessage(0, IPS_KERNELMESSAGE);
@@ -139,14 +139,12 @@ class iCalCalendarReader extends IPSModule
             }
 
             $this->DeleteUnusedVariables($propNotifiers);
-
             $this->SetTimerInterval(self::TIMER_UPDATECALENDAR, $this->ReadPropertyInteger(self::ICCR_PROPERTY_UPDATE_FREQUENCY) * 1000 * 60);
             $this->SetTimerInterval(self::TIMER_CRON1, 1000 * 60);
             return true;
         }
 
         $this->SetTimerInterval(self::TIMER_CRON1, 0);
-        $this->SetTimerInterval(self::TIMER_UPDATECALENDAR, 0);
         return false;
     }
 
@@ -392,6 +390,7 @@ class iCalCalendarReader extends IPSModule
             curl_setopt($curl, CURLOPT_USERPWD, $username . ':' . $password);
         }
         $curl_result    = curl_exec($curl);
+        //$curl_result = str_replace('<CR><LF>', PHP_EOL, $curl_result);
         $curl_error_nr  = curl_errno($curl);
         $curl_error_str = curl_error($curl);
         curl_close($curl);
@@ -480,8 +479,9 @@ class iCalCalendarReader extends IPSModule
     {
         $curl_result = '';
         $result      = $this->LoadCalendarURL($curl_result);
+        $this->SetStatus($result);
+
         if ($result !== IS_ACTIVE) {
-            $this->SetStatus($result);
             return null;
         }
 

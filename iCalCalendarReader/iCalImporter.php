@@ -456,16 +456,21 @@ class iCalImporter
         $Event         = [];
         $Event['UID']  = (string) $vEvent->getUid();
         $Event['Name'] = $vEvent->getSummary();
-        if ($vEvent->getLocation()) {
-            $Event['Location'] = $vEvent->getLocation();
+
+        $location = $vEvent->getLocation();
+        if ($location) {
+            $Event['Location'] = $location;
         } else {
             $Event['Location'] = '';
         }
-        if ($vEvent->getDescription()) {
-            $Event['Description'] = $vEvent->getDescription();
+
+        $description = $vEvent->getDescription();
+        if ($description) {
+            $Event['Description'] = $description;
         } else {
             $Event['Description'] = '';
         }
+
         $Event['From']  = $tsFrom;
         $Event['To']    = $tsTo;
         $Event['FromS'] = date('Y-m-d H:i:s', $tsFrom);
