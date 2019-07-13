@@ -350,7 +350,7 @@ class iCalCalendarReader extends IPSModule
 
         // validate saved properties
         $calendarServerURL = $this->ReadPropertyString(self::ICCR_PROPERTY_CALENDAR_URL);
-        return (($calendarServerURL !== '') && filter_var($calendarServerURL, FILTER_VALIDATE_URL));
+        return ($calendarServerURL !== '') && filter_var($calendarServerURL, FILTER_VALIDATE_URL);
     }
 
     /***********************************************************************
@@ -449,7 +449,7 @@ class iCalCalendarReader extends IPSModule
                     $instStatus = self::STATUS_INST_INVALID_USER_PASSWORD;
                 }
             } // synology sends plain text
-            else if (strpos($curl_result, 'Please log in') === 0) {
+            elseif (strpos($curl_result, 'Please log in') === 0) {
                 $this->Logger_Err('Error logging on - invalid user/password combination for ' . $url);
                 $instStatus = self::STATUS_INST_INVALID_USER_PASSWORD;
             } // everything else goes here
@@ -540,7 +540,6 @@ class iCalCalendarReader extends IPSModule
         }
         return $TheNewCalendar;
     }
-
 
     /*
         check if event is triggering a presence notification
@@ -644,5 +643,3 @@ class iCalCalendarReader extends IPSModule
         return json_encode($notifications);
     }
 }
-
-

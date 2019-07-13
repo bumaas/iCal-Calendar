@@ -1,21 +1,18 @@
 <?php
+
 declare(strict_types=1);
 
 include_once __DIR__ . '/../libs/includes.php';
 
-
 define('ICCN_Debug', true);
-
 
 define('ICCN_RegVar_Presence', 'StatusPresence');
 
 define('ICCN_Property_PreNotifyMinutes', 'PreNotifyMinutes');
 define('ICCN_Property_PostNotifyMinutes', 'PostNotifyMinutes');
 
-
 class iCalCalendarNotifier extends IPSModule
 {
-
     /***********************************************************************
      * customized debug methods
      ***********************************************************************
@@ -38,7 +35,6 @@ class iCalCalendarNotifier extends IPSModule
     {
         return IPS_GetName($this->InstanceID);
     }
-
 
     /***********************************************************************
      * standard module methods
@@ -79,8 +75,4 @@ class iCalCalendarNotifier extends IPSModule
 
         $this->SetStatus(IS_INACTIVE);
     }
-
-
 }
-
-

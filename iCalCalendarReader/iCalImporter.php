@@ -61,7 +61,7 @@ class iCalImporter
                             $DayName = 'Sunday';
                             break;
                     }
-                    return date_timestamp_set(new DateTime, strtotime($Occ . ' ' . $DayName . ' ' . $MonthName . ' ' . $Year . '00:00:00'));
+                    return date_timestamp_set(new DateTime(), strtotime($Occ . ' ' . $DayName . ' ' . $MonthName . ' ' . $Year . '00:00:00'));
                 }
             }
         }
@@ -214,7 +214,6 @@ class iCalImporter
                 throw new RuntimeException('Component is not of type Standard');
             }
 
-
             $ProvidedTZ         = [];
             $ProvidedTZ['TZID'] = $vTimezone->getTzid();
 
@@ -293,7 +292,6 @@ class iCalImporter
 
         }
 
-
         $eventArray = [];
 
         foreach ($vEvents as $vEvent) {
@@ -356,7 +354,7 @@ class iCalImporter
                             $day = $day['DAY'];
                         }
                     }
-                    unset ($day);
+                    unset($day);
                 }
 
                 try {
@@ -377,7 +375,6 @@ class iCalImporter
                     $dtExDates[] = $this->iCalDateTimeArrayToDateTime(['value' => $exDateValue, 'params' => $exDates['params']]);
                 }
             }
-
 
             if (!isset($RRule)) {
                 continue;
@@ -425,7 +422,7 @@ class iCalImporter
 
         // sort by start date/time to make the check on changes work
         usort(
-            $iCalCalendarArray, static function($a, $b) {
+            $iCalCalendarArray, static function ($a, $b) {
             return $a['From'] - $b['From'];
         }
         );
