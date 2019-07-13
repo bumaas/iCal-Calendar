@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use RRule\RRule;
 
-
 /***********************************************************************
  * iCal importer class
  ************************************************************************/
@@ -329,7 +328,6 @@ class iCalImporter
             $propDtstart = $vEvent->getDtstart(true); // incl. params
             $propDtend   = $vEvent->getDtend(true);   // incl. params
 
-
             call_user_func(
                 $this->Logger_Dbg, __FUNCTION__, sprintf('dtStartingTime %s, dtEndingTime%s', json_encode($propDtstart), json_encode($propDtend))
             );
@@ -477,7 +475,6 @@ class iCalImporter
         if ($propDtstart) {
             $Event['allDay'] = (isset($propDtstart['params']['VALUE']) && ($propDtstart['params']['VALUE'] === 'DATE'));
         }
-
 
         call_user_func(
             $this->Logger_Dbg, __FUNCTION__, sprintf('Event: %s', json_encode($Event))

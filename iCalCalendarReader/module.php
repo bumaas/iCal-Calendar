@@ -195,7 +195,6 @@ class iCalCalendarReader extends IPSModule
 
         ];
 
-
         $form['elements'][] = [
             'type'    => 'ExpansionPanel',
             'caption' => 'Calendar access',
@@ -268,7 +267,6 @@ class iCalCalendarReader extends IPSModule
                     'add'     => 0,
                     'edit'    => ['type' => 'NumberSpinner', 'suffix' => ' minutes']]]];
 
-
         $form['elements'][] = [
             'type'    => 'ExpansionPanel',
             'caption' => 'Expert Parameters',
@@ -324,9 +322,7 @@ class iCalCalendarReader extends IPSModule
             ['code' => self::STATUS_INST_CONNECTION_ERROR, 'icon' => 'error', 'caption' => 'Connection error, see log for details'],
             ['code' => self::STATUS_INST_UNEXPECTED_RESPONSE, 'icon' => 'error', 'caption' => 'Unexpected response from calendar server']];
 
-
         return json_encode($form);
-
     }
 
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
@@ -483,9 +479,9 @@ class iCalCalendarReader extends IPSModule
 
         $MyImporter        = new iCalImporter(
             $this->ReadPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHEBACK), $this->ReadPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHE),
-            function(string $message, string $data) {
+            function (string $message, string $data) {
                 $this->Logger_Dbg($message, $data);
-            }, function(string $message) {
+            }, function (string $message) {
             $this->Logger_Err($message);
         }
         );
