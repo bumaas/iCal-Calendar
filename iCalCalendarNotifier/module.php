@@ -4,16 +4,17 @@ declare(strict_types=1);
 include_once __DIR__ . '/../libs/includes.php';
 
 
-define( 'ICCN_Debug', true);
+define('ICCN_Debug', true);
 
 
-define( 'ICCN_RegVar_Presence', 'StatusPresence' );
+define('ICCN_RegVar_Presence', 'StatusPresence');
 
-define( 'ICCN_Property_PreNotifyMinutes', 'PreNotifyMinutes' );
-define( 'ICCN_Property_PostNotifyMinutes', 'PostNotifyMinutes' );
+define('ICCN_Property_PreNotifyMinutes', 'PreNotifyMinutes');
+define('ICCN_Property_PostNotifyMinutes', 'PostNotifyMinutes');
 
 
-class iCalCalendarNotifier extends IPSModule {
+class iCalCalendarNotifier extends IPSModule
+{
 
     /***********************************************************************
      * customized debug methods
@@ -25,7 +26,7 @@ class iCalCalendarNotifier extends IPSModule {
     /*
         debug on/off is a defined constant
     */
-    protected function IsDebug():bool
+    protected function IsDebug(): bool
     {
         return ICCN_Debug;
     }
@@ -35,15 +36,13 @@ class iCalCalendarNotifier extends IPSModule {
     */
     protected function GetLogID(): string
     {
-        return IPS_GetName( $this->InstanceID );
+        return IPS_GetName($this->InstanceID);
     }
 
 
     /***********************************************************************
-
-    * standard module methods
-
-    ************************************************************************/
+     * standard module methods
+     ************************************************************************/
 
     /*
         basic setup
@@ -53,19 +52,19 @@ class iCalCalendarNotifier extends IPSModule {
         parent::Create();
 
         // create status variable
-        $this->RegisterVariableBoolean( ICCN_RegVar_Presence, 'Presence', '~Presence', $this->InstanceID );
+        $this->RegisterVariableBoolean(ICCN_RegVar_Presence, 'Presence', '~Presence', $this->InstanceID);
 
         // create configuration properties
-        $this->RegisterPropertyInteger( ICCN_Property_PreNotifyMinutes, 0 );
-        $this->RegisterPropertyInteger( ICCN_Property_PostNotifyMinutes, 0);
+        $this->RegisterPropertyInteger(ICCN_Property_PreNotifyMinutes, 0);
+        $this->RegisterPropertyInteger(ICCN_Property_PostNotifyMinutes, 0);
 
         // initialize persistence
         $this->SetBuffer('PresenceReason', '');
         $this->SetBuffer('OldParentID', '');
 
         // subscribe to IPS messages
-        $this->RegisterMessage( $this->InstanceID, FM_CONNECT );
-        $this->RegisterMessage( $this->InstanceID, FM_DISCONNECT );
+        $this->RegisterMessage($this->InstanceID, FM_CONNECT);
+        $this->RegisterMessage($this->InstanceID, FM_DISCONNECT);
 
         // connect to existing iCal Calendar Reader, or create new instance
         //$this->ConnectParent(ICCR_INSTANCE_GUID );
@@ -74,7 +73,8 @@ class iCalCalendarNotifier extends IPSModule {
     /*
         react on user configuration dialog
     */
-    public function ApplyChanges() {
+    public function ApplyChanges()
+    {
         parent::ApplyChanges();
 
         $this->SetStatus(IS_INACTIVE);

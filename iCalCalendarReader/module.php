@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 include_once __DIR__ . '/../libs/includes.php';
@@ -12,38 +13,36 @@ include_once __DIR__ . '/../libs/php-rrule-master/src/RSet.php';
 
 require_once 'iCalImporter.php';
 
-
 /***********************************************************************
  * module class
  ************************************************************************/
 class iCalCalendarReader extends IPSModule
 {
-
-    private const STATUS_INST_INVALID_URL = 201;
-    private const STATUS_INST_SSL_ERROR = 202;
+    private const STATUS_INST_INVALID_URL           = 201;
+    private const STATUS_INST_SSL_ERROR             = 202;
     private const STATUS_INST_INVALID_USER_PASSWORD = 203;
-    private const STATUS_INST_CONNECTION_ERROR = 204;
-    private const STATUS_INST_UNEXPECTED_RESPONSE = 205;
+    private const STATUS_INST_CONNECTION_ERROR      = 204;
+    private const STATUS_INST_UNEXPECTED_RESPONSE   = 205;
 
-    private const ICCR_PROPERTY_CALENDAR_URL = 'CalendarServerURL';
-    private const ICCR_PROPERTY_USERNAME = 'Username';
-    private const ICCR_PROPERTY_PASSWORD = 'Password';
-    private const ICCR_PROPERTY_DAYSTOCACHE = 'DaysToCache';
-    private const ICCR_PROPERTY_DAYSTOCACHEBACK = 'DaysToCacheBack';
-    private const ICCR_PROPERTY_UPDATE_FREQUENCY = 'UpdateFrequency';
+    private const ICCR_PROPERTY_CALENDAR_URL                       = 'CalendarServerURL';
+    private const ICCR_PROPERTY_USERNAME                           = 'Username';
+    private const ICCR_PROPERTY_PASSWORD                           = 'Password';
+    private const ICCR_PROPERTY_DAYSTOCACHE                        = 'DaysToCache';
+    private const ICCR_PROPERTY_DAYSTOCACHEBACK                    = 'DaysToCacheBack';
+    private const ICCR_PROPERTY_UPDATE_FREQUENCY                   = 'UpdateFrequency';
     private const ICCR_PROPERTY_WRITE_DEBUG_INFORMATION_TO_LOGFILE = 'WriteDebugInformationToLogfile';
-    private const ICCR_PROPERTY_NOTIFIERS = 'Notifiers';
-    private const ICCR_PROPERTY_NOTIFIER_IDENT = 'Ident';
-    private const ICCR_PROPERTY_NOTIFIER_NAME = 'Name';
-    private const ICCR_PROPERTY_NOTIFIER_FIND = 'Find';
-    private const ICCR_PROPERTY_NOTIFIER_REGEXPRESSION = 'RegExpression';
-    private const ICCR_PROPERTY_NOTIFIER_PRENOTIFY = 'Prenotify';
-    private const ICCR_PROPERTY_NOTIFIER_POSTNOTIFY = 'Postnotify';
+    private const ICCR_PROPERTY_NOTIFIERS                          = 'Notifiers';
+    private const ICCR_PROPERTY_NOTIFIER_IDENT                     = 'Ident';
+    private const ICCR_PROPERTY_NOTIFIER_NAME                      = 'Name';
+    private const ICCR_PROPERTY_NOTIFIER_FIND                      = 'Find';
+    private const ICCR_PROPERTY_NOTIFIER_REGEXPRESSION             = 'RegExpression';
+    private const ICCR_PROPERTY_NOTIFIER_PRENOTIFY                 = 'Prenotify';
+    private const ICCR_PROPERTY_NOTIFIER_POSTNOTIFY                = 'Postnotify';
 
     private const ICCR_ATTRIBUTE_CALENDAR_BUFFER = 'CalendarBuffer';
-    private const ICCR_ATTRIBUTE_NOTIFICATIONS = 'Notifications';
+    private const ICCR_ATTRIBUTE_NOTIFICATIONS   = 'Notifications';
 
-    private const TIMER_CRON1 = 'Cron1';
+    private const TIMER_CRON1          = 'Cron1';
     private const TIMER_UPDATECALENDAR = 'UpdateCalendar';
 
     /***********************************************************************
@@ -106,7 +105,6 @@ class iCalCalendarReader extends IPSModule
         }
 
         $this->SetStatus($Status);
-
 
         // ready to run an update?
         if ($Status === IS_ACTIVE) {
@@ -355,8 +353,6 @@ class iCalCalendarReader extends IPSModule
         return (($calendarServerURL !== '') && filter_var($calendarServerURL, FILTER_VALIDATE_URL));
     }
 
-
-
     /***********************************************************************
      * calendar loading and conversion methods
      ***********************************************************************
@@ -389,7 +385,7 @@ class iCalCalendarReader extends IPSModule
         if ($username !== '') {
             curl_setopt($curl, CURLOPT_USERPWD, $username . ':' . $password);
         }
-        $curl_result    = curl_exec($curl);
+        $curl_result = curl_exec($curl);
         //$curl_result = str_replace('<CR><LF>', PHP_EOL, $curl_result);
         $curl_error_nr  = curl_errno($curl);
         $curl_error_str = curl_error($curl);
@@ -625,8 +621,6 @@ class iCalCalendarReader extends IPSModule
 
         $this->WriteAttributeString(self::ICCR_ATTRIBUTE_NOTIFICATIONS, json_encode($notifications));
     }
-
-
 
     /***********************************************************************
      * methods for script access

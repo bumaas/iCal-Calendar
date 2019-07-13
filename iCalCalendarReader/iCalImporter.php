@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use RRule\RRule;
 
 
@@ -8,17 +10,17 @@ use RRule\RRule;
  ************************************************************************/
 class iCalImporter
 {
-
     private $Timezone;
 
-    private $DaysToCacheAhead, $DaysToCacheBack;
+    private $DaysToCacheAhead;
+
+    private $DaysToCacheBack;
 
     private $CalendarTimezones;
 
     private $Logger_Dbg;
 
     private $Logger_Err;
-
 
     /*
         convert the timezone RRULE to a datetime object in the given/current year
@@ -186,8 +188,7 @@ class iCalImporter
         try {
             $vCalendar = new Kigkonsult\Icalcreator\Vcalendar();
             $vCalendar->parse($iCalData);
-        }
-        catch(Exception $e) {
+        } catch (Exception $e) {
             call_user_func($this->Logger_Err, $e->getMessage());
             return [];
         }
@@ -257,6 +258,7 @@ class iCalImporter
                 throw new RuntimeException('Component is not of type vevent');
             }
 
+            echo 'Summary: ' . $vEvent->getSummary() . PHP_EOL;
             $propDtstart = $vEvent->getDtstart(true); // incl. params
 
             if ($propDtstart === false) {
@@ -359,8 +361,7 @@ class iCalImporter
 
                 try {
                     $RRule = new RRule($CalRRule);
-                }
-                catch(Exception $e) {
+                } catch (Exception $e) {
                     call_user_func(
                         $this->Logger_Err,
                         sprintf('Error \'%s\' in CalRRule \'%s\': %s', $e->getMessage(), $vEvent->getSummary(), print_r($CalRRule, true))
@@ -378,7 +379,7 @@ class iCalImporter
             }
 
 
-            if (!isset($RRule)){
+            if (!isset($RRule)) {
                 continue;
             }
 
