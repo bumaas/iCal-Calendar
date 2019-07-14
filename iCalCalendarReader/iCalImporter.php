@@ -256,7 +256,6 @@ class iCalImporter
                 throw new RuntimeException('Component is not of type vevent');
             }
 
-            echo 'Summary: ' . $vEvent->getSummary() . PHP_EOL;
             $propDtstart = $vEvent->getDtstart(true); // incl. params
 
             if ($propDtstart === false) {
@@ -332,6 +331,7 @@ class iCalImporter
                 $this->Logger_Dbg, __FUNCTION__, sprintf('dtStartingTime %s, dtEndingTime%s', json_encode($propDtstart), json_encode($propDtend))
             );
             $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart);
+            $dtEndingTime = $this->iCalDateTimeArrayToDateTime($propDtend);
 
             call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('CalRRule \'%s\': %s', $vEvent->getSummary(), $vEvent->createRrule()));
 
@@ -366,16 +366,16 @@ class iCalImporter
                 }
             }
 
+            if (!isset($RRule)) {
+                continue;
+            }
+
             //get the EXDATES
             $dtExDates = [];
             if ($exDates = $vEvent->getExdate(null, true)) {
                 foreach ($exDates['value'] as $exDateValue) {
                     $dtExDates[] = $this->iCalDateTimeArrayToDateTime(['value' => $exDateValue, 'params' => $exDates['params']]);
                 }
-            }
-
-            if (!isset($RRule)) {
-                continue;
             }
 
             //get the occurrences
@@ -399,6 +399,11 @@ class iCalImporter
                     $dtEndingTime   = $this->iCalDateTimeArrayToDateTime($propDtend);
 
                     $eventArray[] = $this->GetEventAttributes($changedEvent, $dtStartingTime->getTimestamp(), $dtEndingTime->getTimestamp());
+                } else {
+                    $tsFrom = $dtOccurrence->getTimestamp();
+                    $tsTo   = $tsFrom + $dtEndingTime->getTimestamp() - $dtStartingTime->getTimestamp();
+
+                    $eventArray[] = $this->GetEventAttributes($vEvent, $tsFrom, $tsTo);
                 }
             }
         }
