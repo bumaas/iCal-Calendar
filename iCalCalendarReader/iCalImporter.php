@@ -401,7 +401,7 @@ class iCalImporter
                     $eventArray[] = $this->GetEventAttributes($changedEvent, $dtStartingTime->getTimestamp(), $dtEndingTime->getTimestamp());
                 } else {
                     $tsFrom = $dtOccurrence->getTimestamp();
-                    $tsTo   = $tsFrom + $dtEndingTime->getTimestamp() - $dtStartingTime->getTimestamp();
+                    $tsTo   = $tsFrom + ($dtEndingTime->getTimestamp() - $dtStartingTime->getTimestamp());
 
                     $eventArray[] = $this->GetEventAttributes($vEvent, $tsFrom, $tsTo);
                 }
