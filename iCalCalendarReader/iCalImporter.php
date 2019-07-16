@@ -331,7 +331,6 @@ class iCalImporter
                 $this->Logger_Dbg, __FUNCTION__, sprintf('dtStartingTime %s, dtEndingTime%s', json_encode($propDtstart), json_encode($propDtend))
             );
             $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart);
-            $dtEndingTime = $this->iCalDateTimeArrayToDateTime($propDtend);
 
             call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('CalRRule \'%s\': %s', $vEvent->getSummary(), $vEvent->createRrule()));
 
@@ -393,14 +392,13 @@ class iCalImporter
                 $changedEvent = $this->getChangedEvent($vEvents_with_Recurrence_id, (string) $vEvent->getUid(), $dtOccurrence);
 
                 if ($changedEvent) {
-                    $propDtstart    = $changedEvent->getDtstart(true); // incl. params
-                    $propDtend      = $changedEvent->getDtend(true);   // incl. params
-                    $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart);
-                    $dtEndingTime   = $this->iCalDateTimeArrayToDateTime($propDtend);
+                    $dtStartingTime = $this->iCalDateTimeArrayToDateTime($changedEvent->getDtstart(true));
+                    $dtEndingTime   = $this->iCalDateTimeArrayToDateTime($changedEvent->getDtend(true));
 
                     $eventArray[] = $this->GetEventAttributes($changedEvent, $dtStartingTime->getTimestamp(), $dtEndingTime->getTimestamp());
                 } else {
                     $tsFrom = $dtOccurrence->getTimestamp();
+                    $dtEndingTime = $this->iCalDateTimeArrayToDateTime($propDtend);
                     $tsTo   = $tsFrom + ($dtEndingTime->getTimestamp() - $dtStartingTime->getTimestamp());
 
                     $eventArray[] = $this->GetEventAttributes($vEvent, $tsFrom, $tsTo);
