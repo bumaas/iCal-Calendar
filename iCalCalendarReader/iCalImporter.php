@@ -352,6 +352,12 @@ class iCalImporter
                         }
                     }
                     unset($day);
+                    // rules like every 1. Monday of the month
+                    if (isset($CalRRule['BYDAY'][0], $CalRRule['BYDAY']['DAY'])) {
+                        $CalRRule['BYDAY']['DAY'] = $CalRRule['BYDAY'][0] . $CalRRule['BYDAY']['DAY'];
+                        unset($CalRRule['BYDAY'][0]);
+                    }
+
                 }
 
                 try {
@@ -397,9 +403,9 @@ class iCalImporter
 
                     $eventArray[] = $this->GetEventAttributes($changedEvent, $dtStartingTime->getTimestamp(), $dtEndingTime->getTimestamp());
                 } else {
-                    $tsFrom = $dtOccurrence->getTimestamp();
+                    $tsFrom       = $dtOccurrence->getTimestamp();
                     $dtEndingTime = $this->iCalDateTimeArrayToDateTime($propDtend);
-                    $tsTo   = $tsFrom + ($dtEndingTime->getTimestamp() - $dtStartingTime->getTimestamp());
+                    $tsTo         = $tsFrom + ($dtEndingTime->getTimestamp() - $dtStartingTime->getTimestamp());
 
                     $eventArray[] = $this->GetEventAttributes($vEvent, $tsFrom, $tsTo);
                 }
