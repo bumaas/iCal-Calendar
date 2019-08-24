@@ -369,15 +369,18 @@ class iCalImporter
                     );
                     continue;
                 }
+            } else {
+                call_user_func($this->Logger_Dbg, __FUNCTION__, '$RRule not set!');
             }
 
             if (!isset($RRule)) {
+                call_user_func($this->Logger_Dbg, __FUNCTION__, '$RRule not set!');
                 continue;
             }
 
             //get the EXDATES
             $dtExDates = [];
-            if ($exDates = $vEvent->getExdate(null, true)) {
+            while (false !== ($exDates = $vEvent->getExdate(null, true))) {
                 foreach ($exDates['value'] as $exDateValue) {
                     $dtExDates[] = $this->iCalDateTimeArrayToDateTime(['value' => $exDateValue, 'params' => $exDates['params']]);
                 }
