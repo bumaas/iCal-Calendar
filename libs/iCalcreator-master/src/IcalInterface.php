@@ -5,7 +5,7 @@
  * copyright (c) 2007-2019 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
  * Link      https://kigkonsult.se
  * Package   iCalcreator
- * Version   2.27.17
+ * Version   2.28
  * License   Subject matter of licence is the software iCalcreator.
  *           The above copyright, link, package and version notices,
  *           this licence notice and the invariant [rfc5545] PRODID result use
@@ -375,7 +375,7 @@ interface IcalInterface
      * Class constants, config keys
      *
      * LANGUAGE, TZID and URL, set above
-     * @todo remove DELIMITER, DIRECTORY, FILENAME, DIRFILE, FILESIZE, FILEINFO (deprecated)
+     *   deprecated : DELIMITER, DIRECTORY, FILENAME, DIRFILE, FILESIZE, FILEINFO
      */
     const ALLOWEMPTY       = 'ALLOWEMPTY';
     const COMPSINFO        = 'COMPSINFO';

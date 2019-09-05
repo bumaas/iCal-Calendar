@@ -5,7 +5,7 @@
  * copyright (c) 2007-2019 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
  * Link      https://kigkonsult.se
  * Package   iCalcreator
- * Version   2.27.17
+ * Version   2.28
  * License   Subject matter of licence is the software iCalcreator.
  *           The above copyright, link, package and version notices,
  *           this licence notice and the invariant [rfc5545] PRODID result use
@@ -45,7 +45,7 @@ use Exception;
  */
 class RecurTest extends TestCase
 {
-    private static $ERRFMT = "%s error in case #%s, start %s, end %s, recur:%s";
+    protected static $ERRFMT = "%s error in case #%s, start %s, end %s, recur:%s";
 
     protected static $totExpectTime = 0.0;
     protected static $totResultTime = 0.0;
@@ -101,7 +101,7 @@ class RecurTest extends TestCase
                 $execTime
             ];
             $interval += 1;
-        }
+        } // end for
 
         // rfc example 23 - with interval for-loop
         $count    = 10;

@@ -384,7 +384,6 @@ class iCalCalendarReader extends IPSModule
 
         $curl_result = curl_exec($curl);
 
-        //$curl_result = str_replace('<CR><LF>', PHP_EOL, $curl_result);
         $curl_error_nr  = curl_errno($curl);
         $curl_error_str = curl_error($curl);
         curl_close($curl);

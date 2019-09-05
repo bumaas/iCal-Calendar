@@ -5,7 +5,7 @@
  * copyright (c) 2007-2019 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
  * Link      https://kigkonsult.se
  * Package   iCalcreator
- * Version   2.27.17
+ * Version   2.28
  * License   Subject matter of licence is the software iCalcreator.
  *           The above copyright, link, package and version notices,
  *           this licence notice and the invariant [rfc5545] PRODID result use
@@ -497,6 +497,14 @@ abstract class CalendarComponent extends IcalBase
         return $this;
     }
 
+    /*
+     * @var string
+     * @access proteceted
+     * @static
+     */
+    protected static $NLCHARS = '\n';
+    protected static $BEGIN   = 'BEGIN:';
+
     /**
      * Parse data into component properties
      *
@@ -508,8 +516,67 @@ abstract class CalendarComponent extends IcalBase
      * @// todo report invalid properties, Exception.. ??
      */
     public function parse( $unParsedText = null ) {
-        static $NLCHARS         = '\n';
-        static $BEGIN           = 'BEGIN:';
+        $rows = $this->parse1prepInput( $unParsedText );
+        $this->parse2intoComps( $rows );
+        $this->parse3thisProperties();
+        $this->parse4subComps();
+        return $this;
+    }
+
+    /**
+     * Return rows to parse
+     *
+     * @param mixed $unParsedText strict rfc2445 formatted, single property string or array of strings
+     * @return array
+     * @access private
+     * @static
+     * @since  2.27.22 - 2019-06-17
+     */
+    private function parse1prepInput( $unParsedText = null ) {
+        switch( true ) {
+            case ( ! empty( $unParsedText )) :
+                $arrParse = false;
+                if( is_array( $unParsedText ) ) {
+                    $unParsedText = implode( self::$NLCHARS . Util::$CRLF, $unParsedText );
+                    $arrParse     = true;
+                }
+                $rows = StringFactory::convEolChar( $unParsedText );
+                if( $arrParse ) {
+                    foreach( $rows as $lix => $row ) {
+                        $rows[$lix] = StringFactory::trimTrailNL( $row );
+                    }
+                }
+                break;
+            case empty( $this->unparsed ) :
+                $rows = [];
+                break;
+            default :
+                $rows = $this->unparsed;
+                break;
+        } // end switch
+        /* skip leading (empty/invalid) lines */
+        foreach( $rows as $lix => $row ) {
+            if( false !== ( $pos = stripos( $row, self::$BEGIN ))) {
+                $rows[$lix] = substr( $row, $pos );
+                break;
+            }
+            $tst = trim( $row );
+            if(( self::$NLCHARS == $tst ) || empty( $tst )) {
+                unset( $rows[$lix] );
+            }
+        }
+        return $rows;
+    }
+
+    /**
+     * Parse into comps
+     *
+     * @param array $rows
+     * @access private
+     * @static
+     * @since  2.27.22 - 2019-06-17
+     */
+    private function parse2intoComps( array $rows ) {
         static $ENDALARM        = 'END:VALARM';
         static $ENDDAYLIGHT     = 'END:DAYLIGHT';
         static $ENDSTANDARD     = 'END:STANDARD';
@@ -517,37 +584,6 @@ abstract class CalendarComponent extends IcalBase
         static $BEGINVALARM     = 'BEGIN:VALARM';
         static $BEGINSTANDARD   = 'BEGIN:STANDARD';
         static $BEGINDAYLIGHT   = 'BEGIN:DAYLIGHT';
-        static $TEXTPROPS       = [ self::CATEGORIES, self::COMMENT, self::DESCRIPTION, self::SUMMARY, ];
-        if( ! empty( $unParsedText )) {
-            $arrParse = false;
-            if( is_array( $unParsedText )) {
-                $unParsedText = implode( $NLCHARS . Util::$CRLF, $unParsedText );
-                $arrParse     = true;
-            }
-            $rows = StringFactory::convEolChar( $unParsedText );
-            if( $arrParse ) {
-                foreach( $rows as $lix => $row ) {
-                    $rows[$lix] = StringFactory::trimTrailNL( $row );
-                }
-            }
-        }
-        elseif( ! isset( $this->unparsed )) {
-            $rows = [];
-        }
-        else {
-            $rows = $this->unparsed;
-        }
-        /* skip leading (empty/invalid) lines */
-        foreach( $rows as $lix => $row ) {
-            if( false !== ( $pos = stripos( $row, $BEGIN ))) {
-                $rows[$lix] = substr( $row, $pos );
-                break;
-            }
-            $tst = trim( $row );
-            if(( $NLCHARS == $tst ) || empty( $tst )) {
-                unset( $rows[$lix] );
-            }
-        }
         $this->unparsed = [];
         $comp           = $this;
         $compSync       = $subSync = 0;
@@ -589,7 +625,7 @@ abstract class CalendarComponent extends IcalBase
                     $comp     = $this->newDaylight();
                     $subSync += 1;
                     break;
-                case ( 0 == strcasecmp( $BEGIN, substr( $row, 0, 6 ))) :
+                case ( 0 == strcasecmp( self::$BEGIN, substr( $row, 0, 6 ))) :
                     $compSync += 1;         // begin:<component>
                     break;
                 default :
@@ -597,9 +633,19 @@ abstract class CalendarComponent extends IcalBase
                     break;
             } // end switch( true )
         } // end foreach( $rows as $lix => $row )
+    }
+
+    /**
+     * Parse this properties
+     *
+     * @access private
+     * @static
+     * @since  2.27.22 - 2019-06-17
+     */
+    private function parse3thisProperties() {
+        static $TEXTPROPS = [ self::CATEGORIES, self::COMMENT, self::DESCRIPTION, self::SUMMARY, ];
         /* concatenate property values spread over several lines */
         $this->unparsed = StringFactory::concatRows( $this->unparsed );
-        $class = get_called_class();
         /* parse each property 'line' */
         foreach( $this->unparsed as $lix => $row ) {
             /* get propname  +  split property name  and  opt.params and value */
@@ -616,8 +662,8 @@ abstract class CalendarComponent extends IcalBase
             }
             /* separate attributes from value */
             list( $value, $propAttr ) = StringFactory::splitContent( $row );
-            if(( $NLCHARS == strtolower( substr( $value, -2 ))) &&
-                  ! Util::isPropInList( $propName, $TEXTPROPS ) &&
+            if(( self::$NLCHARS == strtolower( substr( $value, -2 ))) &&
+                ! Util::isPropInList( $propName, $TEXTPROPS ) &&
                 ( ! StringFactory::isXprefixed( $propName ))) {
                 $value = StringFactory::trimTrailNL( $value );
             }
@@ -637,11 +683,11 @@ abstract class CalendarComponent extends IcalBase
                 case self::COMMENT :
                     // fall through
                 case self::CONTACT :
-                // fall through
+                    // fall through
                 case self::DESCRIPTION :
-                // fall through
+                    // fall through
                 case self::LOCATION :
-                // fall through
+                    // fall through
                 case self::SUMMARY :
                     if( empty( $value )) {
                         $propAttr = null;
@@ -655,6 +701,7 @@ abstract class CalendarComponent extends IcalBase
                     $this->{$method}( $values[0], $values[1], $values[2], $propAttr );
                     break;
                 case self::FREEBUSY :
+                    $class = get_class( $this );
                     list( $fbtype, $values, $propAttr ) = $class::parseFreebusy( $value, $propAttr );
                     $this->{$method}( $fbtype, $values, $propAttr );
                     break;
@@ -684,19 +731,19 @@ abstract class CalendarComponent extends IcalBase
                     $this->setXprop( $propName, StringFactory::strunrep( $value ), $propAttr );
                     break;
                 case self::ACTION :
-                // fall through
+                    // fall through
                 case self::STATUS :
-                // fall through
+                    // fall through
                 case self::TRANSP :
-                // fall through
+                    // fall through
                 case self::UID :
-                // fall through
+                    // fall through
                 case self::TZID :
-                // fall through
+                    // fall through
                 case self::RELATED_TO :
-                // fall through
+                    // fall through
                 case self::TZNAME :
-                $value = StringFactory::strunrep( $value );
+                    $value = StringFactory::strunrep( $value );
                 // fall through
                 default:
                     $this->{$method}( $value, $propAttr );
@@ -704,15 +751,25 @@ abstract class CalendarComponent extends IcalBase
             } // end  switch( $propName.. .
         } // end foreach( $this->unparsed as $lix => $row )
         unset( $this->unparsed );
-        if( 0 < $this->countComponents()) {
-            foreach( array_keys( $this->components ) as $cix ) {
-                if( ! empty( $this->components[$cix] ) &&
-                    ! empty( $this->components[$cix]->unparsed )) {
-                    $this->components[$cix]->parse();
-                }
-            }
+    }
+
+    /**
+     * parse sub-components
+     *
+     * @access private
+     * @static
+     * @since  2.27.11 - 2019-01-04
+     */
+    private function parse4subComps() {
+        if( empty( $this->countComponents())) {
+            return;
         }
-        return $this;
+        foreach( array_keys( $this->components ) as $cix ) {
+            if( ! empty( $this->components[$cix] ) &&
+                ! empty( $this->components[$cix]->unparsed )) {
+                $this->components[$cix]->parse();
+            }
+        } // end foreach
     }
 
     /**

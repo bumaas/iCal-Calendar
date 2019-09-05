@@ -5,7 +5,7 @@
  * copyright (c) 2007-2019 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
  * Link      https://kigkonsult.se
  * Package   iCalcreator
- * Version   2.27.17
+ * Version   2.28
  * License   Subject matter of licence is the software iCalcreator.
  *           The above copyright, link, package and version notices,
  *           this licence notice and the invariant [rfc5545] PRODID result use
@@ -110,7 +110,6 @@ class RexdateFactory
             $content   = $attributes = null;
             foreach(( array_keys( $theExdate[Util::$LCvalue] )) as $eix ) {
                 $exdatePart = $theExdate[Util::$LCvalue][$eix];
-                $parNo      = count( $exdatePart );
                 $formatted  = DateTimeFactory::dateArrayToStr( $exdatePart, $isValueDate );
                 if( isset( $theExdate[Util::$LCparams][Vcalendar::TZID] )) {
                     $formatted = str_replace( Vcalendar::Z, null, $formatted );
@@ -534,8 +533,6 @@ class RexdateFactory
                 $output[Util::$LCparams][Vcalendar::TZID] = $paramTZid;
             }
         }
-        else
-            unset( $wDate[Util::$LCtz] );
         $output[Util::$LCparams] = array_filter( $output[Util::$LCparams] );
         return $output;
     }
@@ -602,7 +599,8 @@ class RexdateFactory
                                     )
                                 )
                             );
-                        } catch( Exception $e ) {
+                        }
+                        catch( Exception $e ) {
                             throw $e;
                         }
                         continue 2;

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use RRule\RRule;
+use Kigkonsult\Icalcreator\Util\RegulateTimezoneFactory;
 
 /***********************************************************************
  * iCal importer class
@@ -183,10 +184,10 @@ class iCalImporter
 
         $iCalCalendarArray       = [];
         $this->CalendarTimezones = [];
-
+        $stringCalendarToParse = RegulateTimezoneFactory::process($iCalData);
         try {
             $vCalendar = new Kigkonsult\Icalcreator\Vcalendar();
-            $vCalendar->parse($iCalData);
+            $vCalendar->parse($stringCalendarToParse);
         } catch (Exception $e) {
             call_user_func($this->Logger_Err, $e->getMessage());
             return [];
@@ -261,7 +262,7 @@ class iCalImporter
             if ($propDtstart === false) {
                 call_user_func(
                     $this->Logger_Err, sprintf(
-                    'Event \'%s\': DTSTART can\'t be processed, ignoring', $vEvent->getSummary()
+                    'Event \'%s\' (%s): DTSTART can\'t be processed, ignoring', $vEvent->getSummary(), json_encode($vEvent->getComponent())
                 ) //todo
                 );
                 continue;

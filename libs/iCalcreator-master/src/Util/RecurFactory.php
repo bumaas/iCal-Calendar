@@ -5,7 +5,7 @@
  * copyright (c) 2007-2019 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
  * Link      https://kigkonsult.se
  * Package   iCalcreator
- * Version   2.27.17
+ * Version   2.28
  * License   Subject matter of licence is the software iCalcreator.
  *           The above copyright, link, package and version notices,
  *           this licence notice and the invariant [rfc5545] PRODID result use
@@ -908,7 +908,7 @@ class RecurFactory
                     $wDate = $wDate->modify( $modify1 );
                     break;
                 case( $endYmd < $Ymd ) :
-                    break;
+                    break 2;
                 case( $currWeekNo == $targetWeekNo ) :
                     if( self::inList( $wDate->format( self::$LCM ), $byMonthList )) {
                         if( self::inList( $wDate->format( self::$LCW ), $byDayList )) {
@@ -1316,7 +1316,7 @@ class RecurFactory
             }
         } // end if( isset( $recur[Vcalendar::UNTIL] ))
         if( $wDateYMD > $fcnEndYMD ) {
-            return []; // nothing to do.. .
+            return; // nothing to do.. .
         }
         $recurFreqIsYearly  = ( Vcalendar::YEARLY  == $recur[Vcalendar::FREQ] );
         $recurFreqIsMonthly = ( Vcalendar::MONTHLY == $recur[Vcalendar::FREQ] );

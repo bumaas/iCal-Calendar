@@ -32,7 +32,7 @@ Kalender werden beim Laden unter Berücksichtigung ihrer jeweiligen Zeitzone in 
 Wie Kalenderdaten aus einer oder mehreren **iCalCalendarReader**-Instanzen in einem Calendar-Control im Webfront angezeigt werden können ist [hier](docs/Examples/readme.md "Kalender im Webfront anzeigen") beschrieben.
 
 Diese Bibliothek nutzt folgende externe Bibliotheken im Verzeichnis `/lib`:
-* iCalcreator (Version 2.27.19) `https://github.com/iCalcreator/iCalcreator/releases/tag/v2.27.19`, AGPLv3-Lizenz
+* iCalcreator (Version 2.28) `https://github.com/iCalcreator/iCalcreator/commit/3e5b300c1ead50a5bcb40f35f95833626e487dce` + Spezialversion von RegulateTimeZoneFactory.php
 * RRULE for PHP (Stand 2019-05-04) `https://github.com/rlanvin/php-rrule`, MIT-Lizenz
 
 
