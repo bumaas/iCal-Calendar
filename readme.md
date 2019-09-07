@@ -22,6 +22,7 @@ Es hat keinerlei Funktion mehr und dient lediglich der Möglichkeit, Daten über
 ### 1. Funktionsumfang
 
 Das Modul dient dem Einlesen von Kalenderdaten in IP-Symcon (getestet mit Google Calendar, ownCloud Calendar, Synology Calendar und iCloud). Zum einen können die eingebundenen Kalender auf einfache Weise im Webfront angezeigt werden, zum anderen können eingetragene Termine zum Setzen von Statusvariablen ausgewertet werden.
+Die eingelesenen Daten müssen [rfc5545](https://tools.ietf.org/html/rfc5545 "Internet Calendaring and Scheduling Core Object Specification") konform sein.
 
 Damit ist es z.B. sehr einfach möglich einen zentralen Anwesenheitskalender im Internet zu pflegen, IP Symcon steuert damit automatisch Heizung, Alarmanlage und Anwesenheitssimulation.
 
@@ -32,7 +33,7 @@ Kalender werden beim Laden unter Berücksichtigung ihrer jeweiligen Zeitzone in 
 Wie Kalenderdaten aus einer oder mehreren **iCalCalendarReader**-Instanzen in einem Calendar-Control im Webfront angezeigt werden können ist [hier](docs/Examples/readme.md "Kalender im Webfront anzeigen") beschrieben.
 
 Diese Bibliothek nutzt folgende externe Bibliotheken im Verzeichnis `/lib`:
-* iCalcreator (Version 2.28) `https://github.com/iCalcreator/iCalcreator/commit/3e5b300c1ead50a5bcb40f35f95833626e487dce` + Spezialversion von RegulateTimeZoneFactory.php
+* iCalcreator (Version 2.29.14) `https://github.com/iCalcreator/iCalcreator/releases/tag/v2.29.14`
 * RRULE for PHP (Stand 2019-05-04) `https://github.com/rlanvin/php-rrule`, MIT-Lizenz
 
 

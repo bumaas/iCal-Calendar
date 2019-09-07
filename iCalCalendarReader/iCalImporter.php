@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use RRule\RRule;
 use Kigkonsult\Icalcreator\Util\RegulateTimezoneFactory;
+use RRule\RRule;
 
 /***********************************************************************
  * iCal importer class
@@ -98,6 +98,10 @@ class iCalImporter
     private function iCalDateTimeArrayToDateTime(array $dtValue): DateTime
     {
 
+        if (!($dtValue['value'] instanceof DateTime)) {
+            throw new RuntimeException('Component is not of type DateTime');
+        }
+
         $value = $dtValue['value'];
         if (isset($dtValue['params'])) {
             $params = $dtValue['params'];
@@ -106,34 +110,20 @@ class iCalImporter
         /** @noinspection PhpUndefinedVariableInspection */
         $WholeDay = (isset($params['VALUE']) && ($params['VALUE'] === 'DATE'));
 
-        $Year  = (int) $value['year'];
-        $Month = (int) $value['month'];
-        $Day   = (int) $value['day'];
+        $Year = (int) $value->format('Y');
+        $Month = (int) $value->format('n');
+        $Day   = (int) $value->format('j');
+        $Hour = (int) $value->format('G');
+        $Min = (int) $value->format('i');
+        $Sec = (int) $value->format('s');
 
-        if (isset($value['hour'])) {
-            $Hour = (int) $value['hour'];
-        } else {
-            $Hour = 0;
-        }
-        if (isset($value['min'])) {
-            $Min = (int) $value['min'];
-        } else {
-            $Min = 0;
-        }
-        if (isset($value['sec'])) {
-            $Sec = (int) $value['sec'];
-        } else {
-            $Sec = 0;
-        }
         // owncloud calendar
         if (isset($params['TZID'])) {
             /** @noinspection PhpUndefinedVariableInspection */
             $Timezone = $params['TZID'];
         } // google calendar
-        elseif (isset($value['tz'])) {
-            $Timezone = 'UTC';
-        } else {
-            $Timezone = $this->Timezone;
+        else {
+            $Timezone = $value->getTimezone()->getName();
         }
 
         $DateTime = new DateTime();
@@ -185,12 +175,13 @@ class iCalImporter
         $iCalCalendarArray       = [];
         $this->CalendarTimezones = [];
         $stringCalendarToParse = RegulateTimezoneFactory::process($iCalData);
+
         try {
             $vCalendar = new Kigkonsult\Icalcreator\Vcalendar();
             $vCalendar->parse($stringCalendarToParse);
         } catch (Exception $e) {
             call_user_func($this->Logger_Err, $e->getMessage());
-            return [];
+            //return [];
         }
 
         // get calendar supplied timezones
