@@ -181,7 +181,7 @@ class iCalImporter
             $vCalendar->parse($stringCalendarToParse);
         } catch (Exception $e) {
             call_user_func($this->Logger_Err, $e->getMessage());
-            //return [];
+            return [];
         }
 
         // get calendar supplied timezones
@@ -242,7 +242,7 @@ class iCalImporter
                              )
         );
 
-        while ($vEvent = $vCalendar->getComponent('vevent')) {
+        while (($vEvent = $vCalendar->getComponent('vevent')) !== false) {
 
             if (!($vEvent instanceof Kigkonsult\Icalcreator\Vevent)) {
                 throw new RuntimeException('Component is not of type vevent');
@@ -253,7 +253,7 @@ class iCalImporter
             if ($propDtstart === false) {
                 call_user_func(
                     $this->Logger_Err, sprintf(
-                    'Event \'%s\' (%s): DTSTART can\'t be processed, ignoring', $vEvent->getSummary(), json_encode($vEvent->getComponent())
+                    'Event \'%s\': DTSTART can\'t be processed, ignoring', $vEvent->getSummary()
                 ) //todo
                 );
                 continue;
