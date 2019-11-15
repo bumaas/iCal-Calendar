@@ -486,6 +486,15 @@ class iCalCalendarReader extends IPSModule
             $this->Logger_Err($message);
         }
         );
+
+        $this->Logger_Dbg(__FUNCTION__, sprintf('Calender Statistic - Length: %s, VEVENT: %s, STANDARD: %s, VTIMEZONE: %s, DAYLIGHT: %s',
+                                                strlen($curl_result),
+                                                substr_count($curl_result, 'BEGIN:VEVENT'),
+                                                substr_count($curl_result, 'BEGIN:STANDARD'),
+                                                substr_count($curl_result, 'BEGIN:VTIMEZONE'),
+                                                substr_count($curl_result, 'BEGIN:DAYLIGHT')
+        ));
+
         $iCalCalendarArray = $MyImporter->ImportCalendar($curl_result);
         return json_encode($iCalCalendarArray);
     }
