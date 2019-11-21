@@ -9,5 +9,6 @@
 	"parentRequirements": [],
 	"childRequirements": [],
 	"implemented": [],
-	"prefix": "ICCR"
+	"prefix": "ICCR",
+	"url": "https://github.com/bumaas/iCal-Calendar/blob/master/readme.md"
 }
