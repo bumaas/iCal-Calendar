@@ -112,7 +112,7 @@ trait ATTENDEEtrait
         }
         $value = CalAddressFactory::conformCalAddress( $value );
         if( ! empty( $value )) {
-            CalAddressFactory::assertCalAddress( $value );
+       //     CalAddressFactory::assertCalAddress( $value );
         }
         $params = array_change_key_case( (array) $params, CASE_UPPER );
         CalAddressFactory::sameValueAndEMAILparam( $value, $params );

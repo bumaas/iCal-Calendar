@@ -110,12 +110,12 @@ class iCalImporter
         /** @noinspection PhpUndefinedVariableInspection */
         $WholeDay = (isset($params['VALUE']) && ($params['VALUE'] === 'DATE'));
 
-        $Year = (int) $value->format('Y');
+        $Year  = (int) $value->format('Y');
         $Month = (int) $value->format('n');
         $Day   = (int) $value->format('j');
-        $Hour = (int) $value->format('G');
-        $Min = (int) $value->format('i');
-        $Sec = (int) $value->format('s');
+        $Hour  = (int) $value->format('G');
+        $Min   = (int) $value->format('i');
+        $Sec   = (int) $value->format('s');
 
         // owncloud calendar
         if (isset($params['TZID'])) {
@@ -174,13 +174,13 @@ class iCalImporter
 
         $iCalCalendarArray       = [];
         $this->CalendarTimezones = [];
-        $stringCalendarToParse = RegulateTimezoneFactory::process($iCalData);
+        $stringCalendarToParse   = RegulateTimezoneFactory::process($iCalData);
 
         try {
             $vCalendar = new Kigkonsult\Icalcreator\Vcalendar();
             $vCalendar->parse($stringCalendarToParse);
         } catch (Exception $e) {
-            call_user_func($this->Logger_Err, $e->getMessage());
+            call_user_func($this->Logger_Err, 'parse: ' . $e->getMessage());
             return [];
         }
 
@@ -279,6 +279,12 @@ class iCalImporter
             } else {
                 $vEvents[] = $vEvent;
             }
+            call_user_func(
+                $this->Logger_Dbg, __FUNCTION__, sprintf(
+                'vEvents_with_RRULE: %s, vEvents_with_Recurrence_id: %s, $vEvents: %s', count($vEvents_with_RRULE),
+                count($vEvents_with_Recurrence_id), count($vEvents)
+            )
+            );
 
         }
 
