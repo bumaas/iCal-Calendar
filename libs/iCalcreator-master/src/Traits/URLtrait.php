@@ -110,7 +110,7 @@ trait URLtrait
             $params = [];
         }
         else {
-            HttpFactory::assertUrl( $value );
+            //HttpFactory::assertUrl( $value );
         }
         $this->url = [
             Util::$LCvalue  => $value,
