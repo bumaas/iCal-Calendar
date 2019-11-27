@@ -548,7 +548,7 @@ class DateTimeFactory
             return ( false !== strtotime ( $string ));
         }
 
-        if ((substr($string,0,6) > '19011213') && (substr($string,0,6) < '20380119')){
+        if ((substr($string,0,8) > '19011213') && (substr($string,0,8) < '20380119')){
             return ( false !== strtotime ( $string ));
         }
 
