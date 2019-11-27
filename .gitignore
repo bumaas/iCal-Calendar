@@ -50,5 +50,7 @@ Temporary Items
 # PHPStorm
 # ===============
 .idea
-docs/Examples/Testdaten/TestDaten.txt
-docs/Examples/Testdaten/iCload.txt
+
+# ===============
+# Testdaten
+docs/Examples/Testdaten
