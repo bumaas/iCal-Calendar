@@ -539,8 +539,20 @@ class DateTimeFactory
             return false;
         }
         $string = trim( $string );
-        return (( 8 <= strlen( $string )) &&
-            ( false !== strtotime ( $string )));
+
+        if (8 < strlen( $string )){
+            return false;
+        }
+
+        if ((int) 10000000000 == 10000000000){//64 bit System?
+            return ( false !== strtotime ( $string ));
+        }
+
+        if ((substr($string,0,6) > '19011213') && (substr($string,0,6) < '20380119')){
+            return ( false !== strtotime ( $string ));
+        }
+
+        return true;
     }
 
     /*
