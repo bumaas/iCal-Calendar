@@ -540,7 +540,7 @@ class DateTimeFactory
         }
         $string = trim( $string );
 
-        if (8 < strlen( $string )){
+        if (8 > strlen( $string )){
             return false;
         }
 
