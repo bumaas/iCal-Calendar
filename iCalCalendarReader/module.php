@@ -27,6 +27,7 @@ class iCalCalendarReader extends IPSModule
     private const ICCR_PROPERTY_CALENDAR_URL                       = 'CalendarServerURL';
     private const ICCR_PROPERTY_USERNAME                           = 'Username';
     private const ICCR_PROPERTY_PASSWORD                           = 'Password';
+    private const ICCR_PROPERTY_DISABLE_SSL_VERIFYPEER             = 'DisableSSLVerifyPeer';
     private const ICCR_PROPERTY_DAYSTOCACHE                        = 'DaysToCache';
     private const ICCR_PROPERTY_DAYSTOCACHEBACK                    = 'DaysToCacheBack';
     private const ICCR_PROPERTY_UPDATE_FREQUENCY                   = 'UpdateFrequency';
@@ -61,6 +62,7 @@ class iCalCalendarReader extends IPSModule
         $this->RegisterPropertyString(self::ICCR_PROPERTY_CALENDAR_URL, '');
         $this->RegisterPropertyString(self::ICCR_PROPERTY_USERNAME, '');
         $this->RegisterPropertyString(self::ICCR_PROPERTY_PASSWORD, '');
+        $this->RegisterPropertyBoolean(self::ICCR_PROPERTY_DISABLE_SSL_VERIFYPEER, false);
 
         $this->RegisterPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHE, 30);
         $this->RegisterPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHEBACK, 30);
@@ -205,7 +207,8 @@ class iCalCalendarReader extends IPSModule
             'items'   => [
                 ['type' => 'ValidationTextBox', 'name' => self::ICCR_PROPERTY_CALENDAR_URL, 'caption' => 'Calendar URL'],
                 ['type' => 'ValidationTextBox', 'name' => self::ICCR_PROPERTY_USERNAME, 'caption' => 'Username'],
-                ['type' => 'PasswordTextBox', 'name' => self::ICCR_PROPERTY_PASSWORD, 'caption' => 'Password']
+                ['type' => 'PasswordTextBox', 'name' => self::ICCR_PROPERTY_PASSWORD, 'caption' => 'Password'],
+                ['type' => 'CheckBox', 'name' => self::ICCR_PROPERTY_DISABLE_SSL_VERIFYPEER, 'caption' => 'Disable Verification of SSL Certificate']
             ]
         ];
 
@@ -405,7 +408,7 @@ class iCalCalendarReader extends IPSModule
         curl_setopt($curl, CURLOPT_URL, $url);
         if (stripos($url, 'https:') === 0) {
             /** @noinspection CurlSslServerSpoofingInspection */
-            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, !$this->ReadPropertyBoolean(self::ICCR_PROPERTY_DISABLE_SSL_VERIFYPEER));
             curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
         }
         curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 2);

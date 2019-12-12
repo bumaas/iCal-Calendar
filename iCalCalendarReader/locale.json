@@ -8,6 +8,7 @@
       "Calendar URL": "Kalender URL",
       "Username": "Benutzername",
       "Password": "Kennwort",
+      "Disable Verification of SSL Certificate": "Unterdrücke die Überprüfung des SSL Zertifikats",
       "Synchronization": "Synchronisation",
       "Cache size (Past)": "Cache-Größe (Vergangenheit)",
       "Cache size (Future)": "Cache-Größe (Zukunft)",

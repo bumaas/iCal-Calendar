@@ -59,6 +59,7 @@ Eigenschaft          |Typ     | Standardwert|Beschreibung
 CalendarServerURL   |string|     | URL zur iCal-Quelle
 Username            |string|  |    Benutzer für den Zugriff auf die Quelle
 Password            |string|   |   Passwort dieses Benutzers
+DisableSSLVerifyPeer|boolean|  false |   Deaktivierung der SSL Zertifikatsüberprüfung
 DaysToCache    |integer|30| Anzahl der Tage, für die Ereignisse in der Zukunft gelesen werden sollen
 DaysToCacheBack    |integer|30|  Anzahl der Tage, für die Ereignisse in der Vergangenheit gelesen werden sollen
 UpdateFrequency |integer|15|  Alle wieviel Minuten soll die Quelle gelesen werden
