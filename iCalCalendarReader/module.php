@@ -615,7 +615,7 @@ class iCalCalendarReader extends IPSModule
             )
         );
 
-        if ((($calStart - $notPre) < $ts) && (($calEnd + $notPost) > $ts)) {
+        if ((($calStart - $notPre) <= $ts) && (($calEnd + $notPost) > $ts)) {
             $this->Logger_Dbg(__FUNCTION__, sprintf('find: \'%s\', description: \'%s\'', $notFind, $calDescription));
             if ($calDescription !== '' && $notFind !== '') {
                 if ($notRegExpression) {
