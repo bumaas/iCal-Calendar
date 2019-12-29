@@ -279,14 +279,15 @@ class iCalImporter
             } else {
                 $vEvents[] = $vEvent;
             }
-            call_user_func(
-                $this->Logger_Dbg, __FUNCTION__, sprintf(
-                'vEvents_with_RRULE: %s, vEvents_with_Recurrence_id: %s, $vEvents: %s', count($vEvents_with_RRULE),
-                count($vEvents_with_Recurrence_id), count($vEvents)
-            )
-            );
 
         }
+
+        call_user_func(
+            $this->Logger_Dbg, __FUNCTION__, sprintf(
+                                 'vEvents_with_RRULE: %s, vEvents_with_Recurrence_id: %s, $vEvents: %s', count($vEvents_with_RRULE),
+                                 count($vEvents_with_Recurrence_id), count($vEvents)
+                             )
+        );
 
         $eventArray = [];
 
@@ -383,6 +384,7 @@ class iCalImporter
                     $dtExDates[] = $this->iCalDateTimeArrayToDateTime(['value' => $exDateValue, 'params' => $exDates['params']]);
                 }
             }
+            call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('ExDates: %s', json_encode($dtExDates)));
 
             //get the occurrences
             foreach ($RRule->getOccurrencesBetween($CacheDateTimeFrom, $CacheDateTimeUntil) as $dtOccurrence) {
@@ -391,7 +393,9 @@ class iCalImporter
                 }
 
                 //check if occurrence was deleted
+                call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('dtOccurence: %s', json_encode($dtOccurrence)));
                 if (in_array($dtOccurrence, $dtExDates, false)) { //compare the content, not the instance
+                    call_user_func($this->Logger_Dbg, __FUNCTION__, 'excluded');
                     continue;
                 }
 
