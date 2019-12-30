@@ -182,23 +182,9 @@ class iCalCalendarReader extends IPSModule
     public function GetConfigurationForm()
     {
         $form['elements'] = [
-            [
-                'type'  => 'RowLayout',
-                'items' => [
-                    [
-                        'type'    => 'Label',
-                        'caption' => 'In this instance, the parameters for a single calendar access are set. The description of the individual parameters can be found in the documentation.'
-                    ],
-                    [
-                        'type'    => 'Button',
-                        'caption' => 'Show Documentation',
-                        'onClick' => 'echo \'https://github.com/bumaas/iCal-Calendar/blob/master/readme.md\';',
-                        'link'    => true
-                    ]
-                ]
-            ],
+            ['type'    => 'Label',
+             'caption' => 'In this instance, the parameters for a single calendar access are set.'],
             ['type' => 'CheckBox', 'name' => 'active', 'caption' => 'active']
-
         ];
 
         $form['elements'][] = [

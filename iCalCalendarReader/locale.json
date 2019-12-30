@@ -1,8 +1,7 @@
 {
   "translations": {
     "de": {
-      "In this instance, the parameters for a single calendar access are set. The description of the individual parameters can be found in the documentation.": "In dieser Instanz werden alle Parameter für den Zugriff eines einzelnen Kalenders hinterlegt. Die Beschreibung der einzelnen Parameter ist in der Dokumentation zu finden.",
-      "Show Documentation": "Dokumentation anzeigen",
+      "In this instance, the parameters for a single calendar access are set.": "In dieser Instanz werden alle Parameter für den Zugriff eines einzelnen Kalenders hinterlegt.",
       "active": "aktiv",
       "Calendar access": "Kalenderzugriff",
       "Calendar URL": "Kalender URL",
