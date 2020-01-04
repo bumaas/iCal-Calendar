@@ -315,7 +315,11 @@ class iCalImporter
             $tsStartingTime = $dtStartingTime->getTimestamp();
 
             if ($diDuration !== false) {
-                $tsEndingTime = ($dtStartingTime->add($diDuration))->getTimestamp();
+                $dtStart= new DateTime();
+                $dtStart->setTimestamp($dtStartingTime->getTimestamp());
+                $tsEndingTime = ($dtStart->add($diDuration))->getTimestamp();
+            } elseif ($dtEndingTime === false) {
+                $tsEndingTime = $tsStartingTime;
             } else {
                 $tsEndingTime = $dtEndingTime->getTimestamp();
             }
