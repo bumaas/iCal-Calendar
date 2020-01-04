@@ -297,21 +297,28 @@ class iCalImporter
                 throw new RuntimeException('Component is not of type vevent');
             }
 
-            $propDtstart = $vEvent->getDtstart(true); // incl. params
-            $propDtend   = $vEvent->getDtend(true);   // incl. params
-            if ($propDtend === false) {
-                $propDtend = $propDtstart;
-            }
+            $dtStartingTime = $vEvent->getDtstart();
+            $dtEndingTime   = $vEvent->getDtend();
+            $diDuration     = $vEvent->getDuration(false, true);
 
             call_user_func(
-                $this->Logger_Dbg, __FUNCTION__, sprintf('dtStartingTime %s, dtEndingTime%s', json_encode($propDtstart), json_encode($propDtend))
+                $this->Logger_Dbg,
+                __FUNCTION__,
+                sprintf(
+                    '#Event# dtStartingTime: %s, dtEndingTime: %s, diDuration: %s',
+                    json_encode($dtStartingTime),
+                    json_encode($dtEndingTime),
+                    json_encode($diDuration)
+                )
             );
 
-            $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart);
-            $dtEndingTime   = $this->iCalDateTimeArrayToDateTime($propDtend);
+            $tsStartingTime = $dtStartingTime->getTimestamp();
 
-            $tsStartingTime = date_timestamp_get($dtStartingTime);
-            $tsEndingTime   = date_timestamp_get($dtEndingTime);
+            if ($diDuration !== false) {
+                $tsEndingTime = ($dtStartingTime->add($diDuration))->getTimestamp();
+            } else {
+                $tsEndingTime = $dtEndingTime->getTimestamp();
+            }
 
             $eventArray[] = $this->GetEventAttributes($vEvent, $tsStartingTime, $tsEndingTime);
 
@@ -323,11 +330,19 @@ class iCalImporter
                 throw new RuntimeException('Component is not of type vevent');
             }
 
-            $propDtstart = $vEvent->getDtstart(true); // incl. params
-            $propDtend   = $vEvent->getDtend(true);   // incl. params
+            $dtStartingTime = $vEvent->getDtstart();
+            $dtEndingTime   = $vEvent->getDtend();
+            $diDuration     = $vEvent->getDuration(false, false);
 
             call_user_func(
-                $this->Logger_Dbg, __FUNCTION__, sprintf('dtStartingTime %s, dtEndingTime%s', json_encode($propDtstart), json_encode($propDtend))
+                $this->Logger_Dbg,
+                __FUNCTION__,
+                sprintf(
+                    '#Event_RRULE# dtStartingTime: %s, dtEndingTime: %s, diDuration: %s',
+                    json_encode($dtStartingTime),
+                    json_encode($dtEndingTime),
+                    json_encode($diDuration)
+                )
             );
             $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart);
 
@@ -400,18 +415,21 @@ class iCalImporter
                 }
 
                 //check if occurrence was changed
-                $changedEvent = $this->getChangedEvent($vEvents_with_Recurrence_id, (string) $vEvent->getUid(), $dtOccurrence);
+                $changedEvent = $this->getChangedEvent($vEvents_with_Recurrence_id, (string)$vEvent->getUid(), $dtOccurrence);
 
                 if ($changedEvent) {
-                    $dtStartingTime = $this->iCalDateTimeArrayToDateTime($changedEvent->getDtstart(true));
-                    $dtEndingTime   = $this->iCalDateTimeArrayToDateTime($changedEvent->getDtend(true));
-
-                    $eventArray[] = $this->GetEventAttributes($changedEvent, $dtStartingTime->getTimestamp(), $dtEndingTime->getTimestamp());
+                    $dtStartingTime = $changedEvent->getDtstart();
+                    $dtEndingTime   = $changedEvent->getDtend();
+                    $eventArray[] = $this->GetEventAttributes($changedEvent, ($changedEvent->getDtstart())->getTimestamp(), ($changedEvent->getDtend())->getTimestamp());
                 } else {
-                    $tsFrom       = $dtOccurrence->getTimestamp();
-                    $dtEndingTime = $this->iCalDateTimeArrayToDateTime($propDtend);
-                    $tsTo         = $tsFrom + ($dtEndingTime->getTimestamp() - $dtStartingTime->getTimestamp());
-
+                    $tsFrom = $dtOccurrence->getTimestamp();
+                    if ($diDuration !== false) {
+                        $dtStart= new DateTime();
+                        $dtStart->setTimestamp($dtStartingTime->getTimestamp());
+                        $tsTo = ($dtStart->add($diDuration))->getTimestamp();
+                    } else {
+                        $tsTo = $tsFrom + ($dtEndingTime->getTimestamp() - $dtStartingTime->getTimestamp());
+                    }
                     $eventArray[] = $this->GetEventAttributes($vEvent, $tsFrom, $tsTo);
                 }
             }
