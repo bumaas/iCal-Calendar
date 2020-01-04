@@ -83,6 +83,22 @@ class CalAddressFactory
      * @since  2.27.8 - 2019-03-18
      */
     public static function assertCalAddress( $calAddress ) {
+        return;
+        /*Example todo:
+BEGIN:VEVENT
+CREATED:20191229T194615Z
+DTEND;TZID=Europe/Berlin:20201030T100000
+DTSTAMP:20191229T194616Z
+DTSTART;TZID=Europe/Berlin:20201030T090000
+LAST-MODIFIED:20191229T194615Z
+ORGANIZER;CN="Joachim Päper";EMAIL=joachim.paeper@icloud.com:/aODMyNTYxNz
+ k4NjgzMjU2MVoHEZowxAfFMrUCmnQ2QkArD73WdqLg2rSemg8aiWIi/principal/
+SEQUENCE:0
+SUMMARY:🌺 - Impftermin Finnjes absprechen
+UID:C804A283-FAFE-4DE2-9E71-E64DCEF7D0A0
+URL;VALUE=URI:
+END:VEVENT
+        */
         static $DOT    = '.';
         static $XDOT   = 'x.';
         static $ERRMSG = 'Invalid email %s';
