@@ -348,9 +348,7 @@ class iCalImporter
                     json_encode($diDuration)
                 )
             );
-            $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart);
 
-            call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('CalRRule \'%s\': %s', $vEvent->getSummary(), $vEvent->createRrule()));
 
             $CalRRule = $vEvent->getRrule();
             if ($CalRRule) {
@@ -377,6 +375,8 @@ class iCalImporter
                     }
 
                 }
+
+                call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('CalRRule \'%s\': %s', $vEvent->getSummary(), json_encode($CalRRule)));
 
                 try {
                     $RRule = new RRule($CalRRule);

@@ -685,6 +685,9 @@ class iCalCalendarReader extends IPSModule
     */
     public function GetCachedCalendar(): string
     {
+        if ($this->GetStatus() !== IS_ACTIVE) {
+            return json_encode([]);
+        }
         $CalendarBuffer = $this->ReadAttributeString(self::ICCR_ATTRIBUTE_CALENDAR_BUFFER);
         $this->Logger_Dbg(__FUNCTION__, $CalendarBuffer);
         return $CalendarBuffer;
