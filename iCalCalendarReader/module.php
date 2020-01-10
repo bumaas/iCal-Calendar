@@ -106,6 +106,8 @@ class iCalCalendarReader extends IPSModule
             $Status = IS_INACTIVE;
         }
 
+        $this->SetSummary($this->ReadPropertyString(self::ICCR_PROPERTY_CALENDAR_URL));
+
         $this->SetStatus($Status);
 
         // ready to run an update?
