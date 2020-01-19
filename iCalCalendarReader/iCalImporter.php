@@ -174,7 +174,13 @@ class iCalImporter
 
         $iCalCalendarArray       = [];
         $this->CalendarTimezones = [];
-        $stringCalendarToParse   = RegulateTimezoneFactory::process($iCalData);
+
+        $rTZFactory = RegulateTimezoneFactory::factory($iCalData);
+        $rTZFactory = $rTZFactory->addOtherTzPhpRelation('"(UTC+01:00) Amsterdam, Berlin, Bern, Rom, Stockholm, Wien"', 'Europe/Amsterdam');
+
+        $stringCalendarToParse   = $rTZFactory
+            ->processCalendar()
+            ->getOutputiCal();
 
         try {
             $vCalendar = new Kigkonsult\Icalcreator\Vcalendar();

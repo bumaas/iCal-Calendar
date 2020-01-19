@@ -395,9 +395,15 @@ class iCalCalendarReader extends IPSModule
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $url);
         if (stripos($url, 'https:') === 0) {
-            /** @noinspection CurlSslServerSpoofingInspection */
-            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, !$this->ReadPropertyBoolean(self::ICCR_PROPERTY_DISABLE_SSL_VERIFYPEER));
-            curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
+            if ($this->ReadPropertyBoolean(self::ICCR_PROPERTY_DISABLE_SSL_VERIFYPEER)){
+                /** @noinspection CurlSslServerSpoofingInspection */
+                curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+                /** @noinspection CurlSslServerSpoofingInspection */
+                curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
+            } else {
+                curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
+                curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
+            }
         }
         curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 2);
         curl_setopt($curl, CURLOPT_TIMEOUT, 10);
