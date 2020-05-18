@@ -406,7 +406,7 @@ class iCalCalendarReader extends IPSModule
             }
         }
         curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 2);
-        curl_setopt($curl, CURLOPT_TIMEOUT, 10);
+        curl_setopt($curl, CURLOPT_TIMEOUT, 20);
         curl_setopt($curl, CURLOPT_FOLLOWLOCATION, 1);
         curl_setopt($curl, CURLOPT_MAXREDIRS, 5); // educated guess
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
@@ -422,7 +422,7 @@ class iCalCalendarReader extends IPSModule
 
         // check on curl error
         if ($curl_error_nr) {
-            $this->Logger_Err(sprintf('Error on connect - (%s) %s for %s', $curl_error_nr, $curl_error_str, $url));
+            $this->Logger_Err(sprintf('Error (%s) on connect - %s for %s', $curl_error_nr, $curl_error_str, $url));
             // only differentiate between invalid, connect, SSL and auth
             switch ($curl_error_nr) {
                 case 1:

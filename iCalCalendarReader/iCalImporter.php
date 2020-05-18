@@ -494,6 +494,12 @@ class iCalImporter
         $Event         = [];
         $Event['UID']  = (string) $vEvent->getUid();
         $Event['Name'] = $vEvent->getSummary();
+        $status        = $vEvent->getStatus();
+        if ($status){
+            $Event['Status'] = $vEvent->getStatus();
+        } else {
+            $Event['Status']    = '';
+        }
 
         $location = $vEvent->getLocation();
         if ($location) {
@@ -511,8 +517,8 @@ class iCalImporter
 
         $Event['From']  = $tsFrom;
         $Event['To']    = $tsTo;
-        $Event['FromS'] = date('Y-m-d H:i:s', $tsFrom);
-        $Event['ToS']   = date('Y-m-d H:i:s', $tsTo);
+        $Event['FromS'] = date(DATE_ATOM, $tsFrom);
+        $Event['ToS']   = date(DATE_ATOM, $tsTo);
         $propDtstart    = $vEvent->getDtstart(true); // incl. params
         if ($propDtstart) {
             $Event['allDay'] = (isset($propDtstart['params']['VALUE']) && ($propDtstart['params']['VALUE'] === 'DATE'));
