@@ -84,6 +84,7 @@ class DateTimeZoneFactory
      */
     public static function assertDateTimeZone( $tzString ) {
         static $ERR = 'Invalid DateTimeZone \'%s\'';
+        $org = $tzString;
         if( empty( $tzString ) && ( 0 != intval( $tzString ))) {
             throw new InvalidArgumentException( sprintf( $ERR, $tzString ));
         }
@@ -94,6 +95,14 @@ class DateTimeZoneFactory
             $tzString = Vcalendar::UTC;
         }
         try {
+            if (strpos($tzString, '(UTC+01:00)') !== false){
+                echo sprintf('%s -> %s', $org, $tzString) . PHP_EOL;
+                $tzString = str_replace('(UTC+01:00)', '(UTC +01:00)', $tzString);
+            }
+            if (strpos($tzString, '"') !== false){
+                echo sprintf('%s -> %s', $org, $tzString) . PHP_EOL;
+                $tzString = str_replace('"', '', $tzString);
+            }
             $timeZone = new DateTimeZone( $tzString );
         }
         catch( Exception $e ) {

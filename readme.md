@@ -34,7 +34,7 @@ Wie Kalenderdaten aus einer oder mehreren **iCalCalendarReader**-Instanzen in ei
 
 Diese Bibliothek nutzt folgende externe Bibliotheken im Verzeichnis `/lib`:
 * iCalcreator (Version 2.29.14) `https://github.com/iCalcreator/iCalcreator/releases/tag/v2.29.14`
-* RRULE for PHP (Stand 2019-05-04) `https://github.com/rlanvin/php-rrule`, MIT-Lizenz
+* RRULE for PHP (Version 2.2.0 - 2019-11-01) `https://github.com/rlanvin/php-rrule`, MIT-Lizenz
 
 
 ### 2. Voraussetzungen

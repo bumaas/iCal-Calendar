@@ -412,7 +412,9 @@ class iCalImporter
             call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('ExDates: %s', json_encode($dtExDates)));
 
             //get the occurrences
-            foreach ($RRule->getOccurrencesBetween($CacheDateTimeFrom, $CacheDateTimeUntil) as $dtOccurrence) {
+            $dtOccurences = $RRule->getOccurrencesBetween($CacheDateTimeFrom, $CacheDateTimeUntil);
+            call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('dtOccurrences: %s', json_encode($dtOccurences)));
+            foreach ($dtOccurences as $dtOccurrence) {
                 if (!($dtOccurrence instanceof DateTime)) {
                     throw new RuntimeException('Component is not of type DateTime');
                 }
