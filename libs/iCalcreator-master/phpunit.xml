@@ -2,10 +2,10 @@
 <!--
  iCalcreator, the PHP class package managing iCal (rfc2445/rfc5445) calendar information.
 
- copyright (c) 2007-2019 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ copyright (c) 2007-2020 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
  Link      https://kigkonsult.se
  Package   iCalcreator
- Version   2.29.14
+ Version   2.29.18
  License   Subject matter of licence is the software iCalcreator.
            The above copyright, link, package and version notices,
            this licence notice and the invariant [rfc5545] PRODID result use
@@ -181,10 +181,13 @@
   <logging>
       <!-- Remove or comment after your own choice-->
       <!-- All logs will be saved in 'testDocs' folder -->
+
+      <!--
       <log type="coverage-html"
            target="testDocs/PHPUnitCoverage"
            lowUpperBound="35"
            highLowerBound="70"/>
+      -->
       <!--log type="coverage-clover"
            target="testDocs/coverage.xml"/-->
       <!--log type="coverage-php"

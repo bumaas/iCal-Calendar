@@ -1,5 +1,5 @@
 
-iCalcreator 2.29.14 releaseNotes
+iCalcreator 2.29.18 releaseNotes
 
 v2.29.1   Removal of all set-methods date(time)/interval ARRAY arguments
           as well as get-methods return date(time)/interval ARRAY formats
@@ -64,3 +64,15 @@ v2.29.12  Vtimezone::populate() moved to Util/VtimezonePopulateFactory::process(
 v2.29.13  CATEGORIES, RESOURCES no longer accepts array input
 
 v2.29.14  String asserts in set-methods for TEXT Valuetype properties
+
+v2.29.15  Vcalendar::returnCalendar() new fileName arg
+
+v2.29.16  Methods with DateTime arg now accepts DateTimeInterface
+
+v2.29.17  assert for method exists
+
+v2.29.18  xml header update
+
+v2.29.20  PHP 7.4 compability (Util/DateIntervalFactory, Util/StringFactory)
+
+v2.29.21  more 2.29.16 (DateTimeFactory, RecurFactory)

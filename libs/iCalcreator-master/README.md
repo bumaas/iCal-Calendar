@@ -17,22 +17,21 @@ iCalcreator supports systems like
 * other applications...
 
 ~~~~~~~~
-__Builds__
+###### Builds
 
 Please review the releaseNotes for a brief overview, 
 docs/summary and docs/using for details.
 
 Stable 2.28.2 *(master)*.
 
-Release 2.30 candidate (2.29.14)
+Release 2.30 candidate (tag 2.29.21)
 
-Unsupported (tags): 
-- 2.26.9
-- 2.24.2
-- 2.22.5
+###### Sponsorship
 
+Donation using <a href="https://paypal.me/kigkonsult" rel="nofollow">paypal.me/kigkonsult</a> are appreciated. 
+For invoice, <a href="mailto:ical@kigkonsult.se">please e-mail</a>.
 
-Brief 2.29.9 demo :
+###### Usage
 
 ``` php
 <?php
@@ -276,3 +275,6 @@ END:VALARM
 END:VEVENT
 END:VCALENDAR
 ```
+###### License
+
+iCalcreator is licensed under the LGPLv3 License.
