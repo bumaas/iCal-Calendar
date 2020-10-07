@@ -137,11 +137,12 @@ class iCalCalendarReader extends IPSModule
             }
 
             if (json_encode($prop) !== $this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS)) {
+                //der neue Identname wird in die Konfiguration übernommen
                 IPS_SetProperty($this->InstanceID, self::ICCR_PROPERTY_NOTIFIERS, json_encode($prop));
                 IPS_ApplyChanges($this->InstanceID);
             }
 
-            $this->DeleteUnusedVariables($propNotifiers);
+            $this->DeleteUnusedVariables($prop);
             $this->SetTimerInterval(self::TIMER_UPDATECALENDAR, $this->ReadPropertyInteger(self::ICCR_PROPERTY_UPDATE_FREQUENCY) * 1000 * 60);
             $this->SetTimerInterval(self::TIMER_CRON1, 1000 * 60);
             return true;
@@ -175,7 +176,7 @@ class iCalCalendarReader extends IPSModule
                     $this->Logger_Dbg(__FUNCTION__, sprintf('Variable %s (#%s) gelöscht', $obj['ObjectName'], $childrenId));
                     IPS_DeleteVariable($childrenId);
                 } else {
-                    $this->Logger_Dbg(__FUNCTION__, sprintf('Variable %s (#%s) nicht gelöscht, da referenziert', $obj['ObjectName'], $childrenId));
+                    $this->Logger_Dbg(__FUNCTION__, sprintf('Variable %s (#%s) nicht gelöscht, da referenziert (%s)', $obj['ObjectName'], $childrenId, print_r(UC_FindReferences($idUtilControl, $childrenId), true)));
                 }
             }
         }
@@ -483,7 +484,7 @@ class iCalCalendarReader extends IPSModule
                 $instStatus = self::STATUS_INST_INVALID_USER_PASSWORD;
             } // everything else goes here
             else {
-                $this->Logger_Err('Error on connect - this is not a valid calendar URL: ' . $url);
+                $this->Logger_Err(sprintf('Error on connect - this is not a valid calendar URL: %s, Result: %s', $url, $curl_result));
                 $instStatus = self::STATUS_INST_INVALID_URL;
             }
         }
