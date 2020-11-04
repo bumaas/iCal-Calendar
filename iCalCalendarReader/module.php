@@ -24,6 +24,7 @@ class iCalCalendarReader extends IPSModule
     private const STATUS_INST_CONNECTION_ERROR      = 204;
     private const STATUS_INST_UNEXPECTED_RESPONSE   = 205;
 
+    private const ICCR_PROPERTY_ACTIVE                             = 'active';
     private const ICCR_PROPERTY_CALENDAR_URL                       = 'CalendarServerURL';
     private const ICCR_PROPERTY_USERNAME                           = 'Username';
     private const ICCR_PROPERTY_PASSWORD                           = 'Password';
@@ -32,13 +33,14 @@ class iCalCalendarReader extends IPSModule
     private const ICCR_PROPERTY_DAYSTOCACHEBACK                    = 'DaysToCacheBack';
     private const ICCR_PROPERTY_UPDATE_FREQUENCY                   = 'UpdateFrequency';
     private const ICCR_PROPERTY_WRITE_DEBUG_INFORMATION_TO_LOGFILE = 'WriteDebugInformationToLogfile';
-    private const ICCR_PROPERTY_NOTIFIERS                          = 'Notifiers';
-    private const ICCR_PROPERTY_NOTIFIER_IDENT                     = 'Ident';
-    private const ICCR_PROPERTY_NOTIFIER_NAME                      = 'Name';
-    private const ICCR_PROPERTY_NOTIFIER_FIND                      = 'Find';
-    private const ICCR_PROPERTY_NOTIFIER_REGEXPRESSION             = 'RegExpression';
-    private const ICCR_PROPERTY_NOTIFIER_PRENOTIFY                 = 'Prenotify';
-    private const ICCR_PROPERTY_NOTIFIER_POSTNOTIFY                = 'Postnotify';
+
+    private const ICCR_PROPERTY_NOTIFIERS              = 'Notifiers';
+    private const ICCR_PROPERTY_NOTIFIER_IDENT         = 'Ident';
+    private const ICCR_PROPERTY_NOTIFIER_NAME          = 'Name';
+    private const ICCR_PROPERTY_NOTIFIER_FIND          = 'Find';
+    private const ICCR_PROPERTY_NOTIFIER_REGEXPRESSION = 'RegExpression';
+    private const ICCR_PROPERTY_NOTIFIER_PRENOTIFY     = 'Prenotify';
+    private const ICCR_PROPERTY_NOTIFIER_POSTNOTIFY    = 'Postnotify';
 
     private const ICCR_ATTRIBUTE_CALENDAR_BUFFER = 'CalendarBuffer';
     private const ICCR_ATTRIBUTE_NOTIFICATIONS   = 'Notifications';
@@ -53,12 +55,19 @@ class iCalCalendarReader extends IPSModule
     /*
         basic setup
     */
+    public function __construct($InstanceID)
+    {
+        ini_set('memory_limit', '256M');
+
+        parent::__construct($InstanceID);
+    }
+
     public function Create()
     {
         parent::Create();
 
         // create configuration properties
-        $this->RegisterPropertyBoolean('active', true);
+        $this->RegisterPropertyBoolean(self::ICCR_PROPERTY_ACTIVE, true);
         $this->RegisterPropertyString(self::ICCR_PROPERTY_CALENDAR_URL, '');
         $this->RegisterPropertyString(self::ICCR_PROPERTY_USERNAME, '');
         $this->RegisterPropertyString(self::ICCR_PROPERTY_PASSWORD, '');
@@ -93,7 +102,7 @@ class iCalCalendarReader extends IPSModule
             return false;
         }
 
-        if ($this->ReadPropertyBoolean('active')) {
+        if ($this->ReadPropertyBoolean(self::ICCR_PROPERTY_ACTIVE)) {
             //validate Configuration
             if (!$this->CheckCalendarURLSyntax()) {
                 $Status = self::STATUS_INST_INVALID_URL;
@@ -176,7 +185,15 @@ class iCalCalendarReader extends IPSModule
                     $this->Logger_Dbg(__FUNCTION__, sprintf('Variable %s (#%s) gelöscht', $obj['ObjectName'], $childrenId));
                     IPS_DeleteVariable($childrenId);
                 } else {
-                    $this->Logger_Dbg(__FUNCTION__, sprintf('Variable %s (#%s) nicht gelöscht, da referenziert (%s)', $obj['ObjectName'], $childrenId, print_r(UC_FindReferences($idUtilControl, $childrenId), true)));
+                    $this->Logger_Dbg(
+                        __FUNCTION__,
+                        sprintf(
+                            'Variable %s (#%s) nicht gelöscht, da referenziert (%s)',
+                            $obj['ObjectName'],
+                            $childrenId,
+                            print_r(UC_FindReferences($idUtilControl, $childrenId), true)
+                        )
+                    );
                 }
             }
         }
@@ -185,9 +202,11 @@ class iCalCalendarReader extends IPSModule
     public function GetConfigurationForm()
     {
         $form['elements'] = [
-            ['type'    => 'Label',
-             'caption' => 'In this instance, the parameters for a single calendar access are set.'],
-            ['type' => 'CheckBox', 'name' => 'active', 'caption' => 'active']
+            [
+                'type'    => 'Label',
+                'caption' => 'In this instance, the parameters for a single calendar access are set.'
+            ],
+            ['type' => 'CheckBox', 'name' => self::ICCR_PROPERTY_ACTIVE, 'caption' => 'active']
         ];
 
         $form['elements'][] = [
@@ -396,7 +415,7 @@ class iCalCalendarReader extends IPSModule
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $url);
         if (stripos($url, 'https:') === 0) {
-            if ($this->ReadPropertyBoolean(self::ICCR_PROPERTY_DISABLE_SSL_VERIFYPEER)){
+            if ($this->ReadPropertyBoolean(self::ICCR_PROPERTY_DISABLE_SSL_VERIFYPEER)) {
                 /** @noinspection CurlSslServerSpoofingInspection */
                 curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
                 /** @noinspection CurlSslServerSpoofingInspection */
@@ -562,7 +581,7 @@ class iCalCalendarReader extends IPSModule
     {
         $this->Logger_Dbg(__FUNCTION__, sprintf('Entering %s()', __FUNCTION__));
 
-        if (!$this->ReadPropertyBoolean('active')) {
+        if (!$this->ReadPropertyBoolean(self::ICCR_PROPERTY_ACTIVE)) {
             $this->Logger_Dbg(__FUNCTION__, 'Instance is inactive');
             return null;
         }
