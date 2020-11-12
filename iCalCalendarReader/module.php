@@ -119,46 +119,47 @@ class iCalCalendarReader extends IPSModule
 
         $this->SetStatus($Status);
 
-        // ready to run an update?
-        if ($Status === IS_ACTIVE) {
-            //print_r(json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true));
-            $prop          = [];
-            $propNotifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true);
-
-            foreach ($propNotifiers as $key => $notifier) {
-                //Anlegen eines neuen Notifiers
-                if ($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT] === $this->Translate('new')) {
-                    $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT] = 'NOTIFIER' . $this->GetNextFreeNotifier();
-                }
-
-                //Variable registrieren
-                $this->RegisterVariableBoolean(
-                    $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT],
-                    $notifier[self::ICCR_PROPERTY_NOTIFIER_NAME],
-                    '~Switch'
-                );
-
-                //Variablennamen auslesen
-                $notifier[self::ICCR_PROPERTY_NOTIFIER_NAME] =
-                    IPS_GetObject($this->GetIDForIdent($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]))['ObjectName'];
-
-                $prop[] = $notifier;
-            }
-
-            if (json_encode($prop) !== $this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS)) {
-                //der neue Identname wird in die Konfiguration übernommen
-                IPS_SetProperty($this->InstanceID, self::ICCR_PROPERTY_NOTIFIERS, json_encode($prop));
-                IPS_ApplyChanges($this->InstanceID);
-            }
-
-            $this->DeleteUnusedVariables($prop);
-            $this->SetTimerInterval(self::TIMER_UPDATECALENDAR, $this->ReadPropertyInteger(self::ICCR_PROPERTY_UPDATE_FREQUENCY) * 1000 * 60);
-            $this->SetTimerInterval(self::TIMER_CRON1, 1000 * 60);
-            return true;
+        if ($Status !== IS_ACTIVE) {
+            $this->SetTimerInterval(self::TIMER_CRON1, 0);
+            return false;
         }
 
-        $this->SetTimerInterval(self::TIMER_CRON1, 0);
-        return false;
+
+        $prop          = [];
+        $propNotifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true);
+        print_r($propNotifiers);
+
+        foreach ($propNotifiers as $key => $notifier) {
+            //Anlegen eines neuen Notifiers
+            if ($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT] === $this->Translate('new')) {
+                $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT] = 'NOTIFIER' . $this->GetNextFreeNotifier();
+            }
+
+            //Variable registrieren
+            $this->RegisterVariableBoolean(
+                $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT],
+                $notifier[self::ICCR_PROPERTY_NOTIFIER_NAME],
+                '~Switch'
+            );
+
+            //Variablennamen auslesen
+            $notifier[self::ICCR_PROPERTY_NOTIFIER_NAME] =
+                IPS_GetObject($this->GetIDForIdent($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]))['ObjectName'];
+
+            $prop[] = $notifier;
+        }
+
+        if (json_encode($prop) !== $this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS)) {
+            //der neue Identname wird in die Konfiguration übernommen
+           IPS_SetProperty($this->InstanceID, self::ICCR_PROPERTY_NOTIFIERS, json_encode($prop));
+           IPS_ApplyChanges($this->InstanceID);
+        }
+
+        $this->DeleteUnusedVariables($prop);
+        $this->SetTimerInterval(self::TIMER_UPDATECALENDAR, $this->ReadPropertyInteger(self::ICCR_PROPERTY_UPDATE_FREQUENCY) * 1000 * 60);
+        $this->SetTimerInterval(self::TIMER_CRON1, 1000 * 60);
+        return true;
+
     }
 
     private function GetNextFreeNotifier(): ?int
@@ -533,7 +534,7 @@ class iCalCalendarReader extends IPSModule
         $this->Logger_Dbg(
             __FUNCTION__,
             sprintf(
-                'Calender Statistic - Length: %s, VEVENT: %s, STANDARD: %s, VTIMEZONE: %s, DAYLIGHT: %s',
+                'Calendar Statistic - Length: %s, VEVENT: %s, STANDARD: %s, VTIMEZONE: %s, DAYLIGHT: %s',
                 strlen($curl_result),
                 substr_count($curl_result, 'BEGIN:VEVENT'),
                 substr_count($curl_result, 'BEGIN:STANDARD'),

@@ -1,4 +1,4 @@
-iCal Calender in IP Symcon lesen und verarbeiten
+iCal Calendar in IP Symcon lesen und verarbeiten
 ===
 
 Diese Bibliothek beinhaltet ein Modul zur Einspeisung von Kalenderinformationen im iCal-Format in IP Symcon:
