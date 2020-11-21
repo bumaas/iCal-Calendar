@@ -127,7 +127,6 @@ class iCalCalendarReader extends IPSModule
 
         $prop          = [];
         $propNotifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true);
-        print_r($propNotifiers);
 
         foreach ($propNotifiers as $key => $notifier) {
             //Anlegen eines neuen Notifiers
