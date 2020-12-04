@@ -96,12 +96,13 @@ class DateTimeZoneFactory
         }
         try {
             if (strpos($tzString, '(UTC+01:00)') !== false){
-                echo sprintf('%s -> %s', $org, $tzString) . PHP_EOL;
                 $tzString = str_replace('(UTC+01:00)', '(UTC +01:00)', $tzString);
+                //bumaas: Exchange2016 reports "(UTC+01:00) Amsterdam ..." (SimonS)
+                //echo sprintf('invalid DateTimeZone (without " ") was corrected: %s -> %s', $org, $tzString) . PHP_EOL;
             }
             if (strpos($tzString, '"') !== false){
-                echo sprintf('%s -> %s', $org, $tzString) . PHP_EOL;
                 $tzString = str_replace('"', '', $tzString);
+                echo sprintf('invalid character " found. %s -> %s', $org, $tzString) . PHP_EOL;
             }
             $timeZone = new DateTimeZone( $tzString );
         }

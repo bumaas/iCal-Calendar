@@ -84,8 +84,8 @@ class iCalCalendarReader extends IPSModule
         $this->RegisterAttributeString(self::ICCR_ATTRIBUTE_NOTIFICATIONS, json_encode([]));
 
         // create timer
-        $this->RegisterTimer(self::TIMER_UPDATECALENDAR, 0, 'ICCR_UpdateCalendar($_IPS["TARGET"] );'); // cron runs every 5 minutes, when active
-        $this->RegisterTimer(self::TIMER_CRON1, 0, 'ICCR_TriggerNotifications($_IPS["TARGET"] );'); // cron runs every minute
+        $this->RegisterTimer(self::TIMER_UPDATECALENDAR, 0, 'ICCR_UpdateCalendar($_IPS["TARGET"] );'); // timer to fetch the calendar data
+        $this->RegisterTimer(self::TIMER_CRON1, 0, 'ICCR_TriggerNotifications($_IPS["TARGET"] );'); // timer to trigger the notifications
 
         //we will wait until the kernel is ready
         $this->RegisterMessage(0, IPS_KERNELMESSAGE);
