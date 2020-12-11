@@ -2,10 +2,10 @@
 /**
  * iCalcreator, the PHP class package managing iCal (rfc2445/rfc5445) calendar information.
  *
- * copyright (c) 2007-2019 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * copyright (c) 2007-2020 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
  * Link      https://kigkonsult.se
  * Package   iCalcreator
- * Version   2.29.14
+ * Version   2.29.30
  * License   Subject matter of licence is the software iCalcreator.
  *           The above copyright, link, package and version notices,
  *           this licence notice and the invariant [rfc5545] PRODID result use
@@ -40,13 +40,12 @@ use InvalidArgumentException;
  * SOURCE property functions
  *
  * @author Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @since 2.29.21 2019-06-16
+ * @since 2.29.30 2020-12-07
  */
 trait SOURCErfc7986trait
 {
     /**
      * @var array component property SOURCE value
-     * @access protected
      */
     protected $source = null;
 
@@ -55,12 +54,15 @@ trait SOURCErfc7986trait
      *
      * @return string
      */
-    public function createSource() {
+    public function createSource()
+    {
         if( empty( $this->source )) {
             return null;
         }
         if( empty( $this->source[Util::$LCvalue] )) {
-            return ( $this->getConfig( self::ALLOWEMPTY )) ? StringFactory::createElement( self::SOURCE ) : null;
+            return $this->getConfig( self::ALLOWEMPTY )
+                ? StringFactory::createElement( self::SOURCE )
+                : null;
         }
         return StringFactory::createElement(
             self::SOURCE,
@@ -74,7 +76,8 @@ trait SOURCErfc7986trait
      *
      * @return bool
      */
-    public function deleteSource() {
+    public function deleteSource()
+    {
         $this->source = null;
         return true;
     }
@@ -85,7 +88,8 @@ trait SOURCErfc7986trait
      * @param bool   $inclParam
      * @return bool|array
      */
-    public function getSource( $inclParam = false ) {
+    public function getSource( $inclParam = false )
+    {
         if( empty( $this->source )) {
             return false;
         }
@@ -99,19 +103,22 @@ trait SOURCErfc7986trait
      * @param array  $params
      * @return static
      * @throws InvalidArgumentException
+     * @since 2.29.30 2020-12-07
      */
-    public function setSource( $value = null, $params = [] ) {
+    public function setSource( $value = null, $params = [] )
+    {
         if( empty( $value )) {
             $this->assertEmptyValue( $value, self::SOURCE );
-            $value  = Util::$SP0;
-            $params = [];
+            $this->source = [
+                Util::$LCvalue  => Util::$SP0,
+                Util::$LCparams => [],
+            ];
+            return $this;
         }
-        else {
-            HttpFactory::assertUrl( $value );
-        }
+        HttpFactory::assertUrl( $value );
         $this->source = [
             Util::$LCvalue  => $value,
-            Util::$LCparams => ParameterFactory::setParams( $params, [ self::VALUE => self::URI ] ),
+            Util::$LCparams => ParameterFactory::setParams( $params ),
         ];
         return $this;
     }
