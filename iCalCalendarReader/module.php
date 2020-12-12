@@ -425,7 +425,7 @@ class iCalCalendarReader extends IPSModule
                 curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
             }
         }
-        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 2);
+        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 20);
         curl_setopt($curl, CURLOPT_TIMEOUT, 20);
         curl_setopt($curl, CURLOPT_FOLLOWLOCATION, 1);
         curl_setopt($curl, CURLOPT_MAXREDIRS, 5); // educated guess
@@ -554,7 +554,8 @@ class iCalCalendarReader extends IPSModule
         );
 
         $iCalCalendarArray = $MyImporter->ImportCalendar($curl_result);
-        return json_encode($iCalCalendarArray);
+
+        return json_encode($iCalCalendarArray, JSON_THROW_ON_ERROR + JSON_INVALID_UTF8_SUBSTITUTE);
     }
 
     private function Logger_Err(string $message): void
