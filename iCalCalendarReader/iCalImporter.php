@@ -239,8 +239,8 @@ class iCalImporter
         $vEvents_with_RRULE         = [];
         $vEvents_with_Recurrence_id = [];
 
-        $CacheDateTimeFrom  = (new DateTime('today'))->sub(new DateInterval('P' . $this->DaysToCacheBack . 'D'));
-        $CacheDateTimeUntil = (new DateTime('today'))->add(new DateInterval('P' . ($this->DaysToCacheAhead + 1) . 'D'));
+        $CacheDateTimeFrom  = (new DateTime('today', new DateTimeZone('UTC')))->sub(new DateInterval('P' . $this->DaysToCacheBack . 'D')); //P='Period', D='Days'
+        $CacheDateTimeUntil = (new DateTime('today', new DateTimeZone('UTC')))->add(new DateInterval('P' . ($this->DaysToCacheAhead + 1) . 'D'));
         call_user_func(
             $this->Logger_Dbg, __FUNCTION__, sprintf(
                                  'cached time: (DaysToCacheBack: %s, DaysToCache: %s, %s - %s)', $this->DaysToCacheBack, $this->DaysToCacheAhead,
@@ -448,7 +448,8 @@ class iCalImporter
         }
 
         foreach ($eventArray as $ThisEvent) {
-            if (($ThisEvent['To'] < $CacheDateTimeFrom->getTimestamp()) || ($ThisEvent['From'] > $CacheDateTimeUntil->getTimestamp())) {
+            if (($ThisEvent['To'] < $CacheDateTimeFrom->getTimestamp()) || ($ThisEvent['From'] > $CacheDateTimeUntil->getTimestamp())
+                || (($ThisEvent['allDay'] === true) && (($ThisEvent['To'] === $CacheDateTimeFrom->getTimestamp()) || ($ThisEvent['From'] === $CacheDateTimeUntil->getTimestamp()) ))) {
                 // event not in the cached time, ignore
                 call_user_func(
                     $this->Logger_Dbg, __FUNCTION__, sprintf(

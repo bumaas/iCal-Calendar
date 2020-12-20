@@ -231,13 +231,15 @@ class iCalCalendarReader extends IPSModule
                             'type'    => 'NumberSpinner',
                             'name'    => self::ICCR_PROPERTY_DAYSTOCACHEBACK,
                             'caption' => 'Cache size (Past)',
-                            'suffix'  => 'days'
+                            'suffix'  => 'days',
+                            'minimum' => 0
                         ],
                         [
                             'type'    => 'NumberSpinner',
                             'name'    => self::ICCR_PROPERTY_DAYSTOCACHE,
                             'caption' => 'Cache size (Future)',
-                            'suffix'  => 'days'
+                            'suffix'  => 'days',
+                            'minimum' => 0
                         ]
                     ]
                 ]
