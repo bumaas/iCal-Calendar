@@ -38,7 +38,7 @@ src\Util\DateTimeFactory.php    ab Zeile 642
 
         return true;
 
-src\Util\CalAddressFActory.php  ab Zeile 88
+src\Util\CalAddressFactory.php  ab Zeile 88
 
         return; //bumaas
         //Example todo:
