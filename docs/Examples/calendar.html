@@ -1,4 +1,4 @@
-<!-- version: 2.10 build 33 -->
+<!-- version: 2.20 build 34 -->
 
 <!--suppress ALL -->
 <html lang="de">
@@ -9,10 +9,9 @@
 
     <!----- StyleSheets -->
 
-    <!-- bootstrap Stylesheet + Font Awesome-->
+    <!-- Font Awesome-->
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css"
           integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
-    <link rel='stylesheet' href='https://unpkg.com/@fullcalendar/list@4.1.0/main.min.css'/>
 
     <!--
     =================== hier lassen sich verschiedene Styles auswählen =============================
@@ -31,14 +30,9 @@
     <link rel='stylesheet' href='https://unpkg.com/@fullcalendar/list@4.1.0/main.min.css'/>
     <link rel='stylesheet' href='https://fullcalendar.io/releases/bootstrap/4.1.0/main.min.css'/>
 
-
-    <!----- Scripts -->
-    <script type="text/javascript" src='https://unpkg.com/@fullcalendar/core@4.1.0/locales-all.min.js'></script>
-    <script type="text/javascript" src='https://unpkg.com/@fullcalendar/core@4.1.0/main.js'></script>
-    <script type="text/javascript" src='https://unpkg.com/@fullcalendar/daygrid@4.1.0/main.min.js'></script>
-    <script type="text/javascript" src='https://unpkg.com/@fullcalendar/timegrid@4.1.0/main.min.js'></script>
-    <script type="text/javascript" src='https://unpkg.com/@fullcalendar/list@4.1.0/main.min.js'></script>
-    <script type="text/javascript" src='https://unpkg.com/@fullcalendar/bootstrap@4.1.0/main.min.js'></script>
+    <!-- fullcalendar 5.5.1 (see https://www.unpkg.com/browse/fullcalendar@5.5.1/) -->
+    <link rel='stylesheet' href='https://unpkg.com/fullcalendar@5.5.1/main.min.css'/>
+    <script type="text/javascript" src='https://unpkg.com/fullcalendar@5.5.1/main.min.js'></script>
 
 
     <script>
@@ -46,9 +40,8 @@
         document.addEventListener('DOMContentLoaded', function () {
 
             const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
-                    plugins: ['dayGrid', 'timeGrid', 'list', 'bootstrap'],
 
-                    defaultView: 'timeGridWeek', //unterstützte Views: dayGridMonth, dayGridWeek, dayGridDay, timeGridWeek, timeGridDay, listYear, listMonth, listWeek, listDay
+                    initialView: 'timeGridWeek', //unterstützte Views: dayGridMonth, dayGridWeek, dayGridDay, timeGridWeek, timeGridDay, listYear, listMonth, listWeek, listDay
 
                     locale: navigator.language, //siehe https://fullcalendar.io/docs/locale
                     themeSystem: 'bootstrap', // siehe https://fullcalendar.io/docs/themeSystem
@@ -86,25 +79,25 @@
                     views:
                         { // Seperate Einstellungen der einzelnen Ansichten, siehe https://fullcalendar.io/docs/view-specific-options
                             timeGridDay: {
-                                columnHeaderFormat: {
+                                dayHeaderFormat: {
                                     weekday: 'long', day:
                                         'numeric', omitCommas:
                                         true
-                                } // siehe https://fullcalendar.io/docs/columnHeaderFormat
+                                } // siehe https://fullcalendar.io/docs/dayHeaderFormat
                             }
                             ,
                             timeGridWeek: {
-                                columnHeaderFormat: {
+                                dayHeaderFormat: {
                                     weekday: 'short', day:
                                         'numeric', omitCommas:
                                         true
-                                } // siehe https://fullcalendar.io/docs/columnHeaderFormat
+                                } // siehe https://fullcalendar.io/docs/dayHeaderFormat
                             }
                             ,
                             dayGridMonth: {
-                                columnHeaderFormat: {
+                                dayHeaderFormat: {
                                     weekday: 'short'
-                                } // siehe https://fullcalendar.io/docs/columnHeaderFormat
+                                } // siehe https://fullcalendar.io/docs/dayHeaderFormat
                             }
                             ,
                         }
@@ -112,8 +105,7 @@
 
                     titleFormat: { // siehe https://fullcalendar.io/docs/titleFormat
                         year: 'numeric',
-                        month:
-                            'long'
+                        month: 'long'
                     }
                     ,
 
@@ -125,25 +117,25 @@
                             'short'
                     }
                     ,
-                    header: { // Ansicht Kopfzeile
-                        left: 'title',
+                    headerToolbar: { // Ansicht Kopfzeile
+                        start: 'title',
                         center:
                             'timeGridDay,timeGridWeek,dayGridMonth', // Ansicht und Auswahl des Kalenders
-                        right:
+                        end:
                             'prev,next today'
 
                     }
                     ,
-                    buttonText: { // Button Text umbenennung
+                    buttonText: { // Button Text Umbenennung siehe https://fullcalendar.io/docs/buttonText
                         timeGridDay: 'Tag',
-                        timeGridWeek:
-                            'Woche',
+                        timeGridWeek: 'Woche',
+                        dayGridMonth: 'Monat',
+                        today: 'Heute'
                     }
                     ,
 
                 })
             ;
-
             calendar.render();
         });
 
