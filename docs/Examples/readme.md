@@ -27,7 +27,6 @@ Beispiel einer Ansicht in IP-Symcon:
 - IP-Symcon ab Version 5.1
 - Kalender im iCal-Format
 - Installierte und lauffähige **iCalCalendarReader**-Instanzen
-- Optional installierte und lauffähige **iCalCalendarNotifier**-Instanzen
 
 
 ### 3. Installation
@@ -41,8 +40,6 @@ Beispiel einer Ansicht in IP-Symcon:
 ![image](Webfront_Einbindung.png)  
 
 Wenn alles korrekt gelaufen ist wird im WebFront nun ein Calendar Control mit den Inhalten der angegebenen Kalender-Quellen angezeigt.  
-
-Wenn man **iCalCalendarNotifier**-Instanzen als Quelle verwendet können sie als smarte Filter auf Kalenderdaten eingesetzt werden, um z.B. nur bestimmte Zeiträume um den momentanen Zeitpunkt anzuzeigen. Sie haben auch einen Einfluss darauf, wie von der zugehörigen **iCalCalendarReader**-Instanz Kalendereinträge aus der Vergangenheit geladen werden: Wenn das Ende des Eintrags plus die im Notifier gesetzte Delay-Zeit noch in der Zukunft liegt wird der Eintrag geladen, ansonsten verworfen.  
 
 Die Calendar Control ist umfassend dokumentiert (siehe oben), es gibt hier noch genug Spielraum für Anpassungen.  
 

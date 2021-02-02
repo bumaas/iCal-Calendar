@@ -4,11 +4,6 @@ iCal Calendar in IP Symcon lesen und verarbeiten
 Diese Bibliothek beinhaltet ein Modul zur Einspeisung von Kalenderinformationen im iCal-Format in IP Symcon:
 * **iCal Calendar Reader**
 
-Um Daten aus früheren iCal Installationen übernehmen zu können, gibt es noch das nunmehr veraltete Modul
-* **iCal Calendar Notifier** (veraltet)<br>
-Es hat keinerlei Funktion mehr und dient lediglich der Möglichkeit, Daten übernehmen zu können. Es wird in einer der nächsten Versionen ganz entfallen.
-
-
 **Inhaltverzeichnis**
 
 1. [Funktionsumfang](#1-funktionsumfang)
@@ -33,7 +28,7 @@ Kalender werden beim Laden unter Berücksichtigung ihrer jeweiligen Zeitzone in 
 Wie Kalenderdaten aus einer oder mehreren **iCalCalendarReader**-Instanzen in einem Calendar-Control im Webfront angezeigt werden können ist im Dokument [Kalender im Webfront anzeigen](docs/Examples/readme.md "Kalender im Webfront anzeigen") beschrieben.
 
 Diese Bibliothek nutzt folgende externe Bibliotheken im Verzeichnis `/lib`:
-* iCalcreator (Version 2.29.30) `https://github.com/iCalcreator/iCalcreator/releases/tag/v2.29.30`
+* iCalcreator (Version 2.30.1) `https://github.com/iCalcreator/iCalcreator/releases/tag/v2.30.1`
 * RRULE for PHP (Version 2.2.0 - 2019-11-01) `https://github.com/rlanvin/php-rrule`, MIT-Lizenz
 
 
@@ -66,7 +61,6 @@ UpdateFrequency |integer|15|  Alle wieviel Minuten soll die Quelle gelesen werde
 WriteDebugInformationToLogfile |boolean|false|legt fest, ob die Debug Informationen zusätzlich in das Standard Logfile geschrieben werden sollen. <b>Wichtig:</b> dazu muss der Symcon Spezialschalter 'LogfileVerbose' aktiviert sein
 <b>Notifiers</b> ||
 Ident |string| NOTIFIER + lfd. Nummer| Ident der Statusvariablen     
-Name |string| | Bezeichnung der Statusvariablen    
 Find |string| | Suchmuster mit dem der Kalendereintrag verglichen wird    
 RegExpression |boolean|false|Kennzeichnung, ob es sich bei dem Suchmuster um einen regulären Ausdruck ("RegExpr") handelt
 Prenotify |integer|0| Wie viele Minuten vor dem Ereignisstart soll die Statusvariable auf "true" gesetzt werden
@@ -105,7 +99,7 @@ Die Einträge im Google Kalender lauten
 
 ![image](docs/Kalender_Termine.png)
 
-Nun wird für jede zu erstellende Statusvariable ein Eintrag unter "Meldevariablen" angelegt. Im Beispiel soll eine Statusvariable mit dem Namen "Papiertonne" erstellt werden. Wenn ein Kalendereintrag mit dem Begriff "Papiertonne" gefunden wird, dann soll die Statusvariable mit 24 Stunden Vorlauf (=1440 Minuten) und 5 Stunden Nachlauf auf "true" gesetzt werden.
+Nun wird für jede zu erstellende Statusvariable ein Eintrag unter "Meldevariablen" angelegt. Im Beispiel soll eine Statusvariable für die Papiertonne erstellt werden. Wenn ein Kalendereintrag mit dem Begriff "Papiertonne" gefunden wird, dann soll die Statusvariable mit 24 Stunden Vorlauf (=1440 Minuten) und 5 Stunden Nachlauf auf "true" gesetzt werden.
 ![image](docs/Instanz_Meldevariable_definieren.png)
 
 Das gleiche geschieht für die anderen Tonnen:
@@ -116,11 +110,13 @@ Nachdem die Instanz gesichert wurde, gibt es dann im Objektbaum die folgenden Va
 
 ![image](docs/Objektbaum_Statusvariablen.png)
 
+Die Statusvariablen können im Objektbaum zur besseren Übersicht nach Belieben umbenannt werden: .... 
 
+![image](docs/Objektbaum_Statusvariablen_umbenannt.png)
 
 ### 5. Statusvariablen und Profile
 
-Für jede in der Instanz angelegten Meldevariablen wird eine Statusvariable mit dem Ident 'Notifier' und einer laufenden Nummer angelegt.
+Für jede in der Instanz angelegten Meldevariablen wird eine Statusvariable mit dem Ident 'NOTIFIER' und einer laufenden Nummer angelegt.
 Die jeweilige Statusvariable zeigt an, ob ein Kalendereintrag unter Berücksichtigung der im Modul angegebenen Zeiten und des angegebenen Filters aktiv ist.
 
 Es werden keine eigenen Variablenprofile angelegt.

@@ -2,10 +2,10 @@
 /**
   * iCalcreator, the PHP class package managing iCal (rfc2445/rfc5445) calendar information.
  *
- * copyright (c) 2007-2019 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * copyright (c) 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
  * Link      https://kigkonsult.se
  * Package   iCalcreator
- * Version   2.29.25
+ * Version   2.30
  * License   Subject matter of licence is the software iCalcreator.
  *           The above copyright, link, package and version notices,
  *           this licence notice and the invariant [rfc5545] PRODID result use
@@ -85,23 +85,6 @@ class CalAddressFactory
      */
     public static function assertCalAddress( $calAddress )
     {
-        return; //bumaas
-        /*Example todo:
-BEGIN:VEVENT
-CREATED:20191229T194615Z
-DTEND;TZID=Europe/Berlin:20201030T100000
-DTSTAMP:20191229T194616Z
-DTSTART;TZID=Europe/Berlin:20201030T090000
-LAST-MODIFIED:20191229T194615Z
-ORGANIZER;CN="Joachim Päper";EMAIL=joachim.paeper@icloud.com:/aODMyNTYxNz
- k4NjgzMjU2MVoHEZowxAfFMrUCmnQ2QkArD73WdqLg2rSemg8aiWIi/principal/
-SEQUENCE:0
-SUMMARY:🌺 - Impftermin Finnjes absprechen
-UID:C804A283-FAFE-4DE2-9E71-E64DCEF7D0A0
-URL;VALUE=URI:
-END:VEVENT
-        */
-
         static $DOT    = '.';
         static $XDOT   = 'x.';
         static $ERRMSG = 'Invalid email %s';

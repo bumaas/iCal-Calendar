@@ -15,22 +15,14 @@ if (!IPS_ObjectExists($InstanceID)) {
     doReturn();
 }
 
-// calendar reader or calendar notifier?
-$InstanceInfo = IPS_GetInstance($InstanceID);
-
-switch ($InstanceInfo['ModuleInfo']['ModuleID']) {
-    case '{5127CDDC-2859-4223-A870-4D26AC83622C}': // reader instance
-        /** @noinspection PhpUndefinedFunctionInspection */
-        $CalendarFeed = json_decode(ICCR_GetCachedCalendar($InstanceID), true);
-        break;
-    case '{F22703FF-8576-4AB1-A0E7-02E3116CD3BA}': // notifier instance
-        /** @noinspection PhpUndefinedFunctionInspection */
-        $CalendarFeed = json_decode(ICCN_GetNotifierPresenceReason($InstanceID), true);
-        break;
-    default:
-        // no job for us
-        doReturn();
+// correct instance?
+if (IPS_GetInstance($InstanceID)['ModuleInfo']['ModuleID'] !== '{5127CDDC-2859-4223-A870-4D26AC83622C}') { // reader instance
+    // no job for us
+    doReturn();
 }
+
+/** @noinspection PhpUndefinedFunctionInspection */
+$CalendarFeed = json_decode(ICCR_GetCachedCalendar($InstanceID), true);
 
 $result = [];
 // convert to calendar format

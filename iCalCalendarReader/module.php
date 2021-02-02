@@ -1,8 +1,64 @@
 <?php
 
-declare(strict_types=1);
+/*
+Anmerkungen: aktuelle iCalcreator-master Versionen gibt es unter https://github.com/iCalcreator/iCalcreator/releases
+derzeit verwendet: v2.30.1
 
-include_once __DIR__ . '/../libs/includes.php';
+aber mit folgenden Modifikationen
+
+src\Traits\ATTENDEEtrait.php    Zeile 118
+            //    CalAddressFactory::assertCalAddress( $value ); //bumaas
+
+scr\Util\DateTimeZoneFactory.php    ab Zeile 99
+
+            if (strpos($tzString, '(UTC+01:00)') !== false){
+                $tzString = str_replace('(UTC+01:00)', '(UTC +01:00)', $tzString);
+                //bumaas: Exchange2016 reports "(UTC+01:00) Amsterdam ..." (SimonS)
+                //echo sprintf('invalid DateTimeZone (without " ") was corrected: %s -> %s', $org, $tzString) . PHP_EOL;
+            }
+            if (strpos($tzString, '"') !== false){
+                $tzString = str_replace('"', '', $tzString);
+                echo sprintf('invalid character " found. %s -> %s', $org, $tzString) . PHP_EOL;
+            }
+
+src\Util\DateTimeFactory.php    ab Zeile 642
+
+        if (8 > strlen( $string )){
+            return false;
+        }
+
+        //bumaas: different check on 32 bit system
+        if ((int) 10000000000 == 10000000000){//64 bit System?
+            return ( false !== strtotime ( $string ));
+        }
+
+        if ((substr($string,0,8) > '19011213') && (substr($string,0,8) < '20380119')){
+            return ( false !== strtotime ( $string ));
+        }
+
+        return true;
+
+src\Util\CalAddressFActory.php  ab Zeile 88
+
+        return; //bumaas
+        //Example todo:
+BEGIN:VEVENT
+CREATED:20191229T194615Z
+DTEND;TZID=Europe/Berlin:20201030T100000
+DTSTAMP:20191229T194616Z
+DTSTART;TZID=Europe/Berlin:20201030T090000
+LAST-MODIFIED:20191229T194615Z
+ORGANIZER;CN="Joachim Päper";EMAIL=j.p@p.com:/aODMyNTYxNz
+ k4NjgzMjU2MVoHEZowxAfFMrUCmnQ2QkArD73WdqLg2rSemg8aiWIi/principal/
+SEQUENCE:0
+SUMMARY:🌺 - Impftermin absprechen
+UID:C804A283-FAFE-4DE2-9E71-E64DCEF7D0A0
+URL;VALUE=URI:
+END:VEVENT
+        //
+
+*/
+declare(strict_types=1);
 
 include_once __DIR__ . '/../libs/iCalcreator-master/autoload.php';
 include_once __DIR__ . '/../libs/php-rrule-master/src/RRuleTrait.php';
@@ -77,7 +133,7 @@ class iCalCalendarReader extends IPSModule
         $this->RegisterPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHEBACK, 30);
         $this->RegisterPropertyInteger(self::ICCR_PROPERTY_UPDATE_FREQUENCY, 15);
         $this->RegisterPropertyBoolean(self::ICCR_PROPERTY_WRITE_DEBUG_INFORMATION_TO_LOGFILE, false);
-        $this->RegisterPropertyString(self::ICCR_PROPERTY_NOTIFIERS, json_encode([]));
+        $this->RegisterPropertyString(self::ICCR_PROPERTY_NOTIFIERS, json_encode([], JSON_THROW_ON_ERROR));
 
         // create Attributes
         $this->RegisterAttributeString(self::ICCR_ATTRIBUTE_CALENDAR_BUFFER, json_encode([]));
@@ -119,42 +175,28 @@ class iCalCalendarReader extends IPSModule
 
         $this->SetStatus($Status);
 
+        $propNotifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true);
+
+        $this->DeleteUnusedVariables($propNotifiers);
+
+        foreach ($propNotifiers as $key => $notifier) {
+            //Anlegen eines neuen Notifiers
+            if ($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT] === '') {
+                $nextFreeNotifier = $this->GetNextFreeNotifier();
+                //neue Variable registrieren
+                $id = $this->RegisterVariableBoolean(
+                    'NOTIFIER' . $nextFreeNotifier,
+                    $this->Translate('Notifier') .' (' . $nextFreeNotifier . ')',
+                    '~Switch'
+                );
+            }
+        }
+
         if ($Status !== IS_ACTIVE) {
             $this->SetTimerInterval(self::TIMER_CRON1, 0);
             return false;
         }
 
-
-        $prop          = [];
-        $propNotifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true);
-
-        foreach ($propNotifiers as $key => $notifier) {
-            //Anlegen eines neuen Notifiers
-            if ($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT] === $this->Translate('new')) {
-                $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT] = 'NOTIFIER' . $this->GetNextFreeNotifier();
-            }
-
-            //Variable registrieren
-            $this->RegisterVariableBoolean(
-                $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT],
-                $notifier[self::ICCR_PROPERTY_NOTIFIER_NAME],
-                '~Switch'
-            );
-
-            //Variablennamen auslesen
-            $notifier[self::ICCR_PROPERTY_NOTIFIER_NAME] =
-                IPS_GetObject($this->GetIDForIdent($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]))['ObjectName'];
-
-            $prop[] = $notifier;
-        }
-
-        if (json_encode($prop) !== $this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS)) {
-            //der neue Identname wird in die Konfiguration übernommen
-           IPS_SetProperty($this->InstanceID, self::ICCR_PROPERTY_NOTIFIERS, json_encode($prop));
-           IPS_ApplyChanges($this->InstanceID);
-        }
-
-        $this->DeleteUnusedVariables($prop);
         $this->SetTimerInterval(self::TIMER_UPDATECALENDAR, $this->ReadPropertyInteger(self::ICCR_PROPERTY_UPDATE_FREQUENCY) * 1000 * 60);
         $this->SetTimerInterval(self::TIMER_CRON1, 1000 * 60);
         return true;
@@ -258,16 +300,16 @@ class iCalCalendarReader extends IPSModule
                 [
                     'caption' => 'Ident',
                     'name'    => self::ICCR_PROPERTY_NOTIFIER_IDENT,
-                    'width'   => '100px',
-                    'add'     => $this->Translate('new'),
+                    'visible' => false,
+                    'add'     => '',
                     'save'    => true
                 ],
                 [
                     'caption' => 'Name',
                     'name'    => self::ICCR_PROPERTY_NOTIFIER_NAME,
-                    'width'   => '150px',
-                    'add'     => '',
-                    'edit'    => ['type' => 'ValidationTextBox']
+                    'width'   => 'auto',
+                    'add'     => 'new',
+                    'save'    => false
                 ],
                 [
                     'caption' => 'Find',
@@ -297,7 +339,8 @@ class iCalCalendarReader extends IPSModule
                     'add'     => 0,
                     'edit'    => ['type' => 'NumberSpinner', 'suffix' => ' minutes']
                 ]
-            ]
+            ],
+            'values' => $this->getNotifierListValues()
         ];
 
         $form['elements'][] = [
@@ -367,6 +410,59 @@ class iCalCalendarReader extends IPSModule
         ];
 
         return json_encode($form);
+    }
+
+    private function getNotifierListValues():array
+    {
+        $savedNotifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true);
+
+        $listValues = [];
+        foreach (IPS_GetChildrenIDs($this->InstanceID) as $id){
+            $obj = IPS_GetObject($id);
+            if (strpos($obj['ObjectIdent'], 'NOTIFIER') === 0) { //es handelt sich um eine NOTIFIER Statusvariable
+                $row = [self::ICCR_PROPERTY_NOTIFIER_IDENT => $obj['ObjectIdent'], self::ICCR_PROPERTY_NOTIFIER_NAME => $obj['ObjectName']];
+                //suche weitere Properties zum Ident
+                $found = false;
+                foreach ($savedNotifiers as $notifier){
+                    if ($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT] === $obj['ObjectIdent']){
+                        $row[self::ICCR_PROPERTY_NOTIFIER_FIND] = $notifier[self::ICCR_PROPERTY_NOTIFIER_FIND];
+                        $row[self::ICCR_PROPERTY_NOTIFIER_POSTNOTIFY] = $notifier[self::ICCR_PROPERTY_NOTIFIER_POSTNOTIFY];
+                        $row[self::ICCR_PROPERTY_NOTIFIER_PRENOTIFY] = $notifier[self::ICCR_PROPERTY_NOTIFIER_PRENOTIFY];
+                        $row[self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION] = $notifier[self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION];
+                        $found = true;
+                        break;
+                    }
+                }
+                if (!$found) { //für die Statusvariable gibt es noch keinen Eintrag in der Propertyliste
+                    foreach ($savedNotifiers as $key=>$notifier) {
+                        if ($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT] === '') {
+                            $row[self::ICCR_PROPERTY_NOTIFIER_FIND]          = $notifier[self::ICCR_PROPERTY_NOTIFIER_FIND];
+                            $row[self::ICCR_PROPERTY_NOTIFIER_POSTNOTIFY]    = $notifier[self::ICCR_PROPERTY_NOTIFIER_POSTNOTIFY];
+                            $row[self::ICCR_PROPERTY_NOTIFIER_PRENOTIFY]     = $notifier[self::ICCR_PROPERTY_NOTIFIER_PRENOTIFY];
+                            $row[self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION] = $notifier[self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION];
+                            unset ($savedNotifiers[$key]);
+                            break;
+                        }
+                    }
+                }
+                $listValues[] = $row ;
+            }
+
+        }
+        //wenn Statusvariablen gelöscht wurden
+        foreach ($savedNotifiers as $notifier){
+            if (@$this->GetIDForIdent($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]) === false){
+                $row[self::ICCR_PROPERTY_NOTIFIER_NAME]          = $this->Translate('invalid ident') . ' ' . $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT];
+                $row[self::ICCR_PROPERTY_NOTIFIER_IDENT]         = '';
+                $row[self::ICCR_PROPERTY_NOTIFIER_FIND]          = $notifier[self::ICCR_PROPERTY_NOTIFIER_FIND];
+                $row[self::ICCR_PROPERTY_NOTIFIER_POSTNOTIFY]    = $notifier[self::ICCR_PROPERTY_NOTIFIER_POSTNOTIFY];
+                $row[self::ICCR_PROPERTY_NOTIFIER_PRENOTIFY]     = $notifier[self::ICCR_PROPERTY_NOTIFIER_PRENOTIFY];
+                $row[self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION] = $notifier[self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION];
+                $listValues[] = $row;
+            }
+        }
+
+        return $listValues;
     }
 
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
@@ -492,9 +588,7 @@ class iCalCalendarReader extends IPSModule
                 if (count($XML->xpath('//d:error')) > 0) {
                     // XML error document
                     $children = $XML->children('http://sabredav.org/ns');
-                    /** @noinspection PhpUndefinedFieldInspection */
                     $exception = $children->exception;
-                    /** @noinspection PhpUndefinedFieldInspection */
                     $message = $XML->children('http://sabredav.org/ns')->message;
                     $this->Logger_Err(sprintf('Error: %s - Message: %s', $exception, $message));
                     $instStatus = self::STATUS_INST_INVALID_USER_PASSWORD;

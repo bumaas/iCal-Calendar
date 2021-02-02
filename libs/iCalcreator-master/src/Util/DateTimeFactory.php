@@ -2,10 +2,10 @@
 /**
   * iCalcreator, the PHP class package managing iCal (rfc2445/rfc5445) calendar information.
  *
- * copyright (c) 2007-2020 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * copyright (c) 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
  * Link      https://kigkonsult.se
  * Package   iCalcreator
- * Version   2.29.25
+ * Version   2.30
  * License   Subject matter of licence is the software iCalcreator.
  *           The above copyright, link, package and version notices,
  *           this licence notice and the invariant [rfc5545] PRODID result use
@@ -639,20 +639,8 @@ class DateTimeFactory
             return false;
         }
         $string = trim( $string );
-        if (8 > strlen( $string )){
-            return false;
-        }
-
-        //bumaas: different check on 32 bit system
-        if ((int) 10000000000 == 10000000000){//64 bit System?
-            return ( false !== strtotime ( $string ));
-        }
-
-        if ((substr($string,0,8) > '19011213') && (substr($string,0,8) < '20380119')){
-            return ( false !== strtotime ( $string ));
-        }
-
-        return true;
+        return (( 8 <= strlen( $string )) &&
+            ( false !== strtotime ( $string )));
     }
 
     /*

@@ -2,10 +2,10 @@
 /**
   * iCalcreator, the PHP class package managing iCal (rfc2445/rfc5445) calendar information.
  *
- * copyright (c) 2007-2019 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * copyright (c) 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
  * Link      https://kigkonsult.se
  * Package   iCalcreator
- * Version   2.29.25
+ * Version   2.30
  * License   Subject matter of licence is the software iCalcreator.
  *           The above copyright, link, package and version notices,
  *           this licence notice and the invariant [rfc5545] PRODID result use
@@ -96,15 +96,6 @@ class DateTimeZoneFactory
             $tzString = Vcalendar::UTC;
         }
         try {
-            if (strpos($tzString, '(UTC+01:00)') !== false){
-                $tzString = str_replace('(UTC+01:00)', '(UTC +01:00)', $tzString);
-                //bumaas: Exchange2016 reports "(UTC+01:00) Amsterdam ..." (SimonS)
-                //echo sprintf('invalid DateTimeZone (without " ") was corrected: %s -> %s', $org, $tzString) . PHP_EOL;
-            }
-            if (strpos($tzString, '"') !== false){
-                $tzString = str_replace('"', '', $tzString);
-                echo sprintf('invalid character " found. %s -> %s', $org, $tzString) . PHP_EOL;
-            }
             $timeZone = new DateTimeZone( $tzString );
         }
         catch( Exception $e ) {
