@@ -185,17 +185,27 @@ class iCalCalendarReader extends IPSModule
 
         $this->DeleteUnusedVariables($propNotifiers);
 
+        $newNotifiers = false;
         foreach ($propNotifiers as $key => $notifier) {
             //Anlegen eines neuen Notifiers
             if ($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT] === '') {
-                $nextFreeNotifier = $this->GetNextFreeNotifier();
+                $nextFreeNotifierNo = $this->GetNextFreeNotifier();
+                $newIdent = 'NOTIFIER' . $nextFreeNotifierNo;
                 //neue Variable registrieren
-                $id = $this->RegisterVariableBoolean(
-                    'NOTIFIER' . $nextFreeNotifier,
-                    $this->Translate('Notifier') .' (' . $nextFreeNotifier . ')',
+                $this->RegisterVariableBoolean(
+                    $newIdent,
+                    $this->Translate('Notifier') .' (' . $nextFreeNotifierNo . ')',
                     '~Switch'
                 );
+                $propNotifiers[$key][self::ICCR_PROPERTY_NOTIFIER_IDENT] = $newIdent;
+                $newNotifiers = true;
             }
+        }
+
+        //der neue Identname wird in die Konfiguration übernommen
+        if ($newNotifiers){
+            IPS_SetProperty($this->InstanceID, self::ICCR_PROPERTY_NOTIFIERS, json_encode($propNotifiers));
+            IPS_ApplyChanges($this->InstanceID);
         }
 
         if ($Status !== IS_ACTIVE) {
