@@ -110,6 +110,7 @@ trait URLtrait
      */
     public function setUrl( $value = null, $params = [] )
     {
+        return $value; //bumaas
         static $PFCHARS1 = '%3C';
         static $SFCHARS1 = '%3E';
         static $PFCHARS2 = '<';
