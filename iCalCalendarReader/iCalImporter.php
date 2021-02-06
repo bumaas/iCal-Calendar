@@ -305,7 +305,8 @@ class iCalImporter
 
             $dtStartingTime = $vEvent->getDtstart();
             $dtEndingTime   = $vEvent->getDtend();
-            $diDuration     = $vEvent->getDuration(false, true);
+            $dtDuration     = $vEvent->getDuration(false, true); //DateTime
+
 
             call_user_func(
                 $this->Logger_Dbg,
@@ -314,16 +315,16 @@ class iCalImporter
                     '#Event# dtStartingTime: %s, dtEndingTime: %s, diDuration: %s',
                     json_encode($dtStartingTime),
                     json_encode($dtEndingTime),
-                    json_encode($diDuration)
+                    json_encode($dtDuration)
                 )
             );
 
             $tsStartingTime = $dtStartingTime->getTimestamp();
 
-            if ($diDuration !== false) {
+            if ($dtDuration !== false) {
                 $dtStart= new DateTime();
                 $dtStart->setTimestamp($dtStartingTime->getTimestamp());
-                $tsEndingTime = ($dtStart->add($diDuration))->getTimestamp();
+                $tsEndingTime = $dtDuration->getTimestamp();
             } elseif ($dtEndingTime === false) {
                 $tsEndingTime = $tsStartingTime;
             } else {
@@ -342,7 +343,7 @@ class iCalImporter
 
             $dtStartingTime = $vEvent->getDtstart();
             $dtEndingTime   = $vEvent->getDtend();
-            $diDuration     = $vEvent->getDuration(false, false);
+            $dtDuration     = $vEvent->getDuration(false, false);
 
             call_user_func(
                 $this->Logger_Dbg,
@@ -351,7 +352,7 @@ class iCalImporter
                     '#Event_RRULE# dtStartingTime: %s, dtEndingTime: %s, diDuration: %s',
                     json_encode($dtStartingTime),
                     json_encode($dtEndingTime),
-                    json_encode($diDuration)
+                    json_encode($dtDuration)
                 )
             );
 
@@ -435,10 +436,10 @@ class iCalImporter
                     $eventArray[] = $this->GetEventAttributes($changedEvent, ($changedEvent->getDtstart())->getTimestamp(), ($changedEvent->getDtend())->getTimestamp());
                 } else {
                     $tsFrom = $dtOccurrence->getTimestamp();
-                    if ($diDuration !== false) {
+                    if ($dtDuration !== false) {
                         $dtStart= new DateTime();
                         $dtStart->setTimestamp($dtStartingTime->getTimestamp());
-                        $tsTo = ($dtStart->add($diDuration))->getTimestamp();
+                        $tsTo = ($dtStart->add($dtDuration))->getTimestamp();
                     } else {
                         $tsTo = $tsFrom + ($dtEndingTime->getTimestamp() - $dtStartingTime->getTimestamp());
                     }

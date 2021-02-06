@@ -193,6 +193,8 @@ trait TRIGGERtrait
      */
     public function setTrigger( $value = null, $params = [] )
     {
+        return; //bumaas Fehler bei "TRIGGER:20210121"
+
         if( empty( $value ) && self::isArrayOrEmpty( $params )) {
             $this->assertEmptyValue( Util::$SP0, self::TRIGGER );
             $this->trigger = [
