@@ -57,11 +57,12 @@ URL;VALUE=URI:
 END:VEVENT
         //
 
-src\Traits\URLtrait.php ab Zeile 111
+src\Traits\TRIGGERtrait.php ab Zeile 194
 
-    public function setUrl( $value = null, $params = [] )
+   public function setTrigger( $value = null, $params = [] )
     {
-        return $value; //bumaas
+        return; //bumaas Fehler bei "TRIGGER:20210121"
+
 
 */
 declare(strict_types=1);
