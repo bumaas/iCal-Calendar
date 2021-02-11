@@ -159,6 +159,7 @@ class iCalCalendarReader extends IPSModule
     */
     public function ApplyChanges(): bool
     {
+        //Never delete this line!
         parent::ApplyChanges();
 
         if (IPS_GetKernelRunlevel() !== KR_READY) {
@@ -186,27 +187,13 @@ class iCalCalendarReader extends IPSModule
 
         $this->DeleteUnusedVariables($propNotifiers);
 
-        $newNotifiers = false;
+        //Meldevariablen registrieren
         foreach ($propNotifiers as $key => $notifier) {
-            //Anlegen eines neuen Notifiers
-            if ($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT] === '') {
-                $nextFreeNotifierNo = $this->GetNextFreeNotifier();
-                $newIdent = 'NOTIFIER' . $nextFreeNotifierNo;
-                //neue Variable registrieren
-                $this->RegisterVariableBoolean(
-                    $newIdent,
-                    $this->Translate('Notifier') .' (' . $nextFreeNotifierNo . ')',
-                    '~Switch'
-                );
-                $propNotifiers[$key][self::ICCR_PROPERTY_NOTIFIER_IDENT] = $newIdent;
-                $newNotifiers = true;
-            }
-        }
-
-        //der neue Identname wird in die Konfiguration übernommen
-        if ($newNotifiers){
-            IPS_SetProperty($this->InstanceID, self::ICCR_PROPERTY_NOTIFIERS, json_encode($propNotifiers));
-            IPS_ApplyChanges($this->InstanceID);
+            $this->RegisterVariableBoolean(
+                $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT],
+                sprintf('%s (%s)',$this->Translate('Notifier'), $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT][8]),
+                '~Switch'
+            );
         }
 
         if ($Status !== IS_ACTIVE) {
@@ -220,10 +207,11 @@ class iCalCalendarReader extends IPSModule
 
     }
 
-    private function GetNextFreeNotifier(): ?int
+    private function GetNextFreeNotifierNumber(array $usedIdents): ?int
     {
         for ($i = 1; $i < 100; $i++) {
-            if (@$this->GetIDForIdent('NOTIFIER' . $i) === false) {
+            $nextIdent = 'NOTIFIER' . $i;
+            if (!in_array($nextIdent, $usedIdents) && (@$this->GetIDForIdent($nextIdent) === false)) {
                 return $i;
             }
         }
@@ -313,6 +301,8 @@ class iCalCalendarReader extends IPSModule
             'add'      => true,
             'delete'   => true,
             'sort'     => ['column' => self::ICCR_PROPERTY_NOTIFIER_NAME, 'direction' => 'ascending'],
+            'onAdd'    => sprintf('IPS_RequestAction($id, "%s_onAdd", json_encode(array_values((array) $%s)[2]));', self::ICCR_PROPERTY_NOTIFIERS, self::ICCR_PROPERTY_NOTIFIERS),
+//            'onAdd'    => sprintf('IPS_RequestAction($id, "%s_onAdd", json_encode($%s));', self::ICCR_PROPERTY_NOTIFIERS, self::ICCR_PROPERTY_NOTIFIERS),
             'columns'  => [
                 [
                     'caption' => 'Ident',
@@ -429,11 +419,33 @@ class iCalCalendarReader extends IPSModule
         return json_encode($form);
     }
 
+ public function RequestAction($Ident, $Value)
+ {
+    $this->Logger_Dbg(__FUNCTION__, sprintf('Ident: %s, Value: %s', $Ident, $Value));
+
+    switch ($Ident){
+        case self::ICCR_PROPERTY_NOTIFIERS . '_onAdd':
+            $notifiers = json_decode($Value, true);
+            foreach ($notifiers as $key=>$notifier){
+                if ($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT] === ''){
+                    $notifiers[$key][self::ICCR_PROPERTY_NOTIFIER_IDENT] = 'NOTIFIER' . $this->GetNextFreeNotifierNumber(array_column($notifiers, self::ICCR_PROPERTY_NOTIFIER_IDENT));
+                }
+            }
+            $this->UpdateFormField(self::ICCR_PROPERTY_NOTIFIERS, 'values', json_encode($notifiers));
+            return true;
+
+        default:
+            trigger_error(sprintf('unexpected Ident: %s', $Ident), E_USER_WARNING);
+    }
+
+     return false;
+ }
+
     private function getNotifierListValues():array
     {
         $savedNotifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true);
 
-        //prüfen, ob Idents doppelt vorkommen. Sollte nicht sein, aber schon einmal gesehen...
+        //Sonderprüfung: prüfen, ob Idents doppelt vorkommen. Sollte nicht sein, aber schon einmal gesehen...
         $idents = array_column($savedNotifiers, self::ICCR_PROPERTY_NOTIFIER_IDENT);
         for ($i = count($idents) -1; $i > 0;$i--){
             if (in_array($idents[$i], array_slice($idents, 0, ($i - 1)), true)){
@@ -441,6 +453,7 @@ class iCalCalendarReader extends IPSModule
                 $this->Logger_Err(sprintf('not unique ident \'%s\'', $idents[$i]));
             }
         }
+        //Ende Sonderprüfung - kann später gelöscht werden, wenn es keine Vorkommnisse gab
 
         $listValues = [];
 
@@ -455,54 +468,6 @@ class iCalCalendarReader extends IPSModule
             }
             $listValues[] = $row;
         }
-
-        /*
-                foreach (IPS_GetChildrenIDs($this->InstanceID) as $id){
-                    $obj = IPS_GetObject($id);
-                    if (strpos($obj['ObjectIdent'], 'NOTIFIER') === 0) { //es handelt sich um eine NOTIFIER Statusvariable
-                        $row = [self::ICCR_PROPERTY_NOTIFIER_IDENT => $obj['ObjectIdent'], self::ICCR_PROPERTY_NOTIFIER_NAME => $obj['ObjectName']];
-                        //suche weitere Properties zum Ident
-                        $found = false;
-                        foreach ($savedNotifiers as $notifier){
-                            if ($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT] === $obj['ObjectIdent']){
-                                $row[self::ICCR_PROPERTY_NOTIFIER_FIND] = $notifier[self::ICCR_PROPERTY_NOTIFIER_FIND];
-                                $row[self::ICCR_PROPERTY_NOTIFIER_POSTNOTIFY] = $notifier[self::ICCR_PROPERTY_NOTIFIER_POSTNOTIFY];
-                                $row[self::ICCR_PROPERTY_NOTIFIER_PRENOTIFY] = $notifier[self::ICCR_PROPERTY_NOTIFIER_PRENOTIFY];
-                                $row[self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION] = $notifier[self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION];
-                                $found = true;
-                                break;
-                            }
-                        }
-                        if (!$found) { //für die Statusvariable gibt es noch keinen Eintrag in der Propertyliste
-                            foreach ($savedNotifiers as $key=>$notifier) {
-                                if ($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT] === '') {
-                                    $row[self::ICCR_PROPERTY_NOTIFIER_FIND]          = $notifier[self::ICCR_PROPERTY_NOTIFIER_FIND];
-                                    $row[self::ICCR_PROPERTY_NOTIFIER_POSTNOTIFY]    = $notifier[self::ICCR_PROPERTY_NOTIFIER_POSTNOTIFY];
-                                    $row[self::ICCR_PROPERTY_NOTIFIER_PRENOTIFY]     = $notifier[self::ICCR_PROPERTY_NOTIFIER_PRENOTIFY];
-                                    $row[self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION] = $notifier[self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION];
-                                    unset ($savedNotifiers[$key]);
-                                    break;
-                                }
-                            }
-                        }
-                        $listValues[] = $row ;
-                    }
-
-                }
-                //wenn Statusvariablen gelöscht wurden
-                foreach ($savedNotifiers as $notifier){
-                    if (@$this->GetIDForIdent($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]) === false){
-                        $this->SendDebug('test', 'nicht gefunden!', 0);
-                        $row[self::ICCR_PROPERTY_NOTIFIER_NAME]          = $this->Translate('invalid ident') . ' ' . $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT];
-                        $row[self::ICCR_PROPERTY_NOTIFIER_IDENT]         = '';
-                        $row[self::ICCR_PROPERTY_NOTIFIER_FIND]          = $notifier[self::ICCR_PROPERTY_NOTIFIER_FIND];
-                        $row[self::ICCR_PROPERTY_NOTIFIER_POSTNOTIFY]    = $notifier[self::ICCR_PROPERTY_NOTIFIER_POSTNOTIFY];
-                        $row[self::ICCR_PROPERTY_NOTIFIER_PRENOTIFY]     = $notifier[self::ICCR_PROPERTY_NOTIFIER_PRENOTIFY];
-                        $row[self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION] = $notifier[self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION];
-                        $listValues[] = $row;
-                    }
-                }
-        */
 
         return $listValues;
     }
