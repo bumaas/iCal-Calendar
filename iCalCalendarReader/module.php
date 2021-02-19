@@ -2,7 +2,7 @@
 
 /*
 Anmerkungen: aktuelle iCalcreator-master Versionen gibt es unter https://github.com/iCalcreator/iCalcreator/releases
-derzeit verwendet: v2.30.1
+derzeit verwendet: v2.30.3
 
 aber mit folgenden Modifikationen
 
@@ -189,11 +189,13 @@ class iCalCalendarReader extends IPSModule
 
         //Meldevariablen registrieren
         foreach ($propNotifiers as $key => $notifier) {
-            $this->RegisterVariableBoolean(
-                $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT],
-                sprintf('%s (%s)',$this->Translate('Notifier'), $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT][8]),
-                '~Switch'
-            );
+            if (strpos('NOTIFIER', $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]) === 0){
+                $this->RegisterVariableBoolean(
+                    $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT],
+                    sprintf('%s (%s)',$this->Translate('Notifier'), $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT][8]),
+                    '~Switch'
+                );
+            }
         }
 
         if ($Status !== IS_ACTIVE) {
@@ -302,7 +304,6 @@ class iCalCalendarReader extends IPSModule
             'delete'   => true,
             'sort'     => ['column' => self::ICCR_PROPERTY_NOTIFIER_NAME, 'direction' => 'ascending'],
             'onAdd'    => sprintf('IPS_RequestAction($id, "%s_onAdd", json_encode(array_values((array) $%s)[2]));', self::ICCR_PROPERTY_NOTIFIERS, self::ICCR_PROPERTY_NOTIFIERS),
-//            'onAdd'    => sprintf('IPS_RequestAction($id, "%s_onAdd", json_encode($%s));', self::ICCR_PROPERTY_NOTIFIERS, self::ICCR_PROPERTY_NOTIFIERS),
             'columns'  => [
                 [
                     'caption' => 'Ident',
