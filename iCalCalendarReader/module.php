@@ -189,12 +189,16 @@ class iCalCalendarReader extends IPSModule
 
         //Meldevariablen registrieren
         foreach ($propNotifiers as $key => $notifier) {
-            if (strpos('NOTIFIER', $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]) === 0){
-                $this->RegisterVariableBoolean(
+            if (strpos($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT], 'NOTIFIER') === 0){
+                if ($this->RegisterVariableBoolean(
                     $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT],
                     sprintf('%s (%s)',$this->Translate('Notifier'), $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT][8]),
                     '~Switch'
-                );
+                )){
+                    $this->Logger_Dbg(__FUNCTION__, sprintf('Variable %s registriert', $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]));
+                } else {
+                    $this->Logger_Dbg(__FUNCTION__, sprintf('Variable %s konnte nicht registriert werden!', $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]));
+                }
             }
         }
 
