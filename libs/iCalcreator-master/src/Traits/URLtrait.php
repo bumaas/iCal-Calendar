@@ -110,6 +110,8 @@ trait URLtrait
      */
     public function setUrl( $value = null, $params = [] )
     {
+        return $value; //bumaas
+
         if( empty( $value )) {
             $this->assertEmptyValue( $value, self::URL );
             $this->url = [

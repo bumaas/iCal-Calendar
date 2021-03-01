@@ -64,6 +64,11 @@ src\Traits\TRIGGERtrait.php ab Zeile 194
         return; //bumaas Fehler bei "TRIGGER:20210121"
 
 
+src\Traits\URLtrait.php ab Zeile 111
+    public function setUrl( $value = null, $params = [] )
+    {
+        return $value; //bumaas
+
 */
 declare(strict_types=1);
 
