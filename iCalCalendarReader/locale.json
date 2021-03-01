@@ -8,6 +8,7 @@
       "Username": "Benutzername",
       "Password": "Kennwort",
       "Disable Verification of SSL Certificate": "Unterdrücke die Überprüfung des SSL Zertifikats",
+      "As an alternative to a URL, a calendar file stored in a media object can also be specified:": "Alternativ zu einer URL kann auch eine in einem Mediaobjekt abgelegte Kalenderdatei angegeben werden:",
       "Synchronization": "Synchronisation",
       "Cache size (Past)": "Cache-Größe (Vergangenheit)",
       "Cache size (Future)": "Cache-Größe (Zukunft)",

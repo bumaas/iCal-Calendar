@@ -86,6 +86,7 @@ class iCalCalendarReader extends IPSModule
     private const STATUS_INST_INVALID_USER_PASSWORD = 203;
     private const STATUS_INST_CONNECTION_ERROR      = 204;
     private const STATUS_INST_UNEXPECTED_RESPONSE   = 205;
+    private const STATUS_INST_INVALID_MEDIA_CONTENT = 206;
 
     private const ICCR_PROPERTY_ACTIVE                             = 'active';
     private const ICCR_PROPERTY_CALENDAR_URL                       = 'CalendarServerURL';
@@ -96,6 +97,7 @@ class iCalCalendarReader extends IPSModule
     private const ICCR_PROPERTY_DAYSTOCACHEBACK                    = 'DaysToCacheBack';
     private const ICCR_PROPERTY_UPDATE_FREQUENCY                   = 'UpdateFrequency';
     private const ICCR_PROPERTY_WRITE_DEBUG_INFORMATION_TO_LOGFILE = 'WriteDebugInformationToLogfile';
+    private const ICCR_PROPERTY_ICAL_MEDIA_ID                      = 'iCalMediaID';
 
     private const ICCR_PROPERTY_NOTIFIERS              = 'Notifiers';
     private const ICCR_PROPERTY_NOTIFIER_IDENT         = 'Ident';
@@ -135,6 +137,7 @@ class iCalCalendarReader extends IPSModule
         $this->RegisterPropertyString(self::ICCR_PROPERTY_USERNAME, '');
         $this->RegisterPropertyString(self::ICCR_PROPERTY_PASSWORD, '');
         $this->RegisterPropertyBoolean(self::ICCR_PROPERTY_DISABLE_SSL_VERIFYPEER, false);
+        $this->RegisterPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID, 0);
 
         $this->RegisterPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHE, 30);
         $this->RegisterPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHEBACK, 30);
@@ -143,8 +146,8 @@ class iCalCalendarReader extends IPSModule
         $this->RegisterPropertyString(self::ICCR_PROPERTY_NOTIFIERS, json_encode([], JSON_THROW_ON_ERROR));
 
         // create Attributes
-        $this->RegisterAttributeString(self::ICCR_ATTRIBUTE_CALENDAR_BUFFER, json_encode([]));
-        $this->RegisterAttributeString(self::ICCR_ATTRIBUTE_NOTIFICATIONS, json_encode([]));
+        $this->RegisterAttributeString(self::ICCR_ATTRIBUTE_CALENDAR_BUFFER, json_encode([], JSON_THROW_ON_ERROR));
+        $this->RegisterAttributeString(self::ICCR_ATTRIBUTE_NOTIFICATIONS, json_encode([], JSON_THROW_ON_ERROR));
 
         // create timer
         $this->RegisterTimer(self::TIMER_UPDATECALENDAR, 0, 'ICCR_UpdateCalendar($_IPS["TARGET"] );'); // timer to fetch the calendar data
@@ -168,18 +171,28 @@ class iCalCalendarReader extends IPSModule
 
         if ($this->ReadPropertyBoolean(self::ICCR_PROPERTY_ACTIVE)) {
             //validate Configuration
-            if (!$this->CheckCalendarURLSyntax()) {
-                $Status = self::STATUS_INST_INVALID_URL;
+            if ($this->CheckCalendarMediaID()){
+                $Status = IS_ACTIVE;
             } else {
-                $curl_result = '';
-                $Status      = $this->LoadCalendarURL($curl_result);
+                if (!$this->CheckCalendarURLSyntax()) {
+                    $Status = self::STATUS_INST_INVALID_URL;
+                } else {
+                    $curl_result = '';
+                    $Status      = $this->LoadCalendarURL($curl_result);
+                }
             }
             $this->SetStatus($Status);
+
         } else {
             $Status = IS_INACTIVE;
         }
 
-        $this->SetSummary($this->ReadPropertyString(self::ICCR_PROPERTY_CALENDAR_URL));
+        $iCalMediaID = $this->ReadPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID);
+        if ($iCalMediaID !== 0){
+            $this->SetSummary(IPS_GetName($iCalMediaID));
+        } else {
+            $this->SetSummary($this->ReadPropertyString(self::ICCR_PROPERTY_CALENDAR_URL));
+        }
 
         $this->SetStatus($Status);
 
@@ -269,7 +282,9 @@ class iCalCalendarReader extends IPSModule
                 ['type' => 'ValidationTextBox', 'name' => self::ICCR_PROPERTY_CALENDAR_URL, 'caption' => 'Calendar URL'],
                 ['type' => 'ValidationTextBox', 'name' => self::ICCR_PROPERTY_USERNAME, 'caption' => 'Username'],
                 ['type' => 'PasswordTextBox', 'name' => self::ICCR_PROPERTY_PASSWORD, 'caption' => 'Password'],
-                ['type' => 'CheckBox', 'name' => self::ICCR_PROPERTY_DISABLE_SSL_VERIFYPEER, 'caption' => 'Disable Verification of SSL Certificate']
+                ['type' => 'CheckBox', 'name' => self::ICCR_PROPERTY_DISABLE_SSL_VERIFYPEER, 'caption' => 'Disable Verification of SSL Certificate'],
+                ['type' => 'Label', 'caption' => 'As an alternative to a URL, a calendar file stored in a media object can also be specified:'],
+                ['type' => 'SelectMedia', 'name' => self::ICCR_PROPERTY_ICAL_MEDIA_ID]
             ]
         ];
 
@@ -418,7 +433,8 @@ class iCalCalendarReader extends IPSModule
             ['code' => self::STATUS_INST_SSL_ERROR, 'icon' => 'error', 'caption' => 'SSL error, see log for details'],
             ['code' => self::STATUS_INST_INVALID_USER_PASSWORD, 'icon' => 'error', 'caption' => 'Invalid user or password'],
             ['code' => self::STATUS_INST_CONNECTION_ERROR, 'icon' => 'error', 'caption' => 'Connection error, see log for details'],
-            ['code' => self::STATUS_INST_UNEXPECTED_RESPONSE, 'icon' => 'error', 'caption' => 'Unexpected response from calendar server']
+            ['code' => self::STATUS_INST_UNEXPECTED_RESPONSE, 'icon' => 'error', 'caption' => 'Unexpected response from calendar server'],
+            ['code' => self::STATUS_INST_INVALID_MEDIA_CONTENT, 'icon' => 'error', 'caption' => 'Media Document has invalid content']
         ];
 
         return json_encode($form);
@@ -490,6 +506,25 @@ class iCalCalendarReader extends IPSModule
     }
 
     /*
+    check if calendar Media Object is valid
+*/
+    private function CheckCalendarMediaID(): bool
+    {
+        $this->Logger_Dbg(__FUNCTION__, sprintf('Entering %s()', __FUNCTION__));
+
+        // validate saved properties
+        $iCalMediaID = $this->ReadPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID);
+
+        if ($iCalMediaID === 0){
+            return false;
+        }
+
+        $objMedia = IPS_GetMedia($iCalMediaID);
+
+        return (($objMedia['MediaType'] === MEDIATYPE_DOCUMENT) && $objMedia['MediaIsAvailable']);
+    }
+
+    /*
         check if calendar URL syntax is valid
     */
     private function CheckCalendarURLSyntax(): bool
@@ -501,11 +536,24 @@ class iCalCalendarReader extends IPSModule
         return ($calendarServerURL !== '') && filter_var($calendarServerURL, FILTER_VALIDATE_URL);
     }
 
+    public function LoadCalendarFile(string &$content): int
+    {
+        $iCalMediaId = $this->ReadPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID);
+
+        $content = base64_decode(@IPS_GetMediaContent($iCalMediaId));
+        $this->Logger_Dbg(__FUNCTION__, sprintf('Media Document Content: %s', json_encode($content)));
+
+        if ($content && (strpos($content, 'BEGIN:VCALENDAR') !== false)){
+            return IS_ACTIVE;
+        }
+
+        return self::STATUS_INST_INVALID_MEDIA_CONTENT;
+    }
     /***********************************************************************
      * calendar loading and conversion methods
      ***********************************************************************
      *
-     * @param string $curl_result
+     * @param string $content
      *
      * @return int
      */
@@ -513,7 +561,7 @@ class iCalCalendarReader extends IPSModule
     /*
         load calendar from URL into $this->curl_result, returns IPS status value
     */
-    public function LoadCalendarURL(string &$curl_result): int
+    public function LoadCalendarURL(string &$content): int
     {
         $instStatus = IS_ACTIVE;
         $url        = $this->ReadPropertyString(self::ICCR_PROPERTY_CALENDAR_URL);
@@ -544,7 +592,7 @@ class iCalCalendarReader extends IPSModule
             curl_setopt($curl, CURLOPT_USERPWD, $username . ':' . $password);
         }
 
-        $curl_result = curl_exec($curl);
+        $content = curl_exec($curl);
 
         $curl_error_nr  = curl_errno($curl);
         $curl_error_str = curl_error($curl);
@@ -586,13 +634,13 @@ class iCalCalendarReader extends IPSModule
                     break;
             }
         } // no curl error, continue
-        elseif (strpos($curl_result, 'BEGIN:VCALENDAR') === false) {
+        elseif (strpos($content, 'BEGIN:VCALENDAR') === false) {
             // handle error document
             $instStatus = self::STATUS_INST_UNEXPECTED_RESPONSE;
 
             // ownCloud sends XML error messages
             libxml_use_internal_errors(true);
-            $XML = simplexml_load_string($curl_result);
+            $XML = simplexml_load_string($content);
 
             // owncloud error?
             if ($XML !== false) {
@@ -606,21 +654,21 @@ class iCalCalendarReader extends IPSModule
                     $instStatus = self::STATUS_INST_INVALID_USER_PASSWORD;
                 }
             } // synology sends plain text
-            elseif (strpos($curl_result, 'Please log in') === 0) {
+            elseif (strpos($content, 'Please log in') === 0) {
                 $this->Logger_Err('Error logging on - invalid user/password combination for ' . $url);
                 $instStatus = self::STATUS_INST_INVALID_USER_PASSWORD;
             } // everything else goes here
             else {
-                $this->Logger_Err(sprintf('Error on connect - this is not a valid calendar URL: %s, Result: %s', $url, $curl_result));
+                $this->Logger_Err(sprintf('Error on connect - this is not a valid calendar URL: %s, Result: %s', $url, $content));
                 $instStatus = self::STATUS_INST_INVALID_URL;
             }
         }
 
         if ($instStatus === IS_ACTIVE) {
-            $this->Logger_Dbg(__FUNCTION__, 'curl_result: ' . $curl_result);
+            $this->Logger_Dbg(__FUNCTION__, 'curl_result: ' . $content);
             $this->Logger_Dbg(__FUNCTION__, 'Successfully loaded');
-        } elseif (!empty($curl_result)) {
-            $this->Logger_Dbg(__FUNCTION__, 'Error, curl_result: ' . $curl_result);
+        } elseif (!empty($content)) {
+            $this->Logger_Dbg(__FUNCTION__, 'Error, curl_result: ' . $content);
         }
         return $instStatus;
     }
@@ -630,8 +678,14 @@ class iCalCalendarReader extends IPSModule
     */
     private function ReadCalendar(): ?string
     {
-        $curl_result = '';
-        $result      = $this->LoadCalendarURL($curl_result);
+        $content = '';
+
+        if ($this->ReadPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID) !== 0){
+            $result      = $this->LoadCalendarFile($content);
+        } else {
+            $result      = $this->LoadCalendarURL($content);
+        }
+
         $this->SetStatus($result);
 
         if ($result !== IS_ACTIVE) {
@@ -642,11 +696,11 @@ class iCalCalendarReader extends IPSModule
             __FUNCTION__,
             sprintf(
                 'Calendar Statistic - Length: %s, VEVENT: %s, STANDARD: %s, VTIMEZONE: %s, DAYLIGHT: %s',
-                strlen($curl_result),
-                substr_count($curl_result, 'BEGIN:VEVENT'),
-                substr_count($curl_result, 'BEGIN:STANDARD'),
-                substr_count($curl_result, 'BEGIN:VTIMEZONE'),
-                substr_count($curl_result, 'BEGIN:DAYLIGHT')
+                strlen($content),
+                substr_count($content, 'BEGIN:VEVENT'),
+                substr_count($content, 'BEGIN:STANDARD'),
+                substr_count($content, 'BEGIN:VTIMEZONE'),
+                substr_count($content, 'BEGIN:DAYLIGHT')
             )
         );
 
@@ -661,7 +715,7 @@ class iCalCalendarReader extends IPSModule
             }
         );
 
-        $iCalCalendarArray = $MyImporter->ImportCalendar($curl_result);
+        $iCalCalendarArray = $MyImporter->ImportCalendar($content);
 
         return json_encode($iCalCalendarArray, JSON_THROW_ON_ERROR + JSON_INVALID_UTF8_SUBSTITUTE);
     }

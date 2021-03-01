@@ -54,6 +54,7 @@ Eigenschaft          |Typ     | Standardwert|Beschreibung
 CalendarServerURL   |string|     | URL zur iCal-Quelle
 Username            |string|  |    Benutzer für den Zugriff auf die Quelle
 Password            |string|   |   Passwort dieses Benutzers
+iCalMediaID | integer| |Id eines Media Objektes, welches eine Kalenderdatei enthält
 DisableSSLVerifyPeer|boolean|  false |   Deaktivierung der SSL Zertifikatsüberprüfung
 DaysToCache    |integer|30| Anzahl der Tage, für die Ereignisse in der Zukunft gelesen werden sollen
 DaysToCacheBack    |integer|30|  Anzahl der Tage, für die Ereignisse in der Vergangenheit gelesen werden sollen
@@ -67,6 +68,7 @@ Prenotify |integer|0| Wie viele Minuten vor dem Ereignisstart soll die Statusvar
 Postnotify |integer|0| Wie viele Minuten nach dem Ereignisende soll die Statusvariable auf "true" gesetzt bleiben
 
 
+####Einlesen des Kalenders über eine URL
 Auf folgendes URL-Format ist bei den unterschiedlichen iCal-Servern zu achten:
 
 **Google:**
@@ -86,7 +88,11 @@ Zu finden in der Calendar-App. Rechts in der Liste der Kalender das nach unten z
 Im macOS Kalender-Programm mit der rechten Maustaste auf den zu importierenden iCloud-Kalender klicken, *"Teilen"* auswählen und *"Öffentlicher Kalender"* auswählen. Den erscheinenden Link kopieren und das Protokoll `webcal` gegen `https` tauschen.
 Alternativ kann der Link auch im Webportal https://www.icloud.com/#calendar durch Auswahl der Kalenderfreigabe des zu importierenden Kalenders ermittelt werden. Auch hier muss `webcal` gegen `https` ersetzt werden.   
 
-Sobald eine URL angegeben und gespeichert wurde beginnt die Synchronisierung. Fehler beim Zugriff auf den Kalender stehen im Systemlog (Tabreiter **Meldungen** in der IP-Symcon Management Konsole). Bei jeder Änderung der Parameter wird eine sofortige Synchronisation und ein Update auf alle Meldevariablen gegeben.
+####Einlesen des Kalenders aus einer Datei
+Für den Fall, dass eine vorliegende Kalenderdatei mit Terminen (z.B. eine iCal konforme Datei vom Abfallentsorger mit den Abholterminen) übernommen werden soll, so ist diese Datei zunächst in ein Medien Objekt vom Typ "Dokument" in Symcon zu übernehmen. Die Id des Medien Objekts ist dann in der Konfiguration angegeben werden. 
+
+
+Sobald eine URL bzw. eine Media-ID angegeben und gespeichert wurde beginnt die Synchronisierung. Fehler beim Zugriff auf den Kalender stehen im Systemlog (Tabreiter **Meldungen** in der IP-Symcon Management Konsole). Bei jeder Änderung der Parameter wird eine sofortige Synchronisation und ein Update auf alle Meldevariablen gegeben.
 
 
 #### Beispiel für Meldevariablen
