@@ -220,6 +220,8 @@ class iCalCalendarReader extends IPSModule
             }
         }
 
+        $this->RegisterReferences();
+
         if ($Status !== IS_ACTIVE) {
             $this->SetTimerInterval(self::TIMER_CRON1, 0);
             return false;
@@ -229,6 +231,23 @@ class iCalCalendarReader extends IPSModule
         $this->SetTimerInterval(self::TIMER_CRON1, 1000 * 60);
         return true;
 
+    }
+
+    private function RegisterReferences(): void
+    {
+        $objectIDs = [
+            $this->ReadPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID),
+        ];
+
+        foreach ($this->GetReferenceList() as $ref) {
+            $this->UnregisterReference($ref);
+        }
+
+        foreach ($objectIDs as $id) {
+            if ($id !== 0) {
+                $this->RegisterReference($id);
+            }
+        }
     }
 
     private function GetNextFreeNotifierNumber(array $usedIdents): ?int
