@@ -115,8 +115,8 @@ class iCalCalendarReader extends IPSModule
     private const ICCR_ATTRIBUTE_CALENDAR_BUFFER = 'CalendarBuffer';
     private const ICCR_ATTRIBUTE_NOTIFICATIONS   = 'Notifications';
 
-    private const TIMER_CRON1          = 'Cron1';
-    private const TIMER_UPDATECALENDAR = 'UpdateCalendar';
+    private const TIMER_TRIGGERNOTIFICATIONS = 'Cron1';
+    private const TIMER_UPDATECALENDAR       = 'UpdateCalendar';
 
     /***********************************************************************
      * standard module methods
@@ -156,7 +156,7 @@ class iCalCalendarReader extends IPSModule
 
         // create timer
         $this->RegisterTimer(self::TIMER_UPDATECALENDAR, 0, 'ICCR_UpdateCalendar($_IPS["TARGET"] );'); // timer to fetch the calendar data
-        $this->RegisterTimer(self::TIMER_CRON1, 0, 'ICCR_TriggerNotifications($_IPS["TARGET"] );'); // timer to trigger the notifications
+        $this->RegisterTimer(self::TIMER_TRIGGERNOTIFICATIONS, 0, 'ICCR_TriggerNotifications($_IPS["TARGET"] );'); // timer to trigger the notifications
 
         //we will wait until the kernel is ready
         $this->RegisterMessage(0, IPS_KERNELMESSAGE);
@@ -223,12 +223,12 @@ class iCalCalendarReader extends IPSModule
         $this->RegisterReferences();
 
         if ($Status !== IS_ACTIVE) {
-            $this->SetTimerInterval(self::TIMER_CRON1, 0);
+            $this->SetTimerInterval(self::TIMER_TRIGGERNOTIFICATIONS, 0);
             return false;
         }
 
         $this->SetTimerInterval(self::TIMER_UPDATECALENDAR, $this->ReadPropertyInteger(self::ICCR_PROPERTY_UPDATE_FREQUENCY) * 1000 * 60);
-        $this->SetTimerInterval(self::TIMER_CRON1, 1000 * 60);
+        $this->SetTimerInterval(self::TIMER_TRIGGERNOTIFICATIONS, 1000 * 60); //jede Minute werden die Notifications getriggert
         return true;
 
     }
@@ -768,8 +768,8 @@ class iCalCalendarReader extends IPSModule
     {
         $this->Logger_Dbg(__FUNCTION__, sprintf('Entering %s()', __FUNCTION__));
 
-        if (!$this->ReadPropertyBoolean(self::ICCR_PROPERTY_ACTIVE)) {
-            $this->Logger_Dbg(__FUNCTION__, 'Instance is inactive');
+        if ($this->GetStatus() !== IS_ACTIVE) {
+            $this->Logger_Dbg(__FUNCTION__, 'Instance is not inactive');
             return null;
         }
 
