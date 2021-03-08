@@ -2,7 +2,7 @@
 
 /*
 Anmerkungen: aktuelle iCalcreator-master Versionen gibt es unter https://github.com/iCalcreator/iCalcreator/releases
-derzeit verwendet: v2.30.3
+derzeit verwendet: v2.30.4
 
 aber mit folgenden Modifikationen
 
@@ -62,13 +62,6 @@ src\Traits\TRIGGERtrait.php ab Zeile 194
    public function setTrigger( $value = null, $params = [] )
     {
         return; //bumaas Fehler bei "TRIGGER:20210121"
-
-
-src\Traits\URLtrait.php ab Zeile 111
-    public function setUrl( $value = null, $params = [] )
-    {
-        return $value; //bumaas
-
 */
 declare(strict_types=1);
 
