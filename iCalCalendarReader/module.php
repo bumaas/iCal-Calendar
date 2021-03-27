@@ -85,6 +85,7 @@ class iCalCalendarReader extends IPSModule
     private const STATUS_INST_CONNECTION_ERROR      = 204;
     private const STATUS_INST_UNEXPECTED_RESPONSE   = 205;
     private const STATUS_INST_INVALID_MEDIA_CONTENT = 206;
+    private const STATUS_INST_OPERATION_TIMED_OUT = 207;
 
     private const ICCR_PROPERTY_ACTIVE                             = 'active';
     private const ICCR_PROPERTY_CALENDAR_URL                       = 'CalendarServerURL';
@@ -451,7 +452,8 @@ class iCalCalendarReader extends IPSModule
             ['code' => self::STATUS_INST_INVALID_USER_PASSWORD, 'icon' => 'error', 'caption' => 'Invalid user or password'],
             ['code' => self::STATUS_INST_CONNECTION_ERROR, 'icon' => 'error', 'caption' => 'Connection error, see log for details'],
             ['code' => self::STATUS_INST_UNEXPECTED_RESPONSE, 'icon' => 'error', 'caption' => 'Unexpected response from calendar server'],
-            ['code' => self::STATUS_INST_INVALID_MEDIA_CONTENT, 'icon' => 'error', 'caption' => 'Media Document has invalid content']
+            ['code' => self::STATUS_INST_INVALID_MEDIA_CONTENT, 'icon' => 'error', 'caption' => 'Media Document has invalid content'],
+            ['code' => self::STATUS_INST_OPERATION_TIMED_OUT, 'icon' => 'error', 'caption' => 'Operation timed out']
         ];
 
         return json_encode($form);
@@ -601,7 +603,7 @@ class iCalCalendarReader extends IPSModule
             }
         }
         curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 20);
-        curl_setopt($curl, CURLOPT_TIMEOUT, 20);
+        curl_setopt($curl, CURLOPT_TIMEOUT, 30);
         curl_setopt($curl, CURLOPT_FOLLOWLOCATION, 1);
         curl_setopt($curl, CURLOPT_MAXREDIRS, 5); // educated guess
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
@@ -620,28 +622,26 @@ class iCalCalendarReader extends IPSModule
             $this->Logger_Err(sprintf('Error (%s) on connect - %s for %s', $curl_error_nr, $curl_error_str, $url));
             // only differentiate between invalid, connect, SSL and auth
             switch ($curl_error_nr) {
-                case 1:
-                case 3:
-                case 4:
+                case CURLE_OPERATION_TIMEOUTED:
+                    $instStatus = self::STATUS_INST_OPERATION_TIMED_OUT;
+                    break;
+                case CURLE_UNSUPPORTED_PROTOCOL:
+                case CURLE_URL_MALFORMAT:
+                case CURLE_URL_MALFORMAT_USER:
                     // invalid URL
                     $instStatus = self::STATUS_INST_INVALID_URL;
                     break;
-                case 35:
-                case 53:
-                case 54:
-                case 58:
-                case 59:
-                case 60:
-                case 64:
-                case 66:
-                case 77:
-                case 80:
-                case 82:
-                case 83:
+                case CURLE_SSL_CONNECT_ERROR:
+                case CURLE_SSL_ENGINE_NOTFOUND:
+                case CURLE_SSL_ENGINE_SETFAILED:
+                case CURLE_SSL_CERTPROBLEM:
+                case CURLE_SSL_CIPHER:
+                case CURLE_SSL_CACERT:
+                case CURLE_SSL_CACERT_BADFILE:
                     // SSL error
                     $instStatus = self::STATUS_INST_SSL_ERROR;
                     break;
-                case 67:
+                case 67: //CURLE_LOGIN_DENIED
                     // auth error
                     $instStatus = self::STATUS_INST_INVALID_USER_PASSWORD;
                     break;
@@ -761,7 +761,7 @@ class iCalCalendarReader extends IPSModule
     {
         $this->Logger_Dbg(__FUNCTION__, sprintf('Entering %s()', __FUNCTION__));
 
-        if ($this->GetStatus() !== IS_ACTIVE) {
+        if (!in_array($this->GetStatus(), [IS_ACTIVE, self::STATUS_INST_OPERATION_TIMED_OUT], true)) {
             $this->Logger_Dbg(__FUNCTION__, 'Instance is not inactive');
             return null;
         }

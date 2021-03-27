@@ -39,6 +39,8 @@
       "Invalid user or password": "Benutzername oder Kennwort sind ungültig",
       "Connection error, see log for details": "Verbindungsfehler, siehe Logfile für Details",
       "Unexpected response from calendar server": "Unerwartete Anwort vom Kalender Server",
+      "Media Document has invalid content":  "Die Mediendatei enthält keine gültigen Kalenderdaten",
+      "Operation timed out": "Zeit abgelaufen bei Kalender Abfrage",
       "Finished!": "Fertig!",
       "Error!": "Fehler!",
       "Debug information are written additionally to standard logfile": "Debug Informationen werden zusätzlich in das Standardlogfile geschrieben"
