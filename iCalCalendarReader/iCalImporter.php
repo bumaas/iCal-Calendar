@@ -71,7 +71,7 @@ class iCalImporter
     /*
         apply the time offset from a timezone provided by the loaded calendar
     */
-    private function ApplyCustomTimezoneOffset(DateTime $EventDateTime, DateTime $CustomTimezoneName): DateTime
+    private function ApplyCustomTimezoneOffset(DateTime $EventDateTime, string $CustomTimezoneName): DateTime
     {
         // is timezone in calendar provided timezone?
         foreach ($this->CalendarTimezones as $CalendarTimezone) {
@@ -120,35 +120,38 @@ class iCalImporter
         // owncloud calendar
         if (isset($params['TZID'])) {
             /** @noinspection PhpUndefinedVariableInspection */
-            $Timezone = $params['TZID'];
+            $TimezoneName = $params['TZID'];
         } // google calendar
         else {
-            $Timezone = $value->getTimezone()->getName();
+            $TimezoneName = $value->getTimezone()->getName();
         }
 
         $DateTime = new DateTime();
 
         if ($WholeDay) {
-            $DateTime->setTimezone(timezone_open($this->Timezone));
+            $DateTime->setTimezone(new DateTimeZone($this->Timezone));
             $DateTime->setDate($Year, $Month, $Day);
             $DateTime->setTime($Hour, $Min, $Sec);
         } else {
             $IsStandardTimezone = true;
-            $SetTZResult        = @$DateTime->setTimezone(timezone_open($Timezone));
-            if (!$SetTZResult) {
-                trigger_error('No Standard Timezone');
+            try{
+                $tz = new DateTimeZone($TimezoneName);
+            } catch (Exception $e){
+                call_user_func($this->Logger_Err, sprintf('"%s" is no Standard Timezone', $TimezoneName));
                 // no standard timezone, set to UTC first
-                $DateTime->setTimezone(timezone_open('UTC'));
+                $tz = new DateTimeZone('UTC');
                 $IsStandardTimezone = false;
             }
+
+            $DateTime->setTimezone($tz);
             $DateTime->setDate($Year, $Month, $Day);
             $DateTime->setTime($Hour, $Min, $Sec);
             if (!$IsStandardTimezone) {
                 // set UTC offset if provided in calendar data
-                $DateTime = $this->ApplyCustomTimezoneOffset($DateTime, $Timezone);
+                $DateTime = $this->ApplyCustomTimezoneOffset($DateTime, 'UTC');
             }
             // convert to local timezone
-            $DateTime->setTimezone(timezone_open($this->Timezone));
+            $DateTime->setTimezone(new DateTimeZone($this->Timezone));
         }
         return $DateTime;
     }
@@ -176,6 +179,7 @@ class iCalImporter
         $this->CalendarTimezones = [];
 
         $rTZFactory = RegulateTimezoneFactory::factory($iCalData);
+        //var_dump($rTZFactory);
         $rTZFactory = $rTZFactory->addOtherTzPhpRelation('"(UTC+01:00) Amsterdam, Berlin, Bern, Rom, Stockholm, Wien"', 'Europe/Amsterdam');
 
         $stringCalendarToParse   = $rTZFactory
@@ -303,10 +307,9 @@ class iCalImporter
                 throw new RuntimeException('Component is not of type vevent');
             }
 
-            $dtStartingTime = $vEvent->getDtstart();
-            $dtEndingTime   = $vEvent->getDtend();
-            $dtDuration     = $vEvent->getDuration(false, true); //DateTime
-
+            $dtStartingTime = $this->getDateTime($vEvent->getDtstart(true));
+            $dtEndingTime   = $this->getDateTime($vEvent->getDtend(true));
+            $dtDuration     = $vEvent->getDuration(false, true); //DateInterval
 
             call_user_func(
                 $this->Logger_Dbg,
@@ -473,6 +476,17 @@ class iCalImporter
         return $iCalCalendarArray;
     }
 
+    private function getDateTime(array $dateTimeWithParams):DateTime
+    {
+        //var_dump($dateTimeWithParams);
+        $params = $dateTimeWithParams['params'];
+        if ((isset($params['VALUE']) && $params['VALUE'] === 'DATE') || (isset($params['ISLOCALTIME']) && ($params['ISLOCALTIME']))){
+            //var_dump($dateTimeWithParams['value']->format('Y-m-d H:i:s'));
+            return new DateTime($dateTimeWithParams['value']->format('Y-m-d H:i:s'));
+        }
+
+        return $dateTimeWithParams['value'];
+    }
     private function getChangedEvent(array $vEvents_with_Recurrence_id, string $uid, DateTime $dtOccurrence): ?Kigkonsult\Icalcreator\Vevent
     {
         foreach ($vEvents_with_Recurrence_id as $vEvent) {
@@ -523,15 +537,27 @@ class iCalImporter
         $Event['To']    = $tsTo;
         $Event['FromS'] = date(DATE_ATOM, $tsFrom);
         $Event['ToS']   = date(DATE_ATOM, $tsTo);
-        $propDtstart    = $vEvent->getDtstart(true); // incl. params
-        if ($propDtstart) {
-            $Event['allDay'] = (isset($propDtstart['params']['VALUE']) && ($propDtstart['params']['VALUE'] === 'DATE'));
-        }
+        $Event['allDay'] = $this->GetAllDayAtribute($vEvent);
 
         call_user_func(
             $this->Logger_Dbg, __FUNCTION__, sprintf('Event: %s', json_encode($Event))
         );
 
         return $Event;
+    }
+
+    private function GetAllDayAtribute(Kigkonsult\Icalcreator\Vevent $vEvent):bool{
+        $propDtstart    = $vEvent->getDtstart(true); // incl. params
+        $propDtend    = $vEvent->getDtend(true); // incl. params
+
+        if ($propDtstart) {
+            if (isset($propDtstart['params']['VALUE']) && ($propDtstart['params']['VALUE'] === 'DATE')) {
+                return true;
+            }
+            if ($propDtend && ($propDtend['value']->format('H:i:s') ==='00:00:00') && ($propDtend['value']->format('H:i:s') ==='00:00:00')){
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -800,7 +800,8 @@ class iCalCalendarReader extends IPSModule
         $this->Logger_Dbg(
             __FUNCTION__,
             sprintf(
-                'Now: %s, Start: %s, End: %s, Pre: %s, $Post: %s',
+                '\'%s\' - Now: %s, Start: %s, End: %s, Pre: %s, $Post: %s',
+                $calDescription,
                 $this->formatDate($ts),
                 $this->formatDate($calStart),
                 $this->formatDate($calEnd),
@@ -813,7 +814,7 @@ class iCalCalendarReader extends IPSModule
             $this->Logger_Dbg(__FUNCTION__, sprintf('find: \'%s\', description: \'%s\'', $notFind, $calDescription));
             if ($calDescription !== '' && $notFind !== '') {
                 if ($notRegExpression) {
-                    return @preg_match($notFind, $calDescription) !== false;
+                    return @preg_match($notFind, $calDescription) > 0;
                 }
                 $this->Logger_Dbg(__FUNCTION__, sprintf('strpos: %s', (int)strpos($notFind, $calDescription)));
                 return strpos($calDescription, $notFind) !== false;
