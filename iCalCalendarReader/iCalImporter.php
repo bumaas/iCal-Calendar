@@ -308,7 +308,11 @@ class iCalImporter
             }
 
             $dtStartingTime = $this->getDateTime($vEvent->getDtstart(true));
-            $dtEndingTime   = $this->getDateTime($vEvent->getDtend(true));
+            if ($vEvent->getDtend(true) === false){
+                $dtEndingTime = false;
+            } else {
+                $dtEndingTime   = $this->getDateTime($vEvent->getDtend(true));
+            }
             $dtDuration     = $vEvent->getDuration(false, true); //DateInterval
 
             call_user_func(
