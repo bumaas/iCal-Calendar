@@ -676,8 +676,7 @@ class iCalCalendarReader extends IPSModule
                 $instStatus = self::STATUS_INST_INVALID_USER_PASSWORD;
             } // everything else goes here
             else {
-                $this->Logger_Err(sprintf('Error on connect - this is not a valid calendar URL: %s, Result: %s', $url, $content));
-                $instStatus = self::STATUS_INST_INVALID_URL;
+                $this->Logger_Err(sprintf('Error on connect - this is not a valid response (URL: %s, response: %s', $url, $content));
             }
         }
 
