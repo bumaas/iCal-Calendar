@@ -172,13 +172,11 @@ class iCalCalendarReader extends IPSModule
             //validate Configuration
             if ($this->CheckCalendarMediaID()){
                 $Status = IS_ACTIVE;
+            } elseif (!$this->CheckCalendarURLSyntax()) {
+                $Status = self::STATUS_INST_INVALID_URL;
             } else {
-                if (!$this->CheckCalendarURLSyntax()) {
-                    $Status = self::STATUS_INST_INVALID_URL;
-                } else {
-                    $curl_result = '';
-                    $Status      = $this->LoadCalendarURL($curl_result);
-                }
+                $curl_result = '';
+                $Status      = $this->LoadCalendarURL($curl_result);
             }
             $this->SetStatus($Status);
 
@@ -200,11 +198,11 @@ class iCalCalendarReader extends IPSModule
         $this->DeleteUnusedVariables($propNotifiers);
 
         //Meldevariablen registrieren
-        foreach ($propNotifiers as $key => $notifier) {
+        foreach ($propNotifiers as $notifier) {
             if (strpos($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT], 'NOTIFIER') === 0){
                 if ($this->RegisterVariableBoolean(
                     $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT],
-                    sprintf('%s (%s)',$this->Translate('Notifier'), $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT][8]),
+                    sprintf('%s (%s)',$this->Translate('Notifier'), substr($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT], 8)),
                     '~Switch'
                 )){
                     $this->Logger_Dbg(__FUNCTION__, sprintf('Variable %s registriert', $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]));
@@ -665,9 +663,9 @@ class iCalCalendarReader extends IPSModule
                 if (count($XML->xpath('//d:error')) > 0) {
                     // XML error document
                     $children = $XML->children('http://sabredav.org/ns');
-                    $exception = $children->exception;
-                    $message = $XML->children('http://sabredav.org/ns')->message;
-                    $this->Logger_Err(sprintf('Error: %s - Message: %s', $exception, $message));
+                    if (isset($children)){
+                        $this->Logger_Err(sprintf('Error: %s - Message: %s', $children->exception, $children->message));
+                    }
                     $instStatus = self::STATUS_INST_INVALID_USER_PASSWORD;
                 }
             } // synology sends plain text

@@ -47,7 +47,7 @@ Das Modul wird über den Modul Store installiert.
 
 Unter "Instanz hinzufügen" eine Instanz **iCal Calendar Reader** hinzufügen.  
 
-__Konfigurationsseite__:
+#### Konfigurationsseite:
 
 Eigenschaft          |Typ     | Standardwert|Beschreibung
 ------------------- | ---------|------------|------------
@@ -68,7 +68,7 @@ Prenotify |integer|0| Wie viele Minuten vor dem Ereignisstart soll die Statusvar
 Postnotify |integer|0| Wie viele Minuten nach dem Ereignisende soll die Statusvariable auf "true" gesetzt bleiben
 
 
-####Einlesen des Kalenders über eine URL
+#### Einlesen des Kalenders über eine URL
 Auf folgendes URL-Format ist bei den unterschiedlichen iCal-Servern zu achten:
 
 **Google:**
@@ -88,17 +88,17 @@ Zu finden in der Calendar-App. Rechts in der Liste der Kalender das nach unten z
 Im macOS Kalender-Programm mit der rechten Maustaste auf den zu importierenden iCloud-Kalender klicken, *"Teilen"* auswählen und *"Öffentlicher Kalender"* auswählen. Den erscheinenden Link kopieren und das Protokoll `webcal` gegen `https` tauschen.
 Alternativ kann der Link auch im Webportal https://www.icloud.com/#calendar durch Auswahl der Kalenderfreigabe des zu importierenden Kalenders ermittelt werden. Auch hier muss `webcal` gegen `https` ersetzt werden.   
 
-####Einlesen des Kalenders aus einer Datei
-Für den Fall, dass eine vorliegende Kalenderdatei mit Terminen (z.B. eine iCal konforme Datei vom Abfallentsorger mit den Abholterminen) übernommen werden soll, so ist diese Datei zunächst in ein Medien Objekt vom Typ "Dokument" in Symcon zu übernehmen. Die Id des Medien Objekts ist dann in der Konfiguration angegeben werden. 
+#### Einlesen des Kalenders aus einer Datei
+Für den Fall, dass eine vorliegende Kalenderdatei mit Terminen (z.B. eine iCal konforme Datei vom Abfallentsorger mit den Abholterminen) übernommen werden soll, so ist diese Datei zunächst in ein Medienobjekt vom Typ "Dokument" in Symcon zu übernehmen. Die Id der Medien Objekts ist dann in der Konfiguration anzugeben. 
 
 
-Sobald eine URL bzw. eine Media-ID angegeben und gespeichert wurde beginnt die Synchronisierung. Fehler beim Zugriff auf den Kalender stehen im Systemlog (Tabreiter **Meldungen** in der IP-Symcon Management Konsole). Bei jeder Änderung der Parameter wird eine sofortige Synchronisation und ein Update auf alle Meldevariablen gegeben.
+Sobald eine URL bzw. eine Media-ID angegeben und gespeichert wurde, beginnt die Synchronisierung. Fehler beim Zugriff auf den Kalender stehen im Systemlog (Tabreiter **Meldungen** in der IP-Symcon Management Konsole). Bei jeder Änderung der Parameter wird eine sofortige Synchronisation und ein Update auf alle Meldevariablen gegeben.
 
 
 #### Beispiel für Meldevariablen
 Am Beispiel eines Müllkalenders soll die Vorgehensweise bei der Erstellung von Meldevariablen erläutert werden.
 
-**Szenario**:<br> 
+**Szenario:** <br> 
 *In einem Kalender gibt es Einträge für die Müllabholtermine. An den Müllabfuhrtagen soll - getrennt nach den Tonnenarten - eine entsprechende Statusvariable auf 'true' gesetzt werden.*
 
 Die Einträge im Google Kalender lauten
@@ -108,7 +108,12 @@ Die Einträge im Google Kalender lauten
 Nun wird für jede zu erstellende Statusvariable ein Eintrag unter "Meldevariablen" angelegt. Im Beispiel soll eine Statusvariable für die Papiertonne erstellt werden. Wenn ein Kalendereintrag mit dem Begriff "Papiertonne" gefunden wird, dann soll die Statusvariable mit 24 Stunden Vorlauf (=1440 Minuten) und 5 Stunden Nachlauf auf "true" gesetzt werden.
 ![image](docs/Instanz_Meldevariable_definieren.png)
 
-Das gleiche geschieht für die anderen Tonnen:
+Als Suchbegriff kann auch ein "Regulärer Ausdruck" verwendet werden. Zum Testen des Ausdrucks gibt es eine Testfunktion.
+![image](docs/Testfunktion_RegExpr.png)
+Es gibt aber auch im Web verschiedene Seiten (z.B. [regular expressions 101](https://regex101.com/)), die beim Ausformulieren von Suchmustern helfen.
+
+
+Die gleiche Vorgehensweise gilt für die anderen Tonnen:
 
 ![image](docs/Instanz_Meldevariablen_Liste.png)
 
