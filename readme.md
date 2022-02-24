@@ -49,23 +49,24 @@ Unter "Instanz hinzufügen" eine Instanz **iCal Calendar Reader** hinzufügen.
 
 #### Konfigurationsseite:
 
-Eigenschaft          |Typ     | Standardwert|Beschreibung
-------------------- | ---------|------------|------------
-CalendarServerURL   |string|     | URL zur iCal-Quelle
-Username            |string|  |    Benutzer für den Zugriff auf die Quelle
-Password            |string|   |   Passwort dieses Benutzers
-iCalMediaID | integer| |Id eines Media Objektes, welches eine Kalenderdatei enthält
-DisableSSLVerifyPeer|boolean|  false |   Deaktivierung der SSL Zertifikatsüberprüfung
-DaysToCache    |integer|30| Anzahl der Tage, für die Ereignisse in der Zukunft gelesen werden sollen
-DaysToCacheBack    |integer|30|  Anzahl der Tage, für die Ereignisse in der Vergangenheit gelesen werden sollen
-UpdateFrequency |integer|15|  Alle wieviel Minuten soll die Quelle gelesen werden
-WriteDebugInformationToLogfile |boolean|false|legt fest, ob die Debug Informationen zusätzlich in das Standard Logfile geschrieben werden sollen. <b>Wichtig:</b> dazu muss der Symcon Spezialschalter 'LogfileVerbose' aktiviert sein
-<b>Notifiers</b> ||
-Ident |string| NOTIFIER + lfd. Nummer| Ident der Statusvariablen     
-Find |string| | Suchmuster mit dem der Kalendereintrag verglichen wird    
-RegExpression |boolean|false|Kennzeichnung, ob es sich bei dem Suchmuster um einen regulären Ausdruck ("RegExpr") handelt
-Prenotify |integer|0| Wie viele Minuten vor dem Ereignisstart soll die Statusvariable auf "true" gesetzt werden
-Postnotify |integer|0| Wie viele Minuten nach dem Ereignisende soll die Statusvariable auf "true" gesetzt bleiben
+| Eigenschaft                    | Typ     | Standardwert           | Beschreibung                                                                                                                                                                             |
+|--------------------------------|---------|------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| active                         | boolean | true                   | aktiviert/deaktiviert die Instanz                                                                                                                                                        |
+| CalendarServerURL              | string  |                        | URL zur iCal-Quelle                                                                                                                                                                      |
+| Username                       | string  |                        | Benutzer für den Zugriff auf die Quelle                                                                                                                                                  |
+| Password                       | string  |                        | Passwort dieses Benutzers                                                                                                                                                                |
+| iCalMediaID                    | integer |                        | Id eines Media Objektes, welches eine Kalenderdatei enthält                                                                                                                              |
+| DisableSSLVerifyPeer           | boolean | false                  | Deaktivierung der SSL Zertifikatsüberprüfung                                                                                                                                             |
+| DaysToCache                    | integer | 30                     | Anzahl der Tage, für die Ereignisse in der Zukunft gelesen werden sollen                                                                                                                 |
+| DaysToCacheBack                | integer | 30                     | Anzahl der Tage, für die Ereignisse in der Vergangenheit gelesen werden sollen                                                                                                           |
+| UpdateFrequency                | integer | 15                     | Alle wieviel Minuten soll die Quelle gelesen werden                                                                                                                                      |
+| WriteDebugInformationToLogfile | boolean | false                  | legt fest, ob die Debug Informationen zusätzlich in das Standard Logfile geschrieben werden sollen. <b>Wichtig:</b> dazu muss der Symcon Spezialschalter 'LogfileVerbose' aktiviert sein |
+| <b>Notifiers</b>               ||
+| Ident                          | string  | NOTIFIER + lfd. Nummer | Ident der Statusvariablen                                                                                                                                                                |
+| Find                           | string  |                        | Suchmuster mit dem der Kalendereintrag verglichen wird                                                                                                                                   |    
+| RegExpression                  | boolean | false                  | Kennzeichnung, ob es sich bei dem Suchmuster um einen regulären Ausdruck ("RegExpr") handelt                                                                                             |
+| Prenotify                      | integer | 0                      | Wie viele Minuten vor dem Ereignisstart soll die Statusvariable auf "true" gesetzt werden                                                                                                |
+| Postnotify                     | integer | 0                      | Wie viele Minuten nach dem Ereignisende soll die Statusvariable auf "true" gesetzt bleiben                                                                                               |
 
 
 #### Einlesen des Kalenders über eine URL
