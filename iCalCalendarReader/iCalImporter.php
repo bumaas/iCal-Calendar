@@ -374,20 +374,16 @@ class iCalImporter
                 // replace/set iCal date array with datetime object
                 $CalRRule['DTSTART'] = $dtStartingTime;
 
-                // the array underneath "BYDAY" needs to be exactly one level deep. If not, lift it up
+                // the "BYDAY" element needs to be string. If not, lift it up
                 if (array_key_exists('BYDAY', $CalRRule)) {
                     foreach ($CalRRule['BYDAY'] as &$day) {
                         if (is_array($day) && array_key_exists('DAY', $day)) {
-                            $day = $day['DAY'];
+                            $day = implode('', $day);
                         }
                     }
                     unset($day);
-                    // rules like every 1. Monday of the month
-                    if (isset($CalRRule['BYDAY'][0], $CalRRule['BYDAY']['DAY'])) {
-                        $CalRRule['BYDAY']['DAY'] = $CalRRule['BYDAY'][0] . $CalRRule['BYDAY']['DAY'];
-                        unset($CalRRule['BYDAY'][0]);
-                    }
 
+                    $CalRRule['BYDAY'] = implode(',',$CalRRule['BYDAY']);
                 }
 
                 call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('CalRRule \'%s\': %s', $vEvent->getSummary(), json_encode($CalRRule)));
