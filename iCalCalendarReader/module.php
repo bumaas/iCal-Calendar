@@ -109,7 +109,7 @@ class iCalCalendarReader extends IPSModule
     private const ICCR_ATTRIBUTE_CALENDAR_BUFFER = 'CalendarBuffer';
     private const ICCR_ATTRIBUTE_NOTIFICATIONS   = 'Notifications';
 
-    private const TIMER_TRIGGERNOTIFICATIONS = 'Cron1';
+    private const TIMER_TRIGGERNOTIFICATIONS = 'TriggerCalendarNotifications';
     private const TIMER_UPDATECALENDAR       = 'UpdateCalendar';
 
     /***********************************************************************
@@ -621,6 +621,7 @@ class iCalCalendarReader extends IPSModule
             // only differentiate between invalid, connect, SSL and auth
             switch ($curl_error_nr) {
                 case CURLE_OPERATION_TIMEOUTED:
+                case CURLE_SSL_CONNECT_ERROR:
                     $instStatus = self::STATUS_INST_OPERATION_TIMED_OUT;
                     break;
                 case CURLE_UNSUPPORTED_PROTOCOL:
@@ -629,7 +630,6 @@ class iCalCalendarReader extends IPSModule
                     // invalid URL
                     $instStatus = self::STATUS_INST_INVALID_URL;
                     break;
-                case CURLE_SSL_CONNECT_ERROR:
                 case CURLE_SSL_ENGINE_NOTFOUND:
                 case CURLE_SSL_ENGINE_SETFAILED:
                 case CURLE_SSL_CERTPROBLEM:
