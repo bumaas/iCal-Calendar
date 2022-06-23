@@ -605,6 +605,8 @@ class iCalCalendarReader extends IPSModule
         curl_setopt($curl, CURLOPT_FOLLOWLOCATION, 1);
         curl_setopt($curl, CURLOPT_MAXREDIRS, 5); // educated guess
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curl, CURLOPT_USERAGENT, sprintf('IP-Symcon %s, %s (%s)', IPS_GetKernelVersion(), date(DATE_W3C, IPS_GetKernelDate()), IPS_GetKernelPlatform()));
+
         if ($username !== '') {
             curl_setopt($curl, CURLOPT_USERPWD, $username . ':' . $password);
         }
