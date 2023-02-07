@@ -760,7 +760,7 @@ class iCalCalendarReader extends IPSModule
     {
         $this->Logger_Dbg(__FUNCTION__, sprintf('Entering %s()', __FUNCTION__));
 
-        if (!in_array($this->GetStatus(), [IS_ACTIVE, self::STATUS_INST_OPERATION_TIMED_OUT], true)) {
+        if (!in_array($this->GetStatus(), [IS_ACTIVE, self::STATUS_INST_OPERATION_TIMED_OUT, self::STATUS_INST_CONNECTION_ERROR], true)) {
             $this->Logger_Dbg(__FUNCTION__, 'Instance is not active');
             return null;
         }
