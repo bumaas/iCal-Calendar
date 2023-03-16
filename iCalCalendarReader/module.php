@@ -410,25 +410,29 @@ class iCalCalendarReader extends IPSModule
                 'type'    => 'Button',
                 'caption' => 'Load calendar',
                 'onClick' => '
-                 $module = new IPSModule($id);
-                 $calendarReturn = ICCR_UpdateCalendar($id);
-                 if ($calendarReturn === null){
-                    echo $module->Translate("Error!");
-                 } else {
-                    $calendarEntries = json_decode($calendarReturn, true);
-                    if (count($calendarEntries)){
-                        echo $module->Translate("The following dates are read:") . PHP_EOL . PHP_EOL;
-                        print_r($calendarEntries);
-                    } else { 
-                        echo $module->Translate("No dates are found");
-                    }
-                 }
+                     $module = new IPSModule($id);
+                     $calendarReturn = ICCR_UpdateCalendar($id);
+                     if ($calendarReturn === null){
+                        echo $module->Translate("Error!");
+                     } else {
+                        $calendarEntries = json_decode($calendarReturn, true);
+                        if (count($calendarEntries)){
+                            echo $module->Translate("The following dates are read:") . PHP_EOL . PHP_EOL;
+                            print_r($calendarEntries);
+                        } else { 
+                            echo $module->Translate("No dates are found");
+                        }
+                     }
                  '
             ],
             [
                 'type'    => 'Button',
                 'caption' => 'Check Notifications',
-                'onClick' => '$module = new IPSModule($id); ICCR_TriggerNotifications($id); echo $module->Translate("Finished!");'
+                'onClick' => '
+                    $module = new IPSModule($id);
+                    ICCR_TriggerNotifications($id);
+                    echo $module->Translate("Finished!");
+                '
             ],
             [
                 'type'  => 'RowLayout',
@@ -438,7 +442,37 @@ class iCalCalendarReader extends IPSModule
                     [
                         'type'    => 'Button',
                         'caption' => 'Test Regular Expression',
-                        'onClick' => '$module = new IPSModule($id);if (@preg_match($Pattern, $Subject)){echo $module->Translate("Hit!");} else {echo $module->Translate("No Hit!");}'
+                        'onClick' => '
+                            $module = new IPSModule($id);
+                            if (@preg_match($Pattern, $Subject)){
+                                echo $module->Translate("Hit!");
+                            } else {
+                                echo $module->Translate("No Hit!");
+                            }
+                        '
+                    ]
+                ]
+            ],
+            [
+                'type'  => 'RowLayout',
+                'items' => [
+                    ['type' => 'ValidationTextBox', 'name' => 'Pattern2', 'caption' => 'Pattern'],
+                    [
+                        'type'    => 'Button',
+                        'caption' => 'Search the calendar with a search pattern',
+                        'onClick' => '
+                            $calendar = json_decode(ICCR_GetCachedCalendar($id), true);
+                            
+                            $hits = 0;
+                            foreach ($calendar as $event){
+                                $module = new IPSModule($id);
+                                if (@preg_match($Pattern2, $event[\'Name\'])){
+                                    echo sprintf (\'%s - %s\', date(\'d.m.Y h:i:s\', $event[\'From\']), $event[\'Name\']). PHP_EOL;
+                                    $hits++;
+                                } 
+                            }
+
+                            echo PHP_EOL . $hits . \' \' . $module->translate(\'Hits\') . PHP_EOL;                        '
                     ]
                 ]
             ]
@@ -563,6 +597,8 @@ class iCalCalendarReader extends IPSModule
         if ($content && (strpos($content, 'BEGIN:VCALENDAR') !== false)){
             return IS_ACTIVE;
         }
+
+        $this->Logger_Dbg(__FUNCTION__, 'BEGIN:VCALENDAR not found');
 
         return self::STATUS_INST_INVALID_MEDIA_CONTENT;
     }
@@ -760,7 +796,7 @@ class iCalCalendarReader extends IPSModule
     {
         $this->Logger_Dbg(__FUNCTION__, sprintf('Entering %s()', __FUNCTION__));
 
-        if (!in_array($this->GetStatus(), [IS_ACTIVE, self::STATUS_INST_OPERATION_TIMED_OUT, self::STATUS_INST_CONNECTION_ERROR], true)) {
+        if (!in_array($this->GetStatus(), [IS_ACTIVE, self::STATUS_INST_OPERATION_TIMED_OUT, self::STATUS_INST_CONNECTION_ERROR, self::STATUS_INST_INVALID_MEDIA_CONTENT], true)) {
             $this->Logger_Dbg(__FUNCTION__, 'Instance is not active');
             return null;
         }

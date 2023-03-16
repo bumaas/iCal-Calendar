@@ -34,6 +34,8 @@
       "Test Regular Expression": "Regulären Ausdruck testen",
       "Hit!": "Treffer!",
       "No Hit!": "Kein Treffer!",
+      "Search the calendar with a search pattern": "Den Kalender mit einem Suchmuster durchsuchen",
+      "Hits": "Treffer",
       "Invalid URL, see log for details": "Ungültige URL, siehe Logfile für Details",
       "SSL error, see log for details": "SSL Fehler, siehe Logfile für Details",
       "Invalid user or password": "Benutzername oder Kennwort sind ungültig",
