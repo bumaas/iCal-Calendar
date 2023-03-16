@@ -432,7 +432,8 @@ class iCalCalendarReader extends IPSModule
                     $module = new IPSModule($id);
                     ICCR_TriggerNotifications($id);
                     echo $module->Translate("Finished!");
-                '
+                ',
+                'visible' => $this->GetStatus() === IS_ACTIVE,
             ],
             [
                 'type'  => 'RowLayout',
@@ -451,7 +452,8 @@ class iCalCalendarReader extends IPSModule
                             }
                         '
                     ]
-                ]
+                ],
+                'visible' => $this->GetStatus() === IS_ACTIVE,
             ],
             [
                 'type'  => 'RowLayout',
@@ -464,8 +466,8 @@ class iCalCalendarReader extends IPSModule
                             $calendar = json_decode(ICCR_GetCachedCalendar($id), true);
                             
                             $hits = 0;
+                            $module = new IPSModule($id);
                             foreach ($calendar as $event){
-                                $module = new IPSModule($id);
                                 if (@preg_match($Pattern2, $event[\'Name\'])){
                                     echo sprintf (\'%s - %s\', date(\'d.m.Y h:i:s\', $event[\'From\']), $event[\'Name\']). PHP_EOL;
                                     $hits++;
@@ -474,7 +476,8 @@ class iCalCalendarReader extends IPSModule
 
                             echo PHP_EOL . $hits . \' \' . $module->translate(\'Hits\') . PHP_EOL;                        '
                     ]
-                ]
+                ],
+                'visible' => $this->GetStatus() === IS_ACTIVE,
             ]
         ];
 
