@@ -904,17 +904,18 @@ class iCalCalendarReader extends IPSModule
                     break;
                 }
             }
-            $idNotifier = @$this->GetIDForIdent($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]);
-            if ($idNotifier && ($this->GetValue($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]) !== $active)) {
-                $this->Logger_Dbg(
-                    __FUNCTION__,
-                    sprintf(
-                        'Ident \'%s\' (#%s) auf %s gesetzt',
-                        $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT],
-                        $idNotifier,
-                        (int)$active
-                    )
-                );
+            if ($idNotifier = @$this->GetIDForIdent($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT])) {
+                if ($this->GetValue($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]) !== $active){
+                    $this->Logger_Dbg(
+                        __FUNCTION__,
+                        sprintf(
+                            'Ident \'%s\' (#%s) auf %s gesetzt',
+                            $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT],
+                            $idNotifier,
+                            (int)$active
+                        )
+                    );
+                }
 
                 $this->SetValue($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT], $active);
             }
