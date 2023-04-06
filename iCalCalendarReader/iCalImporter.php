@@ -107,7 +107,6 @@ class iCalImporter
             $params = $dtValue['params'];
         }
         // whole-day, this is not timezone relevant!
-        /** @noinspection PhpUndefinedVariableInspection */
         $WholeDay = (isset($params['VALUE']) && ($params['VALUE'] === 'DATE'));
 
         $Year  = (int) $value->format('Y');
