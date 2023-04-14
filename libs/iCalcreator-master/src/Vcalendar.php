@@ -2,32 +2,31 @@
 /**
  * iCalcreator, the PHP class package managing iCal (rfc2445/rfc5445) calendar information.
  *
- * copyright (c) 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
- * Link      https://kigkonsult.se
- * Package   iCalcreator
- * Version   2.30
- * License   Subject matter of licence is the software iCalcreator.
- *           The above copyright, link, package and version notices,
- *           this licence notice and the invariant [rfc5545] PRODID result use
- *           as implemented and invoked in iCalcreator shall be included in
- *           all copies or substantial portions of the iCalcreator.
- *
- *           iCalcreator is free software: you can redistribute it and/or modify
- *           it under the terms of the GNU Lesser General Public License as published
- *           by the Free Software Foundation, either version 3 of the License,
- *           or (at your option) any later version.
- *
- *           iCalcreator is distributed in the hope that it will be useful,
- *           but WITHOUT ANY WARRANTY; without even the implied warranty of
- *           MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *           GNU Lesser General Public License for more details.
- *
- *           You should have received a copy of the GNU Lesser General Public License
- *           along with iCalcreator. If not, see <https://www.gnu.org/licenses/>.
- *
  * This file is a part of iCalcreator.
-*/
-
+ *
+ * @author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
+ * @copyright 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * @link      https://kigkonsult.se
+ * @license   Subject matter of licence is the software iCalcreator.
+ *            The above copyright, link, package and version notices,
+ *            this licence notice and the invariant [rfc5545] PRODID result use
+ *            as implemented and invoked in iCalcreator shall be included in
+ *            all copies or substantial portions of the iCalcreator.
+ *
+ *            iCalcreator is free software: you can redistribute it and/or modify
+ *            it under the terms of the GNU Lesser General Public License as
+ *            published by the Free Software Foundation, either version 3 of
+ *            the License, or (at your option) any later version.
+ *
+ *            iCalcreator is distributed in the hope that it will be useful,
+ *            but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *            MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *            GNU Lesser General Public License for more details.
+ *
+ *            You should have received a copy of the GNU Lesser General Public License
+ *            along with iCalcreator. If not, see <https://www.gnu.org/licenses/>.
+ */
+declare( strict_types = 1 );
 namespace Kigkonsult\Icalcreator;
 
 use DateTime;
@@ -48,7 +47,6 @@ use function count;
 use function ctype_digit;
 use function end;
 use function explode;
-use function gethostbyname;
 use function implode;
 use function in_array;
 use function is_array;
@@ -71,23 +69,24 @@ use function usort;
 /**
  * Vcalendar class
  *
- * @author Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @since  2.29.16 - 2020-01-25
+ * @since  2.39.1 - 2021-06-26
  */
 final class Vcalendar extends IcalBase
 {
-    use Traits\CALSCALEtrait,
-        Traits\METHODtrait,
-        Traits\PRODIDtrait,
+    // The following are REQUIRED, but MUST NOT occur more than once.
+    use Traits\PRODIDtrait,
         Traits\VERSIONtrait;
     // The following are OPTIONAL, but MUST NOT occur more than once.
+    use Traits\CALSCALEtrait,
+        Traits\METHODtrait;
+    // The following are OPTIONAL, but MUST NOT occur more than once (rfc7986).
     use Traits\UIDrfc7986trait,
         Traits\LAST_MODIFIEDtrait,
         Traits\URLtrait,
         Traits\REFRESH_INTERVALrfc7986trait,
         Traits\SOURCErfc7986trait,
         Traits\COLORrfc7986trait;
-    // The following are OPTIONAL, and MAY occur more than once.
+    // The following are OPTIONAL, and MAY occur more than once (rfc7986).
     use Traits\NAMErfc7986trait,
         Traits\DESCRIPTIONtrait,
         Traits\CATEGORIEStrait,
@@ -115,19 +114,11 @@ final class Vcalendar extends IcalBase
      * Constructor for calendar object
      *
      * @param array $config
-     * @since  2.29.5 - 2019-06-20
+     * @since  2.39.1 - 2021-06-26
      */
     public function __construct( $config = [] )
     {
-        static $SERVER_NAME = 'SERVER_NAME';
-        static $LOCALHOST   = 'localhost';
         $this->compType     = self::VCALENDAR;
-        $this->setConfig(
-            self::UNIQUE_ID,
-            ( isset( $_SERVER[$SERVER_NAME] ))
-                ? gethostbyname( $_SERVER[$SERVER_NAME] )
-                : $LOCALHOST
-        );
         $this->setConfig( $config );
         $this->setUid();
     }
@@ -179,7 +170,7 @@ final class Vcalendar extends IcalBase
      * @return static
      * @since  2.18.5 - 2013-08-29
      */
-    public static function factory( $config = [] )
+    public static function factory( $config = [] ) : self
     {
         return new self( $config );
     }
@@ -190,7 +181,7 @@ final class Vcalendar extends IcalBase
      * @return string
      * @since  2.18.5 - 2013-08-29
      */
-    public static function iCalcreatorVersion()
+    public static function iCalcreatorVersion() : string
     {
         return trim(
             substr(
@@ -209,7 +200,7 @@ final class Vcalendar extends IcalBase
      * RECURRENCE-ID *4 (alt. "R-UID")
      * RELATED-TO, URL, UID
      * @param string $propName
-     * @return mixed
+     * @return array|bool   false on not found propName
      * @since  2.29.17 - 2020-01-25
      */
     public function getProperty( $propName )
@@ -236,14 +227,15 @@ final class Vcalendar extends IcalBase
         if( ! Util::isPropInList( $propName, $PROPS )) {
             return false;
         }
-        $output = [];
+        $output  = [];
+        $content = null;
         foreach( $this->components as $cix => $component ) {
             switch( true ) {
                 case ( ! Util::isCompInList( $component->getCompType(), self::$VCOMPS )) :
                     continue 2;
                 case ( ! property_exists(
                     $component,
-                    self::getInternalPropName( $propName ))
+                    StringFactory::getInternalPropName( $propName ) )
                 ) :
                     continue 2;
                 case ( Util::isPropInList( $propName, self::$MPROPS1 )) :
@@ -260,7 +252,7 @@ final class Vcalendar extends IcalBase
                         ( false === ( $content = $component->getGeoLocation())))) :
                     continue 2;
                 default :
-                    $method = parent::getGetMethodName( $propName );
+                    $method = StringFactory::getGetMethodName( $propName );
                     if( ! method_exists( $component, $method ) ||
                         ( false === ( $content = $component->{$method}()))) {
                         continue 2;
@@ -344,7 +336,7 @@ final class Vcalendar extends IcalBase
             case Util::isCompInList( $arg1, self::$CALCOMPS ) : // component type
                 unset( $this->compix[self::$INDEX] );
                 $argType = $arg1;
-                if( is_null( $arg2 )) {
+                if( null === $arg2 ) {
                     if( isset( $this->compix[$argType] )) {
                         $this->compix[$argType] = $this->compix[$argType] + 1;
                     }
@@ -353,12 +345,12 @@ final class Vcalendar extends IcalBase
                     }
                     $index = $this->compix[$argType];
                 }
-                elseif( isset( $arg2 ) && ctype_digit((string) $arg2 )) {
+                elseif( ctype_digit((string) $arg2 )) {
                     $index = (int) $arg2;
                 }
                 break;
             case is_string( $arg1 ) : // assume UID as 1st argument
-                if( is_null( $arg2 )) {
+                if( null === $arg2 ) {
                     if( isset( $this->compix[$arg1] )) {
                         $this->compix[$arg1] = $this->compix[$arg1] + 1;
                     }
@@ -367,7 +359,7 @@ final class Vcalendar extends IcalBase
                     }
                     $index = $this->compix[$arg1];
                 }
-                elseif( isset( $arg2 ) && ctype_digit((string) $arg2 )) {
+                elseif( ctype_digit((string) $arg2 )) {
                     $index = (int) $arg2;
                 }
                 break;
@@ -386,29 +378,26 @@ final class Vcalendar extends IcalBase
                     break;
                 case (( self::$INDEX == $argType ) && ( $index == $cix )) :
                     return clone $this->components[$cix];
-                    break;
-                case ( 0 == strcasecmp(
-                    $argType,
-                    $this->components[$cix]->getCompType()
-                    )) :
+                case ( ! empty( $argType ) &&
+                    ( 0 == strcasecmp( $argType, $this->components[$cix]->getCompType()))) :
                     if( $index == $cix1gC ) {
                         return clone $this->components[$cix];
                     }
-                    $cix1gC++;
+                    $cix1gC += 1;
                     break;
                 case is_array( $arg1 ) : // [ *[propertyName => propertyValue] ]
                     if( self::isFoundInCompsProps( $this->components[$cix], $arg1 )) {
                         if( $index == $cix1gC ) {
                             return clone $this->components[$cix];
                         }
-                        $cix1gC++;
+                        $cix1gC += 1;
                     }
                     break;
                 case ( ! $argType && ( $arg1 == $this->components[$cix]->getUid())) :
                     if( $index == $cix1gC ) {
                         return clone $this->components[$cix];
                     }
-                    $cix1gC++;
+                    $cix1gC += 1;
                     break;
             } // end switch
         } // end foreach( $cKeys as $cix )
@@ -428,16 +417,15 @@ final class Vcalendar extends IcalBase
     private static function isFoundInCompsProps(
         CalendarComponent $component,
         array $argList
-    ) {
+    ) : bool
+    {
         foreach( $argList as $propName => $propValue ) {
             switch( true ) {
                 case ( ! Util::isPropInList( $propName, self::$DATEPROPS ) &&
                     ! Util::isPropInList( $propName, Vcalendar::$OTHERPROPS )) :
                     continue 2;
-                    break;
-                case ( ! property_exists( $component, parent::getInternalPropName( $propName ))) :
+                case ( ! property_exists( $component, StringFactory::getInternalPropName( $propName ) )) :
                     continue 2;
-                    break;
                 case ( Util::isPropInList( $propName, self::$MPROPS1 )) : // multiple occurrence
                     $propValues = [];
                     $component->getProperties( $propName, $propValues );
@@ -445,9 +433,8 @@ final class Vcalendar extends IcalBase
                         return true;
                     }
                     continue 2;
-                    break;
             } // end switch
-            $method = parent::getGetMethodName( $propName );
+            $method = StringFactory::getGetMethodName( $propName );
             if( ! method_exists( $component, $method )) {
                 continue;
             }
@@ -460,7 +447,6 @@ final class Vcalendar extends IcalBase
                         return true;
                     }
                     continue 2;
-                    break;
                 case ( Util::isPropInList( $propName, self::$DATEPROPS )) :
                     $fmt       = ( 9 > strlen( $propValue ))
                         ? DateTimeFactory::$Ymd
@@ -470,13 +456,12 @@ final class Vcalendar extends IcalBase
                         return true;
                     }
                     continue 2;
-                    break;
                 case ! is_array( $value ) :
                     $value = [ $value ];
                     break;
             } // end switch
             foreach( $value as $part ) {
-                $part = ( false !== strpos( $part, Util::$COMMA ))
+                $part = ( is_string( $part ) && ( false !== strpos( $part, Util::$COMMA )))
                     ? explode( Util::$COMMA, $part )
                     : [ $part ];
                 foreach( $part as $subPart ) {
@@ -497,7 +482,7 @@ final class Vcalendar extends IcalBase
      * @throws Exception
      * @since  2.27.14 - 2018-02-19
      */
-    public function newVevent()
+    public function newVevent() : Vevent
     {
         $comp = new Vevent( $this->getConfig());
         $comp->getDtstamp();
@@ -515,7 +500,7 @@ final class Vcalendar extends IcalBase
      * @throws Exception
      * @since  2.27.14 - 2018-02-19
      */
-    public function newVtodo()
+    public function newVtodo() : Vtodo
     {
         $comp = new Vtodo( $this->getConfig());
         $comp->getDtstamp();
@@ -533,7 +518,7 @@ final class Vcalendar extends IcalBase
      * @throws Exception
      * @since  2.27.14 - 2018-02-19
      */
-    public function newVjournal()
+    public function newVjournal() : Vjournal
     {
         $comp = new Vjournal( $this->getConfig());
         $comp->getDtstamp();
@@ -551,7 +536,7 @@ final class Vcalendar extends IcalBase
      * @throws Exception
      * @since  2.27.14 - 2018-02-19
      */
-    public function newVfreebusy()
+    public function newVfreebusy() : Vfreebusy
     {
         $comp = new Vfreebusy( $this->getConfig());
         $comp->getDtstamp();
@@ -567,7 +552,7 @@ final class Vcalendar extends IcalBase
      * @return Vtimezone
      * @since  2.29.8 - 2019-07-03
      */
-    public function newVtimezone()
+    public function newVtimezone() : Vtimezone
     {
         $vTimezones = $others = [];
         foreach( array_keys( $this->components ) as $cix ) {
@@ -597,7 +582,7 @@ final class Vcalendar extends IcalBase
      * @throws InvalidArgumentException
      * @since  2.27.3 - 2018-12-28
      */
-    public function replaceComponent( CalendarComponent $component )
+    public function replaceComponent( CalendarComponent $component ) : self
     {
         static $ERRMSG1 = 'Invalid component type \'%s\'';
         static $ERRMSG2 = 'Vtimezone with tzid \'%s\' not found, found \'%s\'';
@@ -655,7 +640,7 @@ final class Vcalendar extends IcalBase
      * @param bool  $split                   true (default) - one component copy every DAY it occurs during the
      *                                       period (implies flat=false)
      *                                       false          - one occurance of component only in output array
-     * @return mixed   array on success, bool false on error
+     * @return bool|array   array on success, bool false on error
      * @throws Exception
      * @since  2.29.16 - 2020-01-24
      */
@@ -694,7 +679,7 @@ final class Vcalendar extends IcalBase
      * @return static
      * @since  2.27.3 - 2018-12-28
      */
-    public function sort( $sortArg = null )
+    public function sort( $sortArg = null ) : self
     {
         static $SORTER = [ 'Kigkonsult\Icalcreator\Util\SortFactory', 'cmpfcn' ];
         if( 2 > $this->countComponents()) {
@@ -724,7 +709,7 @@ final class Vcalendar extends IcalBase
      * @throws UnexpectedValueException
      * @since  2.29.3  2019-08-29
      */
-    public function parse( $unParsedText )
+    public function parse( $unParsedText ) : self
     {
         $rows = StringFactory::conformParseInput( $unParsedText );
         $this->parse2intoComps( $rows );
@@ -853,10 +838,8 @@ final class Vcalendar extends IcalBase
                     break;
                 case Util::isPropInList( $propName, $PVPROPS ) :
                     continue 2;  // ignore version/prodid properties
-                    break;
                 case ( ! Util::isPropInList( $propName, $CALPROPS )) :
                     continue 2;  // skip non standard property names
-                    break;
             } // end switch
             /* separate attributes from value */
             list( $value, $propAttr ) = StringFactory::splitContent( $row );
@@ -873,7 +856,7 @@ final class Vcalendar extends IcalBase
                 ! Util::isPropInList( $propName, self::$TEXTPROPS )) {
                 $value = StringFactory::trimTrailNL( $value );
             }
-            $method = parent::getSetMethodName( $propName );
+            $method = StringFactory::getSetMethodName( $propName );
             switch( $propName ) {
                 case self::LAST_MODIFIED :    // fall through
                 case self::REFRESH_INTERVAL : // fall through
@@ -920,7 +903,8 @@ final class Vcalendar extends IcalBase
         $xProp = [],
         $start = null,
         $end = null
-    ) {
+    ) : self
+    {
         return VtimezonePopulateFactory::process(
             $this,
             $timezone,
@@ -937,7 +921,7 @@ final class Vcalendar extends IcalBase
      * @throws Exception
      * @since  2.29.05 - 2019-07-02
      */
-    public function createCalendar()
+    public function createCalendar() : string
     {
         static $BEGIN_VCALENDAR = "BEGIN:VCALENDAR";
         static $END_VCALENDAR   = "END:VCALENDAR";
@@ -985,7 +969,8 @@ final class Vcalendar extends IcalBase
         $gzip = false,
         $cdType = true,
         $fileName = null
-    ) {
+    ) : bool
+    {
         return HttpFactory::returnCalendar(
             $this,
             $utf8Encode,

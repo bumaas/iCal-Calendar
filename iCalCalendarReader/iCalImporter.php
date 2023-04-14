@@ -95,7 +95,7 @@ class iCalImporter
         convert iCal format to PHP DateTime respecting timezone information
         every information will be transformed into the current timezone!
     */
-    private function iCalDateTimeArrayToDateTime(array $dtValue): DateTime
+    private function iCalDateTimeArrayToDateTime(array $dtValue, bool $WholeDay): DateTime
     {
 
         if (!($dtValue['value'] instanceof DateTime)) {
@@ -106,8 +106,6 @@ class iCalImporter
         if (isset($dtValue['params'])) {
             $params = $dtValue['params'];
         }
-        // whole-day, this is not timezone relevant!
-        $WholeDay = (isset($params['VALUE']) && ($params['VALUE'] === 'DATE'));
 
         $Year  = (int) $value->format('Y');
         $Month = (int) $value->format('n');
@@ -126,6 +124,7 @@ class iCalImporter
 
         $DateTime = new DateTime();
 
+        // whole-day, this is not timezone relevant!
         if ($WholeDay) {
             $DateTime->setTimezone(new DateTimeZone($this->Timezone));
             $DateTime->setDate($Year, $Month, $Day);
@@ -266,7 +265,8 @@ class iCalImporter
                 );
                 continue;
             }
-            $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart);
+
+            $dtStartingTime = $this->iCalDateTimeArrayToDateTime($propDtstart, $this->isAllDayEvent($vEvent));
 
             if ($dtStartingTime->getTimestamp() > $CacheDateTimeUntil->getTimestamp()) {
                 // event is too far in the future, ignore
@@ -346,15 +346,19 @@ class iCalImporter
                 throw new RuntimeException('Component is not of type vevent');
             }
 
-            $dtStartingTime = $vEvent->getDtstart();
-            $dtEndingTime   = $vEvent->getDtend();
+            $dtStartingTime = $this->getDateTime($vEvent->getDtstart(true));
+            if ($vEvent->getDtend(true) === false){
+                $dtEndingTime = false;
+            } else {
+                $dtEndingTime   = $this->getDateTime($vEvent->getDtend(true));
+            }
             $dtDuration     = $vEvent->getDuration(false, false);
 
             call_user_func(
                 $this->Logger_Dbg,
                 __FUNCTION__,
                 sprintf(
-                    '#Event_RRULE# dtStartingTime: %s, dtEndingTime: %s, diDuration: %s',
+                    '#Event_RRULE# dtStartingTime: %s, dtEndingTime: %s, dtDuration: %s',
                     json_encode($dtStartingTime),
                     json_encode($dtEndingTime),
                     json_encode($dtDuration)
@@ -365,7 +369,7 @@ class iCalImporter
             $CalRRule = $vEvent->getRrule();
             if ($CalRRule) {
                 if (array_key_exists('UNTIL', $CalRRule)) {
-                    $UntilDateTime = $this->iCalDateTimeArrayToDateTime(['value' => $CalRRule['UNTIL']]);
+                    $UntilDateTime = $this->iCalDateTimeArrayToDateTime(['value' => $CalRRule['UNTIL']], $this->isAllDayEvent($vEvent));
                     // replace iCal date array with datetime object
                     $CalRRule['UNTIL'] = $UntilDateTime;
                 }
@@ -408,7 +412,7 @@ class iCalImporter
             $dtExDates = [];
             while (false !== ($exDates = $vEvent->getExdate(null, true))) {
                 foreach ($exDates['value'] as $exDateValue) {
-                    $dtExDates[] = $this->iCalDateTimeArrayToDateTime(['value' => $exDateValue, 'params' => $exDates['params']]);
+                    $dtExDates[] = $this->iCalDateTimeArrayToDateTime(['value' => $exDateValue, 'params' => $exDates['params']], $this->isAllDayEvent($vEvent));
                 }
             }
             call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('ExDates: %s', json_encode($dtExDates)));
@@ -535,7 +539,7 @@ class iCalImporter
         $Event['To']    = $tsTo;
         $Event['FromS'] = date(DATE_ATOM, $tsFrom);
         $Event['ToS']   = date(DATE_ATOM, $tsTo);
-        $Event['allDay'] = $this->GetAllDayAtribute($vEvent);
+        $Event['allDay'] = $this->isAllDayEvent($vEvent);
 
         call_user_func(
             $this->Logger_Dbg, __FUNCTION__, sprintf('Event: %s', json_encode($Event))
@@ -544,7 +548,7 @@ class iCalImporter
         return $Event;
     }
 
-    private function GetAllDayAtribute(Kigkonsult\Icalcreator\Vevent $vEvent):bool{
+    private function isAllDayEvent(Kigkonsult\Icalcreator\Vevent $vEvent):bool{
         $propDtstart    = $vEvent->getDtstart(true); // incl. params
         $propDtend    = $vEvent->getDtend(true); // incl. params
 

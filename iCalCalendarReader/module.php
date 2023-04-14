@@ -1,15 +1,15 @@
 <?php
 
 /*
-Anmerkungen: aktuelle iCalcreator-master Versionen gibt es unter https://github.com/iCalcreator/iCalcreator/releases
-derzeit verwendet: v2.30.4
+Anmerkungen: aktuelle iCalcreator-master Versionen gibt es unter https://github.com/iCalcreator/iCalcreator/commits/master
+derzeit verwendet: v2.39.2
 
 aber mit folgenden Modifikationen
 
-src\Traits\ATTENDEEtrait.php    Zeile 118
+src\Traits\ATTENDEEtrait.php    Zeile 128
             //    CalAddressFactory::assertCalAddress( $value ); //bumaas
 
-scr\Util\DateTimeZoneFactory.php    ab Zeile 99
+scr\Util\DateTimeZoneFactory.php    ab Zeile 94
 
             if (strpos($tzString, '(UTC+01:00)') !== false){
                 $tzString = str_replace('(UTC+01:00)', '(UTC +01:00)', $tzString);
@@ -21,7 +21,7 @@ scr\Util\DateTimeZoneFactory.php    ab Zeile 99
                 echo sprintf('invalid character " found. %s -> %s', $org, $tzString) . PHP_EOL;
             }
 
-src\Util\DateTimeFactory.php    ab Zeile 642
+src\Util\DateTimeFactory.php    ab Zeile 639
 
         if (8 > strlen( $string )){
             return false;
@@ -38,7 +38,7 @@ src\Util\DateTimeFactory.php    ab Zeile 642
 
         return true;
 
-src\Util\CalAddressFactory.php  ab Zeile 88
+src\Util\CalAddressFactory.php  ab Zeile 89
 
         return; //bumaas
         //Example todo:
@@ -57,6 +57,7 @@ URL;VALUE=URI:
 END:VEVENT
         //
 
+die folgende Änderung wurde nicht mehr gemacht, da Fehler mit Testbeispiel nicht mehr auftrat
 src\Traits\TRIGGERtrait.php ab Zeile 194
 
    public function setTrigger( $value = null, $params = [] )
