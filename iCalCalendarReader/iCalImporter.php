@@ -497,7 +497,7 @@ class iCalImporter
             }
 
             if ($vEvent->getUid() === $uid) {
-                $dtFound = $this->iCalDateTimeArrayToDateTime($vEvent->getRecurrenceid(true));
+                $dtFound = $this->iCalDateTimeArrayToDateTime($vEvent->getRecurrenceid(true), $this->isAllDayEvent($vEvent));
                 if ($dtOccurrence == $dtFound) {
                     call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('ChangedEvent found: %s', $dtOccurrence->getTimestamp()));
                     return $vEvent;
