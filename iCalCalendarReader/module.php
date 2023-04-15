@@ -194,7 +194,7 @@ class iCalCalendarReader extends IPSModule
 
         $this->SetStatus($Status);
 
-        $propNotifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true);
+        $propNotifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true, 512, JSON_THROW_ON_ERROR);
 
         $this->DeleteUnusedVariables($propNotifiers);
 
@@ -247,7 +247,7 @@ class iCalCalendarReader extends IPSModule
     {
         for ($i = 1; $i < 100; $i++) {
             $nextIdent = 'NOTIFIER' . $i;
-            if (!in_array($nextIdent, $usedIdents) && (@$this->GetIDForIdent($nextIdent) === false)) {
+            if (!in_array($nextIdent, $usedIdents, true) && (@$this->GetIDForIdent($nextIdent) === false)) {
                 return $i;
             }
         }
@@ -620,6 +620,49 @@ class iCalCalendarReader extends IPSModule
     */
     public function LoadCalendarURL(string &$content): int
     {
+        $testData = 'BEGIN:VCALENDAR
+PRODID:-//Google Inc//Google Calendar 70.9054//EN
+VERSION:2.0
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VTIMEZONE
+TZID:Europe/Berlin
+X-LIC-LOCATION:Europe/Berlin
+BEGIN:DAYLIGHT
+TZOFFSETFROM:+0100
+TZOFFSETTO:+0200
+TZNAME:CEST
+DTSTART:19700329T020000
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU
+END:DAYLIGHT
+BEGIN:STANDARD
+TZOFFSETFROM:+0200
+TZOFFSETTO:+0100
+TZNAME:CET
+DTSTART:19701025T030000
+RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+SUMMARY:Event zum Testen
+CREATED:20191229T194615Z
+DTEND;TZID=Europe/Berlin:20230405T100000
+DTSTAMP:20191229T194616Z
+DTSTART;TZID=Europe/Berlin:20230405T090000
+LAST-MODIFIED:20191229T194615Z
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:Event zum Testen (DURATION mit 2 Minuten)
+CREATED:20191229T194615Z
+DURATION:PT2M
+DTSTAMP:20191229T194616Z
+DTSTART;TZID=Europe/Berlin:20230405T090000
+LAST-MODIFIED:20191229T194615Z
+END:VEVENT
+END:VCALENDAR
+';
+
+        $test = false;
         $instStatus = IS_ACTIVE;
         $url        = $this->ReadPropertyString(self::ICCR_PROPERTY_CALENDAR_URL);
         $username   = $this->ReadPropertyString(self::ICCR_PROPERTY_USERNAME);
@@ -652,6 +695,9 @@ class iCalCalendarReader extends IPSModule
         }
 
         $content = curl_exec($curl);
+        if ($test){
+            $content = $testData;
+        }
 
         $curl_error_nr  = curl_errno($curl);
         $curl_error_str = curl_error($curl);

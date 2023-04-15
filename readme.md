@@ -34,7 +34,7 @@ Diese Bibliothek nutzt folgende externe Bibliotheken im Verzeichnis `/lib`:
 
 ### 2. Voraussetzungen
 
-- IP-Symcon ab Version 5.1
+- IP-Symcon ab Version 6.0
 - Kalender im iCal-Format
 
 
