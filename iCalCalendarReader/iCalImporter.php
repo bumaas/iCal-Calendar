@@ -81,9 +81,11 @@ class iCalImporter
 
                 // between these dates?
                 if (($EventDateTime > $DSTStartDateTime) && ($EventDateTime < $DSTEndDateTime)) {
-                    $EventDateTime->add(DateInterval::createFromDateString(strtotime($CalendarTimezone['TZOFFSETFROM'])));
+                    $from_diff = sprintf('%s %d hours %s %d minutes', $CalendarTimezone['TZOFFSETFROM'][0], substr($CalendarTimezone['TZOFFSETFROM'],1,2), $CalendarTimezone['TZOFFSETFROM'][0], substr($CalendarTimezone['TZOFFSETFROM'],3,2));
+                    $EventDateTime->add(DateInterval::createFromDateString($from_diff));
                 } else {
-                    $EventDateTime->add(DateInterval::createFromDateString(strtotime($CalendarTimezone['TZOFFSETTO'])));
+                    $to_diff = sprintf('%s %d hours %s %d minutes', $CalendarTimezone['TZOFFSETTO'][0], substr($CalendarTimezone['TZOFFSETTO'],1,2), $CalendarTimezone['TZOFFSETTO'][0], substr($CalendarTimezone['TZOFFSETTO'],3,2));
+                    $EventDateTime->add(DateInterval::createFromDateString($to_diff));
                 }
                 break;
             }
@@ -168,6 +170,7 @@ class iCalImporter
     /*
         main import method
     */
+    /** @noinspection PhpUndefinedMethodInspection */
     public function ImportCalendar(string $iCalData): array
     {
         // see Internet Calendaring and Scheduling Core Object Specification https://tools.ietf.org/html/rfc5545
@@ -311,13 +314,14 @@ class iCalImporter
             } else {
                 $dtEndingTime   = $this->getDateTime($vEvent->getDtend(true));
             }
-            $dtDuration     = $vEvent->getDuration(false, true); //DateInterval
+            $dtDuration     = $vEvent->getDuration(false, true); //specform: the end date is already calculated
+
 
             call_user_func(
                 $this->Logger_Dbg,
                 __FUNCTION__,
                 sprintf(
-                    '#Event# dtStartingTime: %s, dtEndingTime: %s, diDuration: %s',
+                    '#Event# dtStartingTime: %s, dtEndingTime: %s, dtDuration: %s',
                     json_encode($dtStartingTime),
                     json_encode($dtEndingTime),
                     json_encode($dtDuration)
@@ -327,8 +331,6 @@ class iCalImporter
             $tsStartingTime = $dtStartingTime->getTimestamp();
 
             if ($dtDuration !== false) {
-                $dtStart= new DateTime();
-                $dtStart->setTimestamp($dtStartingTime->getTimestamp());
                 $tsEndingTime = $dtDuration->getTimestamp();
             } elseif ($dtEndingTime === false) {
                 $tsEndingTime = $tsStartingTime;

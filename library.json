@@ -4,9 +4,9 @@
   "name": "iCalendar reader and notifier",
   "url": "",
   "compatibility": {
-    "version": "5.2"
+    "version": "6.0"
   },
   "version": "2.1",
-  "build": 92,
-  "date": 1681462741
+  "build": 93,
+  "date": 1681554948
 }
