@@ -150,6 +150,8 @@ class HttpFactory
      */
     public static function assertUrl( $url )
     {
+        return; //bma: Beispiel der Creativa:   URL;VALUE=URI:message:%3Cb8e68943-f96c-4431-9399-d036b1fd7be3@ind1s01mta9
+
         static $UC   = '_';
         static $URN  = 'urn';
         static $HTTP = 'http://';

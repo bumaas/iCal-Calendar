@@ -57,6 +57,13 @@ URL;VALUE=URI:
 END:VEVENT
         //
 
+src\Util\HttpFactory.php ab Zeile 153
+
+    public static function assertUrl( $url )
+    {
+        return;
+
+
 die folgende Änderung wurde nicht mehr gemacht, da Fehler mit Testbeispiel nicht mehr auftrat
 src\Traits\TRIGGERtrait.php ab Zeile 194
 
