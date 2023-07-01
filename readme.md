@@ -16,7 +16,7 @@ Diese Bibliothek beinhaltet ein Modul zur Einspeisung von Kalenderinformationen 
 
 ### 1. Funktionsumfang
 
-Das Modul dient dem Einlesen von Kalenderdaten in IP-Symcon (getestet mit Google Calendar, ownCloud Calendar, Synology Calendar und iCloud). Zum einen können die eingebundenen Kalender auf einfache Weise im Webfront angezeigt werden, zum anderen können eingetragene Termine zum Setzen von Statusvariablen ausgewertet werden.
+Das Modul dient dem Einlesen von Kalenderdaten in IP-Symcon (getestet mit Google Calendar, ownCloud Calendar, Synology Calendar, iCloud und Office 365). Zum einen können die eingebundenen Kalender auf einfache Weise im Webfront angezeigt werden, zum anderen können eingetragene Termine zum Setzen von Statusvariablen ausgewertet werden.
 Die eingelesenen Daten müssen [rfc5545](https://tools.ietf.org/html/rfc5545 "Internet Calendaring and Scheduling Core Object Specification") konform sein.
 
 Damit ist es z.B. sehr einfach möglich einen zentralen Anwesenheitskalender im Internet zu pflegen, IP Symcon steuert damit automatisch Heizung, Alarmanlage und Anwesenheitssimulation.
@@ -88,6 +88,10 @@ Zu finden in der Calendar-App. Rechts in der Liste der Kalender das nach unten z
 `https://(server).icloud.com/published/(number)/(secret-hash-string-1)-(secret-hash-string-2)`  
 Im macOS Kalender-Programm mit der rechten Maustaste auf den zu importierenden iCloud-Kalender klicken, *"Teilen"* auswählen und *"Öffentlicher Kalender"* auswählen. Den erscheinenden Link kopieren und das Protokoll `webcal` gegen `https` tauschen.
 Alternativ kann der Link auch im Webportal https://www.icloud.com/#calendar durch Auswahl der Kalenderfreigabe des zu importierenden Kalenders ermittelt werden. Auch hier muss `webcal` gegen `https` ersetzt werden.   
+
+**Office 365:**
+`https://outlook.office.365.com/owa/calendar/...systeme.de/.../calendar.ics`  
+In der Outlook Web App (OWA) in den Einstellungen  > Kalendar > Geteilte Kalendar einen Kalender veröfentlichen und den dazugehörigen ICS Link kopieren.  
 
 #### Einlesen des Kalenders aus einer Datei
 Für den Fall, dass eine vorliegende Kalenderdatei mit Terminen (z.B. eine iCal konforme Datei vom Abfallentsorger mit den Abholterminen) übernommen werden soll, so ist diese Datei zunächst in ein Medienobjekt vom Typ "Dokument" in Symcon zu übernehmen. Die Id der Medien Objekts ist dann in der Konfiguration anzugeben. 
