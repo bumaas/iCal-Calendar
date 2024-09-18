@@ -99,6 +99,7 @@ class iCalImporter
     */
     private function iCalDateTimeArrayToDateTime(array $dtValue, bool $WholeDay): DateTime
     {
+        //call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('dtValue: %s, WholeDay: %s', print_r($dtValue, true), (int) $WholeDay));
 
         if (!($dtValue['value'] instanceof DateTime)) {
             throw new RuntimeException('Component is not of type DateTime');
@@ -371,7 +372,7 @@ class iCalImporter
             $CalRRule = $vEvent->getRrule();
             if ($CalRRule) {
                 if (array_key_exists('UNTIL', $CalRRule)) {
-                    $UntilDateTime = $this->iCalDateTimeArrayToDateTime(['value' => $CalRRule['UNTIL']], $this->isAllDayEvent($vEvent));
+                    $UntilDateTime = $this->iCalDateTimeArrayToDateTime(['value' => $CalRRule['UNTIL']], false);
                     // replace iCal date array with datetime object
                     $CalRRule['UNTIL'] = $UntilDateTime;
                 }
