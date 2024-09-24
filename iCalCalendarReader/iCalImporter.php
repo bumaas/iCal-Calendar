@@ -544,6 +544,22 @@ class iCalImporter
         $Event['ToS']   = date(DATE_ATOM, $tsTo);
         $Event['allDay'] = $this->isAllDayEvent($vEvent);
 
+        $vAlarm = $vEvent->getComponent('valarm');
+        if ($vAlarm !== false){
+            if (!($vAlarm instanceof Kigkonsult\Icalcreator\Valarm)) {
+                throw new RuntimeException('Component is not of type valarm');
+            }
+            $interval = $vAlarm->getTrigger();
+            if (!($interval instanceof DateInterval)) {
+                throw new RuntimeException('Component is not of type DateInterval');
+            }
+            $reference = new DateTimeImmutable('@' . $tsFrom);
+            $totalSeconds = $reference->add($interval)->getTimestamp() - $tsFrom;
+            $Event['Alarm'] = $totalSeconds;
+        } else {
+            $Event['Alarm'] = 0;
+        }
+
         call_user_func(
             $this->Logger_Dbg, __FUNCTION__, sprintf('Event: %s', json_encode($Event))
         );
