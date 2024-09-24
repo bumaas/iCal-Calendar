@@ -537,7 +537,7 @@ class iCalImporter
         } else {
             $Event['Description'] = '';
         }
-
+        $Event['Categories'] = $vEvent->getCategories();
         $Event['From']  = $tsFrom;
         $Event['To']    = $tsTo;
         $Event['FromS'] = date(DATE_ATOM, $tsFrom);
