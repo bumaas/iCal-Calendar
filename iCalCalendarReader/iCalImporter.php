@@ -575,27 +575,29 @@ class iCalImporter
         $Event['FromS']      = date(DATE_ATOM, $tsFrom);
         $Event['ToS']        = date(DATE_ATOM, $tsTo);
         $Event['allDay']     = $this->isAllDayEvent($vEvent);
+        $Event['Alarms']     = [];
 
-        $vAlarm = $vEvent->getComponent('valarm');
-        if ($vAlarm !== false) {
+        while ($vAlarm = $vEvent->getComponent('valarm')) {
+            //$vAlarm = $vEvent->getComponent('valarm');
             if (!($vAlarm instanceof Kigkonsult\Icalcreator\Valarm)) {
                 throw new RuntimeException(sprintf('UID: %s, Component is not of type valarm', $Event['UID']));
             }
-            $interval = $vAlarm->getTrigger();
-            if ($interval !== false) {
-                if (!($interval instanceof DateInterval)) {
-                    throw new RuntimeException(sprintf('UID: %s, Component is not of type DateInterval', $Event['UID']));
+            $trigger = $vAlarm->getTrigger();
+            if ($trigger !== false) {
+                if ($trigger instanceof DateInterval) {
+                    $reference         = new DateTimeImmutable('@' . $tsFrom);
+                    $totalSeconds      = $reference->add($trigger)->getTimestamp() - $tsFrom;
+                    $Event['Alarms'][] = $totalSeconds;
+                } elseif ($trigger instanceof DateTime) {
+                    $Event['Alarms'][] = $tsFrom - $trigger->getTimestamp();
+                } else {
+                    var_dump($trigger);
+                    throw new RuntimeException(sprintf('UID: %s, Unknown trigger type', $Event['UID']));
                 }
-                $reference      = new DateTimeImmutable('@' . $tsFrom);
-                $totalSeconds   = $reference->add($interval)->getTimestamp() - $tsFrom;
-                $Event['Alarm'] = $totalSeconds;
             } else {
-                $Event['Alarm'] = 0;
+                $Event['Alarms'][] = 0;
             }
-        } else {
-            $Event['Alarm'] = 0;
         }
-
         call_user_func(
             $this->Logger_Dbg,
             __FUNCTION__,
