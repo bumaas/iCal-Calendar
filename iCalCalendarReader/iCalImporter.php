@@ -589,7 +589,7 @@ class iCalImporter
                     $totalSeconds      = $reference->add($trigger)->getTimestamp() - $tsFrom;
                     $Event['Alarms'][] = $totalSeconds;
                 } elseif ($trigger instanceof DateTime) {
-                    $Event['Alarms'][] = $tsFrom - $trigger->getTimestamp();
+                    $Event['Alarms'][] = $trigger->getTimestamp() - $tsFrom;
                 } else {
                     var_dump($trigger);
                     throw new RuntimeException(sprintf('UID: %s, Unknown trigger type', $Event['UID']));
