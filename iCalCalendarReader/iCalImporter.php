@@ -10,13 +10,13 @@ use RRule\RRule;
  ************************************************************************/
 class iCalImporter
 {
-    private $Timezone;
+    private string $Timezone;
 
-    private $DaysToCacheAhead;
+    private int $DaysToCacheAhead;
 
-    private $DaysToCacheBack;
+    private int $DaysToCacheBack;
 
-    private $CalendarTimezones;
+    private array $CalendarTimezones;
 
     private $Logger_Dbg;
 
@@ -25,7 +25,7 @@ class iCalImporter
     /*
         convert the timezone RRULE to a datetime object in the given/current year
     */
-    private function TZRRuleToDateTime($RRule, $Year = '')
+    private function TZRRuleToDateTime($RRule, $Year = ''): ?DateTime
     {
         // always yearly, once a year
         if (array_key_exists('BYDAY', $RRule) && array_key_exists('0', $RRule['BYDAY'])) {
@@ -36,31 +36,15 @@ class iCalImporter
                     $Month     = $RRule['BYMONTH'];
                     $DateObj   = DateTime::createFromFormat('!m', $Month);
                     $MonthName = $DateObj->format('F');
-                    switch ($Day) // RFC5545
-                    {
-                        case 'MO':
-                            $DayName = 'Monday';
-                            break;
-                        case 'TU':
-                            $DayName = 'Tuesday';
-                            break;
-                        case 'WE':
-                            $DayName = 'Wednesday';
-                            break;
-                        case 'TH':
-                            $DayName = 'Thursday';
-                            break;
-                        case 'FR':
-                            $DayName = 'Friday';
-                            break;
-                        case 'SA':
-                            $DayName = 'Saturday';
-                            break;
-                        case 'SU':
-                        default:
-                            $DayName = 'Sunday';
-                            break;
-                    }
+                    $DayName   = match ($Day) {
+                        'MO' => 'Monday',
+                        'TU' => 'Tuesday',
+                        'WE' => 'Wednesday',
+                        'TH' => 'Thursday',
+                        'FR' => 'Friday',
+                        'SA' => 'Saturday',
+                        default => 'Sunday',
+                    };
                     return date_timestamp_set(new DateTime(), strtotime($Occ . ' ' . $DayName . ' ' . $MonthName . ' ' . $Year . '00:00:00'));
                 }
             }
@@ -130,12 +114,7 @@ class iCalImporter
         $Sec   = (int)$value->format('s');
 
         // owncloud calendar
-        if (isset($params['TZID'])) {
-            $TimezoneName = $params['TZID'];
-        } // google calendar
-        else {
-            $TimezoneName = $value->getTimezone()->getName();
-        }
+        $TimezoneName = $params['TZID'] ?? $value->getTimezone()->getName();
 
         $DateTime = new DateTime();
 
@@ -148,7 +127,7 @@ class iCalImporter
             $IsStandardTimezone = true;
             try {
                 $tz = new DateTimeZone($TimezoneName);
-            } catch (Exception $e) {
+            } catch (Exception) {
                 call_user_func($this->Logger_Err, sprintf('"%s" is no Standard Timezone', $TimezoneName));
                 // no standard timezone, set to UTC first
                 $tz                 = new DateTimeZone('UTC');
@@ -219,7 +198,7 @@ class iCalImporter
                     sprintf(
                         'Uncomplete vtimezone: %s, STANDARD: %s',
                         $vTimezone->getTzid(),
-                        json_encode($Standard)
+                        json_encode($Standard, JSON_THROW_ON_ERROR)
                     )
                 );
                 continue;
@@ -347,9 +326,9 @@ class iCalImporter
                 __FUNCTION__,
                 sprintf(
                     '#Event# dtStartingTime: %s, dtEndingTime: %s, dtDuration: %s',
-                    json_encode($dtStartingTime),
-                    json_encode($dtEndingTime),
-                    json_encode($dtDuration)
+                    json_encode($dtStartingTime, JSON_THROW_ON_ERROR),
+                    json_encode($dtEndingTime, JSON_THROW_ON_ERROR),
+                    json_encode($dtDuration, JSON_THROW_ON_ERROR)
                 )
             );
 
@@ -384,9 +363,9 @@ class iCalImporter
                 __FUNCTION__,
                 sprintf(
                     '#Event_RRULE# dtStartingTime: %s, dtEndingTime: %s, dtDuration: %s',
-                    json_encode($dtStartingTime),
-                    json_encode($dtEndingTime),
-                    json_encode($dtDuration)
+                    json_encode($dtStartingTime, JSON_THROW_ON_ERROR),
+                    json_encode($dtEndingTime, JSON_THROW_ON_ERROR),
+                    json_encode($dtDuration, JSON_THROW_ON_ERROR)
                 )
             );
 
@@ -413,7 +392,9 @@ class iCalImporter
                     $CalRRule['BYDAY'] = implode(',', $CalRRule['BYDAY']);
                 }
 
-                call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('CalRRule \'%s\': %s', $vEvent->getSummary(), json_encode($CalRRule)));
+                call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('CalRRule \'%s\': %s', $vEvent->getSummary(),
+                                                                        json_encode($CalRRule, JSON_THROW_ON_ERROR)
+                ));
 
                 try {
                     $RRule = new RRule($CalRRule);
@@ -441,18 +422,18 @@ class iCalImporter
                         $this->iCalDateTimeArrayToDateTime(['value' => $exDateValue, 'params' => $exDates['params']], $this->isAllDayEvent($vEvent));
                 }
             }
-            call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('ExDates: %s', json_encode($dtExDates)));
+            call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('ExDates: %s', json_encode($dtExDates, JSON_THROW_ON_ERROR)));
 
             //get the occurrences
             $dtOccurences = $RRule->getOccurrencesBetween($CacheDateTimeFrom, $CacheDateTimeUntil);
-            call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('dtOccurrences: %s', json_encode($dtOccurences)));
+            call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('dtOccurrences: %s', json_encode($dtOccurences, JSON_THROW_ON_ERROR)));
             foreach ($dtOccurences as $dtOccurrence) {
                 if (!($dtOccurrence instanceof DateTime)) {
                     throw new RuntimeException('Component is not of type DateTime');
                 }
 
                 //check if occurrence was deleted
-                call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('dtOccurence: %s', json_encode($dtOccurrence)));
+                call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('dtOccurrence: %s', json_encode($dtOccurrence, JSON_THROW_ON_ERROR)));
                 if (in_array($dtOccurrence, $dtExDates, false)) { //compare the content, not the instance
                     call_user_func($this->Logger_Dbg, __FUNCTION__, 'excluded');
                     continue;
@@ -601,7 +582,7 @@ class iCalImporter
         call_user_func(
             $this->Logger_Dbg,
             __FUNCTION__,
-            sprintf('Event: %s', json_encode($Event))
+            sprintf('Event: %s', json_encode($Event, JSON_THROW_ON_ERROR))
         );
 
         return $Event;

@@ -61,7 +61,7 @@ Unter "Instanz hinzufügen" eine Instanz **iCal Calendar Reader** hinzufügen.
 | DaysToCacheBack                | integer | 30                     | Anzahl der Tage, für die Ereignisse in der Vergangenheit gelesen werden sollen                                                                                                           |
 | UpdateFrequency                | integer | 15                     | Alle wieviel Minuten soll die Quelle gelesen werden                                                                                                                                      |
 | WriteDebugInformationToLogfile | boolean | false                  | legt fest, ob die Debug Informationen zusätzlich in das Standard Logfile geschrieben werden sollen. <b>Wichtig:</b> dazu muss der Symcon Spezialschalter 'LogfileVerbose' aktiviert sein |
-| <b>Notifiers</b>               ||
+| <b>Notifiers</b>               |         |
 | Ident                          | string  | NOTIFIER + lfd. Nummer | Ident der Statusvariablen                                                                                                                                                                |
 | Find                           | string  |                        | Suchmuster mit dem der Kalendereintrag verglichen wird                                                                                                                                   |    
 | RegExpression                  | boolean | false                  | Kennzeichnung, ob es sich bei dem Suchmuster um einen regulären Ausdruck ("RegExpr") handelt                                                                                             |
@@ -91,7 +91,7 @@ Alternativ kann der Link auch im Webportal https://www.icloud.com/#calendar durc
 
 **Office 365:**
 `https://outlook.office.365.com/owa/calendar/...systeme.de/.../calendar.ics`  
-In der Outlook Web App (OWA) in den Einstellungen  > Kalendar > Geteilte Kalendar einen Kalender veröfentlichen und den dazugehörigen ICS Link kopieren.  
+In der Outlook Web-App (OWA) in den Einstellungen > Kalender > Geteilte Kalender einen Kalender veröffentlichen und den dazugehörigen ICS Link kopieren.  
 
 #### Einlesen des Kalenders aus einer Datei
 Für den Fall, dass eine vorliegende Kalenderdatei mit Terminen (z.B. eine iCal konforme Datei vom Abfallentsorger mit den Abholterminen) übernommen werden soll, so ist diese Datei zunächst in ein Medienobjekt vom Typ "Dokument" in Symcon zu übernehmen. Die Id der Medien Objekts ist dann in der Konfiguration anzugeben. 
