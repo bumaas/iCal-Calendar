@@ -582,7 +582,7 @@ class iCalImporter
         call_user_func(
             $this->Logger_Dbg,
             __FUNCTION__,
-            sprintf('Event: %s', json_encode($Event, JSON_THROW_ON_ERROR))
+            sprintf('Event: %s', json_encode($Event, JSON_INVALID_UTF8_SUBSTITUTE|JSON_THROW_ON_ERROR))
         );
 
         return $Event;
