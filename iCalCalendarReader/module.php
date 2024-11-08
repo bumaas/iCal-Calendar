@@ -2,7 +2,7 @@
 
 /*
 Anmerkungen: aktuelle iCalcreator-master Versionen gibt es unter https://github.com/iCalcreator/iCalcreator/commits/master
-derzeit verwendet: v2.39.2
+derzeit verwendet: v2.40.10
 
 aber mit folgenden Modifikationen
 
@@ -21,7 +21,7 @@ scr\Util\DateTimeZoneFactory.php    ab Zeile 94
                 echo sprintf('invalid character " found. %s -> %s', $org, $tzString) . PHP_EOL;
             }
 
-src\Util\DateTimeFactory.php    ab Zeile 639
+src\Util\DateTimeFactory.php    ab Zeile 629
 
         if (8 > strlen( $string )){
             return false;
@@ -38,7 +38,7 @@ src\Util\DateTimeFactory.php    ab Zeile 639
 
         return true;
 
-src\Util\CalAddressFactory.php  ab Zeile 89
+src\Util\CalAddressFactory.php  ab Zeile 90
 
         return; //bumaas
         //Example todo:
@@ -57,19 +57,18 @@ URL;VALUE=URI:
 END:VEVENT
         //
 
-src\Util\HttpFactory.php ab Zeile 153
+src\Util\HttpFactory.php ab Zeile 149
 
     public static function assertUrl( $url )
     {
         return;
 
+src\Util\StringFactory.php Zeile 387ff
+            if (!isset($tmp[$x])){
+                break;
+                echo sprintf('bumaas %s-> inLen=%s, outLen=%s, x=%s, $tmp="%s"', __FUNCTION__, $inLen, $outLen, $x, $tmp). PHP_EOL;
+            }
 
-die folgende Änderung wurde nicht mehr gemacht, da Fehler mit Testbeispiel nicht mehr auftrat
-src\Traits\TRIGGERtrait.php ab Zeile 194
-
-   public function setTrigger( $value = null, $params = [] )
-    {
-        return; //bumaas Fehler bei "TRIGGER:20210121"
 */
 declare(strict_types=1);
 
@@ -85,7 +84,7 @@ require_once 'iCalImporter.php';
 /***********************************************************************
  * module class
  ************************************************************************/
-class iCalCalendarReader extends IPSModule
+class iCalCalendarReader extends IPSModuleStrict
 {
     private const STATUS_INST_INVALID_URL           = 201;
     private const STATUS_INST_SSL_ERROR             = 202;
@@ -134,7 +133,7 @@ class iCalCalendarReader extends IPSModule
         parent::__construct($InstanceID);
     }
 
-    public function Create()
+    public function Create():void
     {
         parent::Create();
 
@@ -167,13 +166,13 @@ class iCalCalendarReader extends IPSModule
     /*
         react on user configuration dialog
     */
-    public function ApplyChanges(): bool
+    public function ApplyChanges(): void
     {
         //Never delete this line!
         parent::ApplyChanges();
 
         if (IPS_GetKernelRunlevel() !== KR_READY) {
-            return false;
+            return;
         }
 
         if ($this->ReadPropertyBoolean(self::ICCR_PROPERTY_ACTIVE)) {
@@ -207,11 +206,11 @@ class iCalCalendarReader extends IPSModule
 
         //Meldevariablen registrieren
         foreach ($propNotifiers as $notifier) {
-            if (strpos($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT], 'NOTIFIER') === 0){
+            if (str_starts_with($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT], 'NOTIFIER')){
                 if ($this->RegisterVariableBoolean(
                     $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT],
                     sprintf('%s (%s)',$this->Translate('Notifier'), substr($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT], 8)),
-                    '~Switch'
+                    '~Switch', 0
                 )){
                     $this->Logger_Dbg(__FUNCTION__, sprintf('Variable %s registriert', $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]));
                 } else {
@@ -224,12 +223,11 @@ class iCalCalendarReader extends IPSModule
 
         if ($Status !== IS_ACTIVE) {
             $this->SetTimerInterval(self::TIMER_TRIGGERNOTIFICATIONS, 0);
-            return false;
+            return;
         }
 
         $this->SetTimerInterval(self::TIMER_UPDATECALENDAR, $this->ReadPropertyInteger(self::ICCR_PROPERTY_UPDATE_FREQUENCY) * 1000 * 60);
         $this->SetTimerInterval(self::TIMER_TRIGGERNOTIFICATIONS, 1000 * 60); //jede Minute werden die Notifications getriggert
-        return true;
 
     }
 
@@ -254,7 +252,7 @@ class iCalCalendarReader extends IPSModule
     {
         for ($i = 1; $i < 100; $i++) {
             $nextIdent = 'NOTIFIER' . $i;
-            if (!in_array($nextIdent, $usedIdents, true) && (@$this->GetIDForIdent($nextIdent) === false)) {
+            if (!in_array($nextIdent, $usedIdents, true) && (@$this->GetIDForIdent($nextIdent) >= 0)) {
                 return $i;
             }
         }
@@ -268,7 +266,7 @@ class iCalCalendarReader extends IPSModule
         foreach (IPS_GetChildrenIDs($this->InstanceID) as $childrenId) {
             $obj = IPS_GetObject($childrenId);
             if ($obj['ObjectType'] === OBJECTTYPE_VARIABLE
-                && strpos($obj['ObjectIdent'], 'NOTIFIER') === 0
+                && str_starts_with($obj['ObjectIdent'], 'NOTIFIER')
                 && !in_array($obj['ObjectIdent'], $idents, true)) {
                 $idUtilControl = IPS_GetInstanceListByModuleID('{B69010EA-96D5-46DF-B885-24821B8C8DBD}')[0];
                 if (empty(UC_FindReferences($idUtilControl, $childrenId))) {
@@ -289,7 +287,7 @@ class iCalCalendarReader extends IPSModule
         }
     }
 
-    public function GetConfigurationForm()
+    public function GetConfigurationForm(): string
     {
         $form['elements'] = [
             [
@@ -502,7 +500,7 @@ class iCalCalendarReader extends IPSModule
         return json_encode($form);
     }
 
- public function RequestAction($Ident, $Value)
+ public function RequestAction($Ident, $Value): void
  {
     $this->Logger_Dbg(__FUNCTION__, sprintf('Ident: %s, Value: %s', $Ident, $Value));
 
@@ -515,20 +513,19 @@ class iCalCalendarReader extends IPSModule
                 }
             }
             $this->UpdateFormField(self::ICCR_PROPERTY_NOTIFIERS, 'values', json_encode($notifiers));
-            return true;
+            break;
 
         default:
             trigger_error(sprintf('unexpected Ident: %s', $Ident), E_USER_WARNING);
     }
 
-     return false;
  }
 
     private function getNotifierListValues():array
     {
         $savedNotifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true);
 
-        //Sonderprüfung: prüfen, ob Idents doppelt vorkommen. Sollte nicht sein, aber schon einmal gesehen...
+        //Sonderprüfung: prüfen, ob Idents doppelt vorkommen. Sollte nicht sein, aber schon einmal gesehen ...
         $idents = array_column($savedNotifiers, self::ICCR_PROPERTY_NOTIFIER_IDENT);
         for ($i = count($idents) -1; $i > 0;$i--){
             if (in_array($idents[$i], array_slice($idents, 0, ($i - 1)), true)){
@@ -555,7 +552,7 @@ class iCalCalendarReader extends IPSModule
         return $listValues;
     }
 
-    public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
+    public function MessageSink($TimeStamp, $SenderID, $Message, $Data):void
     {
         $this->Logger_Dbg(__FUNCTION__, 'SenderID: ' . $SenderID . ', Message: ' . $Message . ', Data:' . json_encode($Data));
         /** @noinspection DegradedSwitchInspection */
@@ -605,7 +602,7 @@ class iCalCalendarReader extends IPSModule
         $content = base64_decode(@IPS_GetMediaContent($iCalMediaId));
         $this->Logger_Dbg(__FUNCTION__, sprintf('Media Document Content: %s', json_encode($content)));
 
-        if ($content && (strpos($content, 'BEGIN:VCALENDAR') !== false)){
+        if ($content && (str_contains($content, 'BEGIN:VCALENDAR'))){
             return IS_ACTIVE;
         }
 
@@ -686,33 +683,26 @@ END:VALARM
 
 END:VEVENT
 BEGIN:VEVENT
-CREATED:20240926T153609Z
-LAST-MODIFIED:20240927T151502Z
-DTSTAMP:20240927T151502Z
-UID:99b3e14c-d268-4756-ba5c-a5a828c1ed81
-SUMMARY:blabla
-X-MOZ-LASTACK:20240927T151502Z
-DTSTART;TZID=W. Europe Standard Time:20240927T140000
-DTEND;TZID=W. Europe Standard Time:20240927T143000
-TRANSP:OPAQUE
-X-MICROSOFT-CDO-BUSYSTATUS:BUSY
+RRULE:FREQ=YEARLY;UNTIL=20250329T230000Z;INTERVAL=1;BYMONTHDAY=30;BYMONTH=3
+UID:040000008200E00074C5B7101A82E0080000000000312D09B02EDB0100000000000000001000000075A782AB6248F44F9809518FBF7D96C0
+SUMMARY:Geburtstag von S.
+DTSTART;TZID=(UTC+01:00) Amsterdam, Berlin, Bern, Rome, Stockholm, Vienna:20250330T000000
+DTEND;TZID=(UTC+01:00) Amsterdam, Berlin, Bern, Rome, Stockholm, Vienna:20250331T010000
 CLASS:PUBLIC
-X-MOZ-GENERATION:2
-BEGIN:VALARM
-ACTION:DISPLAY
-TRIGGER:PT7M
-DESCRIPTION:Mozilla Standardbeschreibung
-END:VALARM
-BEGIN:VALARM
-ACTION:DISPLAY
-TRIGGER;VALUE=DATE-TIME:20240928T150000Z
-DESCRIPTION:Mozilla Standardbeschreibung
-END:VALARM
-BEGIN:VALARM
-ACTION:DISPLAY
-TRIGGER:-PT15M
-DESCRIPTION:Mozilla Standardbeschreibung
-END:VALARM
+PRIORITY:5
+DTSTAMP:20241104T114157Z
+TRANSP:TRANSPARENT
+STATUS:CONFIRMED
+SEQUENCE:0
+LOCATION:
+X-MICROSOFT-CDO-APPT-SEQUENCE:0
+X-MICROSOFT-CDO-BUSYSTATUS:FREE
+X-MICROSOFT-CDO-INTENDEDSTATUS:BUSY
+X-MICROSOFT-CDO-ALLDAYEVENT:FALSE
+X-MICROSOFT-CDO-IMPORTANCE:1
+X-MICROSOFT-CDO-INSTTYPE:1
+X-MICROSOFT-DONOTFORWARDMEETING:FALSE
+X-MICROSOFT-DISALLOW-COUNTER:FALSE
 END:VEVENT
 END:VCALENDAR
 ';
@@ -792,7 +782,7 @@ END:VCALENDAR
                     break;
             }
         } // no curl error, continue
-        elseif (strpos($content, 'BEGIN:VCALENDAR') === false) {
+        elseif (!str_contains($content, 'BEGIN:VCALENDAR')) {
             // handle error document
             $instStatus = self::STATUS_INST_UNEXPECTED_RESPONSE;
 
@@ -812,7 +802,7 @@ END:VCALENDAR
                     $instStatus = self::STATUS_INST_INVALID_USER_PASSWORD;
                 }
             } // synology sends plain text
-            elseif (strpos($content, 'Please log in') === 0) {
+            elseif (str_starts_with($content, 'Please log in')) {
                 $this->Logger_Err('Error logging on - invalid user/password combination for ' . $url);
                 $instStatus = self::STATUS_INST_INVALID_USER_PASSWORD;
             } // everything else goes here
@@ -957,7 +947,7 @@ END:VCALENDAR
                     return @preg_match($notFind, $calDescription) > 0;
                 }
                 $this->Logger_Dbg(__FUNCTION__, sprintf('strpos: %s', (int)strpos($notFind, $calDescription)));
-                return strpos($calDescription, $notFind) !== false;
+                return str_contains($calDescription, $notFind);
             }
             return $notFind === '';
         }

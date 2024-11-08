@@ -36,7 +36,6 @@ use Kigkonsult\Icalcreator\Util\Util;
 
 use function bin2hex;
 use function chr;
-use function openssl_random_pseudo_bytes;
 use function ord;
 use function str_split;
 use function vsprintf;
@@ -49,9 +48,9 @@ use function vsprintf;
 trait UIDrfc7986trait
 {
     /**
-     * @var array component property UID value
+     * @var null|array component property UID value
      */
-    protected $uid = null;
+    protected ?array $uid = null;
 
     /**
      * Return formatted output for calendar component property uid
@@ -88,10 +87,10 @@ trait UIDrfc7986trait
      * Get calendar component property uid
      *
      * @param null|bool   $inclParam
-     * @return bool|array
+     * @return string|array
      * @since 2.29.5 2019-06-17
      */
-    public function getUid( $inclParam = false )
+    public function getUid( ?bool $inclParam = false ) : array | string
     {
         if( self::isUidEmpty( $this->uid )) {
             $this->uid = self::makeUid();
@@ -102,24 +101,24 @@ trait UIDrfc7986trait
     /**
      * Return bool true if uid is empty
      *
-     * @param null|array  $array
+     * @param null|string[]  $array
      * @return bool
      * @since 2.29.5 2019-06-17
      */
-    private static function isUidEmpty( array $array = null ) : bool
+    private static function isUidEmpty( ? array $array ) : bool
     {
         if( empty( $array )) {
             return true;
         }
         if( empty( $array[Util::$LCvalue] ) &&
-            ( Util::$ZERO != $array[Util::$LCvalue] )) {
+            ( Util::$ZERO !== $array[Util::$LCvalue] )) {
             return true;
         }
         return false;
     }
 
     /**
-     * Return an unique id for a calendar component object instance
+     * Return an unique id for a calendar/component object instance
      *
      * @return array
      * @see https://www.php.net/manual/en/function.com-create-guid.php#117893
@@ -128,14 +127,7 @@ trait UIDrfc7986trait
     private static function makeUid() : array
     {
         static $FMT = '%s%s-%s-%s-%s-%s%s%s';
-        static $MAX = 10;
-        $cnt = 0;
-        do {
-            do {
-                $bytes = openssl_random_pseudo_bytes( 16, $cStrong );
-            } while ( false === $bytes );
-            $cnt += 1;
-        } while(( $MAX > $cnt ) && ( false === $cStrong ));
+        $bytes    = StringFactory::getRandChars( 32 ); // i.e. 16
         $bytes[6] = chr(ord( $bytes[6] ) & 0x0f | 0x40 ); // set version to 0100
         $bytes[8] = chr(ord( $bytes[8] ) & 0x3f | 0x80 ); // set bits 6-7 to 10
         $uid      = vsprintf( $FMT, str_split( bin2hex( $bytes ), 4 ));
@@ -150,14 +142,14 @@ trait UIDrfc7986trait
      *
      * If empty input, male one
      * @param null|int|string $value
-     * @param null|array  $params
+     * @param null|string[]  $params
      * @return static
      * @throws InvalidArgumentException
      * @since 2.29.14 2019-09-03
      */
-    public function setUid( $value = null, $params = [] ) : self
+    public function setUid( null|int|string $value = null, ? array $params = [] ) : static
     {
-        if( empty( $value ) && ( Util::$ZERO != $value )) {
+        if( empty( $value ) && ( Util::$ZERO !== (string) $value )) {
             $this->uid = self::makeUid();
             return $this;
         } // no allowEmpty check here !!!!

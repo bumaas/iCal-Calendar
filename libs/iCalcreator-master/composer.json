@@ -43,9 +43,9 @@
         "psr-4": { "Kigkonsult\\Icalcreator\\": ["src/", "src/Util/", "src/Traits/"] }
     },
     "require": {
-        "php": ">=7.0",
-        "ext-simplexml": "*",
+        "php": ">=8.0",
         "ext-openssl": "*",
+        "ext-simplexml": "*",
         "ext-zlib": "*"
     },
     "require-dev": {

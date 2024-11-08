@@ -47,9 +47,9 @@ use function var_export;
 trait REQUEST_STATUStrait
 {
     /**
-     * @var array component property REQUEST-STATUS value
+     * @var null|array component property REQUEST-STATUS value
      */
-    protected $requeststatus = null;
+    protected ?array $requeststatus = null;
 
     /**
      * Return formatted output for calendar component property request-status
@@ -64,7 +64,7 @@ trait REQUEST_STATUStrait
         }
         $output = Util::$SP0;
         $lang   = $this->getConfig( self::LANGUAGE );
-        foreach( $this->requeststatus as $rx => $rStat ) {
+        foreach( $this->requeststatus as $rStat ) {
             if( empty( $rStat[Util::$LCvalue][self::STATCODE] )) {
                 if( $this->getConfig( self::ALLOWEMPTY )) {
                     $output .= StringFactory::createElement( self::REQUEST_STATUS );
@@ -99,7 +99,7 @@ trait REQUEST_STATUStrait
      * @return bool
      * @since  2.27.1 - 2018-12-15
      */
-    public function deleteRequeststatus( $propDelIx = null ) : bool
+    public function deleteRequeststatus( ? int $propDelIx = null ) : bool
     {
         if( empty( $this->requeststatus )) {
             unset( $this->propDelIx[self::REQUEST_STATUS] );
@@ -118,10 +118,10 @@ trait REQUEST_STATUStrait
      *
      * @param null|int    $propIx specific property in case of multiply occurrence
      * @param null|bool   $inclParam
-     * @return bool|array
+     * @return string|array|bool
      * @since 2.29.9 2019-08-05
      */
-    public function getRequeststatus( $propIx = null, $inclParam = false )
+    public function getRequeststatus( ?int $propIx = null, ?bool $inclParam = false ) : bool | string | array
     {
         if( empty( $this->requeststatus )) {
             unset( $this->propIx[self::REQUEST_STATUS] );
@@ -139,31 +139,32 @@ trait REQUEST_STATUStrait
     /**
      * Set calendar component property request-status
      *
-     * @param null|array|float $statCode 1*DIGIT 1*2("." 1*DIGIT)
+     * @param null|int|float|string $statCode 1*DIGIT 1*2("." 1*DIGIT)
      * @param null|string      $text
      * @param null|string      $extData
-     * @param null|array       $params
+     * @param null|string[]    $params
      * @param null|integer     $index
      * @return static
      * @throws InvalidArgumentException
      * @since 2.29.14 2019-09-03
      */
     public function setRequeststatus(
-        $statCode = null,
-        $text     = null,
-        $extData  = null,
-        $params   = null,
-        $index    = null
-    ) : self
+        null|int|float|string $statCode = null,
+        ? string $text = null,
+        ? string $extData = null,
+        ? array $params = [],
+        ? int $index = null
+    ) : static
     {
         static $ERR = 'Invalid %s status code value %s';
         if( empty( $statCode ) || empty( $text )) {
             $this->assertEmptyValue( Util::$SP0, self::REQUEST_STATUS );
-            $statCode = $text = Util::$SP0;
+            $statCode = null;
+            $text     = Util::$SP0;
             $params = [];
         }
         else {
-            if( false === ( $cmp = filter_var( $statCode, FILTER_VALIDATE_FLOAT ))) {
+            if( false === filter_var( $statCode, FILTER_VALIDATE_FLOAT )) {
                 throw new InvalidArgumentException(
                     sprintf( $ERR, self::REQUEST_STATUS, var_export( $statCode, true ) )
                 );
@@ -171,14 +172,14 @@ trait REQUEST_STATUStrait
             Util::assertString( $text, self::REQUEST_STATUS );
         }
         $input = [
-            self::STATCODE => number_format( (float) $statCode, 2, Util::$DOT, null ),
+            self::STATCODE => number_format((float) $statCode, 2, Util::$DOT, null ),
             self::STATDESC => StringFactory::trimTrailNL( $text ),
         ];
         if( ! empty( $extData )) {
             Util::assertString( $extData, self::REQUEST_STATUS );
             $input[self::EXTDATA] = StringFactory::trimTrailNL( $extData );
         }
-         self::setMval( $this->requeststatus, $input, $params, null, $index );
+        self::setMval( $this->requeststatus, $input, ( $params ?? [] ), null, $index );
         return $this;
     }
 }

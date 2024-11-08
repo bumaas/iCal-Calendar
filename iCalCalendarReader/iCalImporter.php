@@ -162,7 +162,6 @@ class iCalImporter
     /*
         main import method
     */
-    /** @noinspection PhpUndefinedMethodInspection */
     public function ImportCalendar(string $iCalData): array
     {
         // see Internet Calendaring and Scheduling Core Object Specification https://tools.ietf.org/html/rfc5545
@@ -172,13 +171,15 @@ class iCalImporter
 
         $rTZFactory = RegulateTimezoneFactory::factory($iCalData);
         //var_dump($rTZFactory);
-        $rTZFactory = $rTZFactory->addOtherTzPhpRelation('"(UTC+01:00) Amsterdam, Berlin, Bern, Rom, Stockholm, Wien"', 'Europe/Amsterdam');
+        $rTZFactory = $rTZFactory->addOtherTzPhpRelation('"(UTC+01:00) Amsterdam, Berlin, Bern, Rom, Stockholm, Wien"', 'Europe/Amsterdam', true);
+        $rTZFactory = $rTZFactory->addOtherTzPhpRelation('(UTC+01:00) Amsterdam, Berlin, Bern, Rome, Stockholm, Vienna', 'Europe/Amsterdam', true);
 
         $stringCalendarToParse = $rTZFactory->processCalendar()->getOutputiCal();
 
         try {
             $vCalendar = new Kigkonsult\Icalcreator\Vcalendar();
             $vCalendar->parse($stringCalendarToParse);
+            //$vCalendar->parse($iCalData);
         } catch (Exception $e) {
             call_user_func($this->Logger_Err, 'parse: ' . $e->getMessage());
             return [];

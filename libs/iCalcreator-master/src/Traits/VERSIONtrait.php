@@ -46,7 +46,7 @@ trait VERSIONtrait
      *
      * @var string calendar property VERSION
      */
-    protected $version = '2.0';
+    protected string $version = '2.0';
 
     /**
      * Return formatted output for calendar property version
@@ -77,7 +77,7 @@ trait VERSIONtrait
      * @throws InvalidArgumentException
      * @since 2.29.14 2019-09-03
      */
-    public function setVersion( $value = null ) : self
+    public function setVersion( ? string $value = null ) : static
     {
         if( empty( $value )) {
             $this->assertEmptyValue( $value, self::VERSION );
