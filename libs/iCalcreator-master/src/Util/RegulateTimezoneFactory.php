@@ -319,6 +319,9 @@ class RegulateTimezoneFactory
                 $this->setOutputiCalRow( $row );
                 continue;
             }
+            //bumaas: sometimes the TZID string containes '"'
+            $propAttr[IcalInterface::TZID] = trim( $propAttr[IcalInterface::TZID], '"' );
+
             $this->processDtProp( $propName, $value, $propAttr );
         } // end foreach
         return $this;
@@ -392,6 +395,8 @@ class RegulateTimezoneFactory
             }
             /* separate attributes from value */
             [ $value, $propAttr ] = StringFactory::splitContent( $row2 );
+            //bumaas: the TZID string sometimes contains `\`
+            $value = str_replace('\\', '', $value);
             $currTzId = $value;
             $valueNew = null;
             switch( true ) {

@@ -171,8 +171,7 @@ class iCalImporter
 
         $rTZFactory = RegulateTimezoneFactory::factory($iCalData);
         //var_dump($rTZFactory);
-        $rTZFactory = $rTZFactory->addOtherTzPhpRelation('"(UTC+01:00) Amsterdam, Berlin, Bern, Rom, Stockholm, Wien"', 'Europe/Amsterdam', true);
-        $rTZFactory = $rTZFactory->addOtherTzPhpRelation('(UTC+01:00) Amsterdam, Berlin, Bern, Rome, Stockholm, Vienna', 'Europe/Amsterdam', true);
+        $rTZFactory = $rTZFactory->addOtherTzPhpRelation('(UTC+01:00) Amsterdam, Berlin, Bern, Rom, Stockholm, Wien', 'Europe/Amsterdam', true);
 
         $stringCalendarToParse = $rTZFactory->processCalendar()->getOutputiCal();
 

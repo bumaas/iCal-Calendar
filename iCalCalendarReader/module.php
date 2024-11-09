@@ -69,6 +69,18 @@ src\Util\StringFactory.php Zeile 387ff
                 echo sprintf('bumaas %s-> inLen=%s, outLen=%s, x=%s, $tmp="%s"', __FUNCTION__, $inLen, $outLen, $x, $tmp). PHP_EOL;
             }
 
+            //bumaas: sometimes the TZID string containes '"'
+            $propAttr[IcalInterface::TZID] = trim( $propAttr[IcalInterface::TZID], '"' );
+
+src\Util\RegulateTimezoneFactory
+    322ff
+     //bumaas: sometimes the TZID string containes '"'
+     $propAttr[IcalInterface::TZID] = trim( $propAttr[IcalInterface::TZID], '"' );
+
+    398ff
+    //bumaas: the TZID string sometimes contains `\`
+    $value = str_replace('\\', '', $value);
+
 */
 declare(strict_types=1);
 
