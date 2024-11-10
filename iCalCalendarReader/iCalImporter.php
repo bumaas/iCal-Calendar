@@ -12,15 +12,15 @@ class iCalImporter
 {
     private string $Timezone;
 
-    private int $DaysToCacheAhead;
+    private int    $DaysToCacheAhead;
 
-    private int $DaysToCacheBack;
+    private int    $DaysToCacheBack;
 
-    private array $CalendarTimezones;
+    private array  $CalendarTimezones;
 
-    private $Logger_Dbg;
+    private        $Logger_Dbg;
 
-    private $Logger_Err;
+    private        $Logger_Err;
 
     /*
         convert the timezone RRULE to a datetime object in the given/current year
@@ -393,9 +393,15 @@ class iCalImporter
                     $CalRRule['BYDAY'] = implode(',', $CalRRule['BYDAY']);
                 }
 
-                call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('CalRRule \'%s\': %s', $vEvent->getSummary(),
-                                                                        json_encode($CalRRule, JSON_THROW_ON_ERROR)
-                ));
+                call_user_func(
+                    $this->Logger_Dbg,
+                    __FUNCTION__,
+                    sprintf(
+                        'CalRRule \'%s\': %s',
+                        $vEvent->getSummary(),
+                        json_encode($CalRRule, JSON_THROW_ON_ERROR)
+                    )
+                );
 
                 try {
                     $RRule = new RRule($CalRRule);
@@ -423,7 +429,7 @@ class iCalImporter
                         $this->iCalDateTimeArrayToDateTime(['value' => $exDateValue, 'params' => $exDates['params']], $this->isAllDayEvent($vEvent));
                 }
             }
-            call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('ExDates: %s', json_encode($dtExDates, JSON_THROW_ON_ERROR)));
+            call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('dtExDates: %s', json_encode($dtExDates, JSON_THROW_ON_ERROR)));
 
             //get the occurrences
             $dtOccurences = $RRule->getOccurrencesBetween($CacheDateTimeFrom, $CacheDateTimeUntil);
@@ -442,7 +448,6 @@ class iCalImporter
 
                 //check if occurrence was changed
                 $changedEvent = $this->getChangedEvent($vEvents_with_Recurrence_id, (string)$vEvent->getUid(), $dtOccurrence);
-
                 if ($changedEvent) {
                     $dtStartingTime = $changedEvent->getDtstart();
                     $dtEndingTime   = $changedEvent->getDtend();
@@ -452,38 +457,31 @@ class iCalImporter
                         ($changedEvent->getDtend())->getTimestamp()
                     );
                 } else {
-                    $tsFrom = $dtOccurrence->getTimestamp();
                     if ($dtDuration !== false) {
-                        $dtStart = new DateTime();
-                        $dtStart->setTimestamp($dtStartingTime->getTimestamp());
-                        $tsTo = ($dtStart->add($dtDuration))->getTimestamp();
+                        $tsTo = ($dtOccurrence->add($dtDuration))->getTimestamp();
                     } else {
-                        $tsTo = $tsFrom + ($dtEndingTime->getTimestamp() - $dtStartingTime->getTimestamp());
+                        $tsTo = $dtOccurrence->getTimestamp() + ($dtEndingTime->getTimestamp() - $dtStartingTime->getTimestamp());
                     }
-                    $eventArray[] = $this->GetEventAttributes($vEvent, $tsFrom, $tsTo);
+                    $eventArray[] = $this->GetEventAttributes($vEvent, $dtOccurrence->getTimestamp(), $tsTo);
                 }
             }
         }
 
-        foreach ($eventArray as $ThisEvent) {
-            if (($ThisEvent['To'] < $CacheDateTimeFrom->getTimestamp()) || ($ThisEvent['From'] > $CacheDateTimeUntil->getTimestamp())
-                || (($ThisEvent['allDay'] === true)
-                    && (($ThisEvent['To'] === $CacheDateTimeFrom->getTimestamp())
-                        || ($ThisEvent['From'] === $CacheDateTimeUntil->getTimestamp())))) {
-                // event not in the cached time, ignore
+        foreach ($eventArray as $event) {
+            if ($this->isEventOutsideCachedTime($event, $CacheDateTimeFrom, $CacheDateTimeUntil)) {
                 call_user_func(
                     $this->Logger_Dbg,
                     __FUNCTION__,
                     sprintf(
-                        'Event \'%s\' (%s - %s) is outside the cached time, ignoring',
-                        $ThisEvent['Name'],
-                        $ThisEvent['FromS'],
-                        $ThisEvent['ToS']
+                        'Event \'%s\' (%s - %s) is outside the cached time, is ignored',
+                        $event['Name'],
+                        $event['FromS'],
+                        $event['ToS']
                     )
                 );
             } else {
-                // insert event(s)
-                $iCalCalendarArray[] = $ThisEvent;
+                // insert event
+                $iCalCalendarArray[] = $event;
             }
         }
 
@@ -494,6 +492,16 @@ class iCalImporter
         }
         );
         return $iCalCalendarArray;
+    }
+
+    private function isEventOutsideCachedTime(array $event, DateTime $cacheDateTimeFrom, DateTime $cacheDateTimeUntil): bool
+    {
+        $isBeforeCacheTime   = $event['To'] < $cacheDateTimeFrom->getTimestamp();
+        $isAfterCacheTime    = $event['From'] > $cacheDateTimeUntil->getTimestamp();
+        $isSameTimeAndAllDay = $event['allDay']
+                               && ($event['To'] === $cacheDateTimeFrom->getTimestamp() || $event['From'] === $cacheDateTimeUntil->getTimestamp());
+
+        return $isBeforeCacheTime || $isAfterCacheTime || $isSameTimeAndAllDay;
     }
 
     private function getDateTime(array $dateTimeWithParams): DateTime
@@ -583,7 +591,7 @@ class iCalImporter
         call_user_func(
             $this->Logger_Dbg,
             __FUNCTION__,
-            sprintf('Event: %s', json_encode($Event, JSON_INVALID_UTF8_SUBSTITUTE|JSON_THROW_ON_ERROR))
+            sprintf('Event: %s', json_encode($Event, JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR))
         );
 
         return $Event;
