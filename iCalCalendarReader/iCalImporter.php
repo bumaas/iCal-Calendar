@@ -298,10 +298,10 @@ class iCalImporter
             $this->Logger_Dbg,
             __FUNCTION__,
             sprintf(
-                'vEvents_with_RRULE: %s, vEvents_with_Recurrence_id: %s, $vEvents: %s',
+                'vEvents: %s, vEvents_with_RRULE: %s, vEvents_with_Recurrence_id: %s',
+                count($vEvents),
                 count($vEvents_with_RRULE),
-                count($vEvents_with_Recurrence_id),
-                count($vEvents)
+                count($vEvents_with_Recurrence_id)
             )
         );
 
@@ -377,6 +377,7 @@ class iCalImporter
                     // replace iCal date array with datetime object
                     $CalRRule['UNTIL'] = $UntilDateTime;
                 }
+
                 // replace/set iCal date array with datetime object
                 $CalRRule['DTSTART'] = $dtStartingTime;
 
