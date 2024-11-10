@@ -52,7 +52,7 @@ trait RRuleTrait
 	}
 
 	/**
-	 * Return all the ocurrences after a date, before a date, or between two dates.
+	 * Return all the occurrences after a date, before a date, or between two dates.
 	 *
 	 * @param mixed $begin Can be null to return all occurrences before $end
 	 * @param mixed $end Can be null to return all occurrences after $begin
@@ -212,7 +212,7 @@ trait RRuleTrait
 			$date = new \DateTime($date->format('Y-m-d H:i:s'), $date->getTimezone());
 		}
 		else {
-			$date->setTime(
+			$date = $date->setTime(
 				$date->format('H'),
 				$date->format('i'),
 				$date->format('s'),
