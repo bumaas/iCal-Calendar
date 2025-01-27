@@ -480,26 +480,6 @@ class iCalCalendarReader extends IPSModuleStrict
             [
                 'type'  => 'RowLayout',
                 'items' => [
-                    ['type' => 'ValidationTextBox', 'name' => 'Pattern', 'caption' => 'Pattern'],
-                    ['type' => 'ValidationTextBox', 'name' => 'Subject', 'caption' => 'Subject'],
-                    [
-                        'type'    => 'Button',
-                        'caption' => 'Test Regular Expression',
-                        'onClick' => '
-                            $module = new IPSModule($id);
-                            if (@preg_match($Pattern, $Subject)){
-                                echo $module->Translate("Hit!");
-                            } else {
-                                echo $module->Translate("No Hit!");
-                            }
-                        '
-                    ]
-                ],
-                'visible' => $this->GetStatus() === IS_ACTIVE,
-            ],
-            [
-                'type'  => 'RowLayout',
-                'items' => [
                     ['type' => 'ValidationTextBox', 'name' => 'Pattern2', 'caption' => 'Pattern'],
                     [
                         'type'    => 'Button',
@@ -517,6 +497,26 @@ class iCalCalendarReader extends IPSModuleStrict
                             }
 
                             echo PHP_EOL . $hits . \' \' . $module->translate(\'Hits\') . PHP_EOL;                        '
+                    ]
+                ],
+                'visible' => $this->GetStatus() === IS_ACTIVE,
+            ],
+            [
+                'type'  => 'RowLayout',
+                'items' => [
+                    ['type' => 'ValidationTextBox', 'name' => 'Pattern', 'caption' => 'Pattern'],
+                    ['type' => 'ValidationTextBox', 'name' => 'Subject', 'caption' => 'Subject'],
+                    [
+                        'type'    => 'Button',
+                        'caption' => 'Test Regular Expression',
+                        'onClick' => '
+                            $module = new IPSModule($id);
+                            if (@preg_match($Pattern, $Subject)){
+                                echo $module->Translate("Hit!");
+                            } else {
+                                echo $module->Translate("No Hit!");
+                            }
+                        '
                     ]
                 ],
                 'visible' => $this->GetStatus() === IS_ACTIVE,
