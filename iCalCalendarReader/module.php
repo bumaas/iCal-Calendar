@@ -456,6 +456,30 @@ class iCalCalendarReader extends IPSModuleStrict
             [
                 'type'  => 'RowLayout',
                 'items' => [
+                    ['type' => 'ValidationTextBox', 'name' => 'Needle', 'caption' => 'Find'],
+                    [
+                        'type'    => 'Button',
+                        'caption' => 'Search the calendar with a search string',
+                        'onClick' => '
+                            $calendar = json_decode(ICCR_GetCachedCalendar($id), true);
+                            
+                            $hits = 0;
+                            $module = new IPSModule($id);
+                            foreach ($calendar as $event){
+                                if (str_contains($event[\'Name\'], $Needle)){
+                                    echo sprintf (\'%s - %s\', date(\'d.m.Y h:i:s\', $event[\'From\']), $event[\'Name\']). PHP_EOL;
+                                    $hits++;
+                                } 
+                            }
+
+                            echo PHP_EOL . $hits . \' \' . $module->translate(\'Hits\') . PHP_EOL;                        '
+                    ]
+                ],
+                'visible' => $this->GetStatus() === IS_ACTIVE,
+            ],
+            [
+                'type'  => 'RowLayout',
+                'items' => [
                     ['type' => 'ValidationTextBox', 'name' => 'Pattern', 'caption' => 'Pattern'],
                     ['type' => 'ValidationTextBox', 'name' => 'Subject', 'caption' => 'Subject'],
                     [
