@@ -17,14 +17,14 @@ Grundlage für die Visualisierung ist das Calendar-Control [Full Calendar](https
 Umfangreiches Calendar-Control, das den eigenen Wünschen angepasst werden kann. Siehe hierzu die Dokumentation des Controls unter https://fullcalendar.io/docs/  
 Kalendereinträge sind auf ID, Titel, Start- und Endzeitpunkt sowie ein Ganztages-Flag beschränkt.
 
-Beispiel einer Ansicht in IP-Symcon:
+Beispiel einer Ansicht in Symcon:
 
 ![image](Kalender_Control.png)
 
 
 ### 2. Voraussetzungen
 
-- IP-Symcon ab Version 5.1
+- Symcon ab Version 5.1
 - Kalender im iCal-Format
 - Installierte und lauffähige **iCalCalendarReader**-Instanzen
 

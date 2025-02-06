@@ -765,7 +765,7 @@ END:VCALENDAR
         curl_setopt($curl, CURLOPT_FOLLOWLOCATION, 1);
         curl_setopt($curl, CURLOPT_MAXREDIRS, 5); // educated guess
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($curl, CURLOPT_USERAGENT, sprintf('IP-Symcon %s, %s (%s)', IPS_GetKernelVersion(), date(DATE_W3C, IPS_GetKernelDate()), IPS_GetKernelPlatform()));
+        curl_setopt($curl, CURLOPT_USERAGENT, sprintf('Symcon %s, %s (%s)', IPS_GetKernelVersion(), date(DATE_W3C, IPS_GetKernelDate()), IPS_GetKernelPlatform()));
 
         if ($username !== '') {
             curl_setopt($curl, CURLOPT_USERPWD, $username . ':' . $password);
@@ -848,6 +848,8 @@ END:VCALENDAR
             $this->Logger_Dbg(__FUNCTION__, 'Successfully loaded');
         } elseif (!empty($content)) {
             $this->Logger_Dbg(__FUNCTION__, 'Error, curl_result: ' . $content);
+        } else {
+            $this->Logger_Dbg(__FUNCTION__, 'Error, curl_result: empty');
         }
         return $instStatus;
     }
@@ -923,7 +925,11 @@ END:VCALENDAR
     {
         $this->Logger_Dbg(__FUNCTION__, sprintf('Entering %s()', __FUNCTION__));
 
-        if (!in_array($this->GetStatus(), [IS_ACTIVE, self::STATUS_INST_OPERATION_TIMED_OUT, self::STATUS_INST_CONNECTION_ERROR, self::STATUS_INST_INVALID_MEDIA_CONTENT], true)) {
+        if (!in_array($this->GetStatus(), [IS_ACTIVE,
+                                           self::STATUS_INST_OPERATION_TIMED_OUT,
+                                           self::STATUS_INST_CONNECTION_ERROR,
+                                           self::STATUS_INST_INVALID_MEDIA_CONTENT,
+                                           self::STATUS_INST_SSL_ERROR], true)) {
             $this->Logger_Dbg(__FUNCTION__, 'Instance is not active');
             return null;
         }
