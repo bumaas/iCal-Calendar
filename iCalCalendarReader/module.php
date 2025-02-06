@@ -204,7 +204,7 @@ class iCalCalendarReader extends IPSModuleStrict
         }
 
         $iCalMediaID = $this->ReadPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID);
-        if ($iCalMediaID !== 0){
+        if ($iCalMediaID >= 10000){
             $this->SetSummary(IPS_GetName($iCalMediaID));
         } else {
             $this->SetSummary($this->ReadPropertyString(self::ICCR_PROPERTY_CALENDAR_URL));
@@ -610,7 +610,7 @@ class iCalCalendarReader extends IPSModuleStrict
         // validate saved properties
         $iCalMediaID = $this->ReadPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID);
 
-        if ($iCalMediaID === 0){
+        if ($iCalMediaID < 10000){
             return false;
         }
 

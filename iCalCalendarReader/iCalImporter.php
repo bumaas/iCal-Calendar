@@ -458,7 +458,7 @@ class iCalImporter
                     );
                 } else {
                     if ($dtDuration !== false) {
-                        $tsTo = ($dtOccurrence->add($dtDuration))->getTimestamp();
+                        $tsTo = ((clone $dtOccurrence)->add($dtDuration))->getTimestamp();
                     } else {
                         $tsTo = $dtOccurrence->getTimestamp() + ($dtEndingTime->getTimestamp() - $dtStartingTime->getTimestamp());
                     }
