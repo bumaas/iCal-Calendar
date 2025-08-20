@@ -176,7 +176,7 @@ class iCalCalendarReader extends IPSModuleStrict
     }
 
     /*
-        react on user configuration dialog
+        react on the user configuration dialog
     */
     public function ApplyChanges(): void
     {
@@ -533,7 +533,7 @@ class iCalCalendarReader extends IPSModuleStrict
             ['code' => self::STATUS_INST_OPERATION_TIMED_OUT, 'icon' => 'error', 'caption' => 'Operation timed out']
         ];
 
-        return json_encode($form);
+        return json_encode($form, JSON_THROW_ON_ERROR);
     }
 
  public function RequestAction($Ident, $Value): void
@@ -542,13 +542,13 @@ class iCalCalendarReader extends IPSModuleStrict
 
     switch ($Ident){
         case self::ICCR_PROPERTY_NOTIFIERS . '_onAdd':
-            $notifiers = json_decode($Value, true);
+            $notifiers = json_decode($Value, true, 512, JSON_THROW_ON_ERROR);
             foreach ($notifiers as $key=>$notifier){
                 if ($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT] === ''){
                     $notifiers[$key][self::ICCR_PROPERTY_NOTIFIER_IDENT] = 'NOTIFIER' . $this->GetNextFreeNotifierNumber(array_column($notifiers, self::ICCR_PROPERTY_NOTIFIER_IDENT));
                 }
             }
-            $this->UpdateFormField(self::ICCR_PROPERTY_NOTIFIERS, 'values', json_encode($notifiers));
+            $this->UpdateFormField(self::ICCR_PROPERTY_NOTIFIERS, 'values', json_encode($notifiers, JSON_THROW_ON_ERROR));
             break;
 
         default:
@@ -559,9 +559,9 @@ class iCalCalendarReader extends IPSModuleStrict
 
     private function getNotifierListValues():array
     {
-        $savedNotifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true);
+        $savedNotifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true, 512, JSON_THROW_ON_ERROR);
 
-        //Sonderprüfung: prüfen, ob Idents doppelt vorkommen. Sollte nicht sein, aber schon einmal gesehen ...
+        //Sonderprüfung: Prüfen, ob Idents doppelt vorkommen. Sollte nicht sein, aber schon einmal gesehen ...
         $idents = array_column($savedNotifiers, self::ICCR_PROPERTY_NOTIFIER_IDENT);
         for ($i = count($idents) -1; $i > 0;$i--){
             if (in_array($idents[$i], array_slice($idents, 0, ($i - 1)), true)){
@@ -590,7 +590,7 @@ class iCalCalendarReader extends IPSModuleStrict
 
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data):void
     {
-        $this->Logger_Dbg(__FUNCTION__, 'SenderID: ' . $SenderID . ', Message: ' . $Message . ', Data:' . json_encode($Data));
+        $this->Logger_Dbg(__FUNCTION__, 'SenderID: ' . $SenderID . ', Message: ' . $Message . ', Data:' . json_encode($Data, JSON_THROW_ON_ERROR));
         /** @noinspection DegradedSwitchInspection */
         switch ($Message) {
             case IPS_KERNELMESSAGE:
@@ -636,7 +636,7 @@ class iCalCalendarReader extends IPSModuleStrict
         $iCalMediaId = $this->ReadPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID);
 
         $content = base64_decode(@IPS_GetMediaContent($iCalMediaId));
-        $this->Logger_Dbg(__FUNCTION__, sprintf('Media Document Content: %s', json_encode($content)));
+        $this->Logger_Dbg(__FUNCTION__, sprintf('Media Document Content: %s', json_encode($content, JSON_THROW_ON_ERROR)));
 
         if ($content && (str_contains($content, 'BEGIN:VCALENDAR'))){
             return IS_ACTIVE;
@@ -660,85 +660,6 @@ class iCalCalendarReader extends IPSModuleStrict
     */
     public function LoadCalendarURL(string &$content): int
     {
-        $testData = 'BEGIN:VCALENDAR
-PRODID:-//Google Inc//Google Calendar 70.9054//EN
-VERSION:2.0
-CALSCALE:GREGORIAN
-METHOD:PUBLISH
-BEGIN:VTIMEZONE
-TZID:Europe/Berlin
-X-LIC-LOCATION:Europe/Berlin
-BEGIN:DAYLIGHT
-TZOFFSETFROM:+0100
-TZOFFSETTO:+0200
-TZNAME:CEST
-DTSTART:19700329T020000
-RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU
-END:DAYLIGHT
-BEGIN:STANDARD
-TZOFFSETFROM:+0200
-TZOFFSETTO:+0100
-TZNAME:CET
-DTSTART:19701025T030000
-RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU
-END:STANDARD
-END:VTIMEZONE
-BEGIN:VEVENT
-SUMMARY:Event zum Testen
-CREATED:20191229T194615Z
-DTEND;TZID=Europe/Berlin:20230405T100000
-DTSTAMP:20191229T194616Z
-DTSTART;TZID=Europe/Berlin:20230405T090000
-LAST-MODIFIED:20191229T194615Z
-END:VEVENT
-BEGIN:VEVENT
-SUMMARY:Event zum Testen (DURATION mit 2 Minuten)
-CREATED:20191229T194615Z
-DURATION:PT2M
-DTSTAMP:20191229T194616Z
-DTSTART;TZID=Europe/Berlin:20230405T090000
-LAST-MODIFIED:20191229T194615Z
-END:VEVENT
-BEGIN:VEVENT
-SUMMARY:Event mit Alarm
-CREATED:20191229T194615Z
-DURATION:PT2M
-DTSTAMP:20240924T194616Z
-DTSTART;TZID=Europe/Berlin:20240924T090000
-LAST-MODIFIED:20191229T194615Z
-BEGIN:VALARM
-ACTION:DISPLAY
-TRIGGER:PT7M
-DESCRIPTION:Mozilla Standardbeschreibung
-END:VALARM
-BEGIN:VALARM
-ACTION:DISPLAY
-TRIGGER;VALUE=DATE-TIME:20240928T150000Z
-DESCRIPTION:Mozilla Standardbeschreibung
-END:VALARM
-END:VEVENT
-BEGIN:VEVENT
-DTSTART;VALUE=DATE:20241215
-DTEND;VALUE=DATE:20241216
-RRULE:FREQ=YEARLY;COUNT=10;INTERVAL=1;BYMONTHDAY=15
-DTSTAMP:20241108T192456Z
-UID:xxx@google.com
-CREATED:20241104T104720Z
-DESCRIPTION:
-LAST-MODIFIED:20241104T104720Z
-SEQUENCE:0
-STATUS:CONFIRMED
-SUMMARY:Namenstag Chrissi
-TRANSP:OPAQUE
-BEGIN:VALARM
-ACTION:DISPLAY
-TRIGGER:-P0DT18H0M0S
-DESCRIPTION:This is an event reminder
-END:VALARM
-END:VEVENT
-END:VCALENDAR
-';
-
         $test = false;
         $instStatus = IS_ACTIVE;
         $url        = $this->ReadPropertyString(self::ICCR_PROPERTY_CALENDAR_URL);
@@ -762,18 +683,21 @@ END:VCALENDAR
         }
         curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 20);
         curl_setopt($curl, CURLOPT_TIMEOUT, 30);
-        curl_setopt($curl, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($curl, CURLOPT_MAXREDIRS, 5); // educated guess
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($curl, CURLOPT_USERAGENT, sprintf('Symcon %s, %s (%s)', IPS_GetKernelVersion(), date(DATE_W3C, IPS_GetKernelDate()), IPS_GetKernelPlatform()));
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115 Safari/537.36');
 
         if ($username !== '') {
             curl_setopt($curl, CURLOPT_USERPWD, $username . ':' . $password);
         }
 
-        $content = curl_exec($curl);
         if ($test){
-            $content = $testData;
+            $content = file_get_contents(__DIR__ . '/../docs/Examples/Testdaten/TestDaten_Joachim_Exception.txt');
+            $this->Logger_Dbg(__FUNCTION__, sprintf('%s', strlen($content)));
+            $content = str_replace('<CR><LF>', PHP_EOL, $content);
+        } else {
+            $content = curl_exec($curl);
         }
 
         $curl_error_nr  = curl_errno($curl);
@@ -953,7 +877,7 @@ END:VCALENDAR
     }
 
     /*
-        check if event is triggering a presence notification
+        check if an event is triggering a presence notification
     */
     private function CheckPresence(
         string $calDescription,
@@ -999,7 +923,7 @@ END:VCALENDAR
     }
 
     /*
-        entry point for the periodic 1m notifications timer
+        the entry point for the periodic 1m notifications timer
         also used to trigger manual updates after configuration changes
         accessible for external scripts
     */
@@ -1007,7 +931,7 @@ END:VCALENDAR
     {
         $this->Logger_Dbg(__FUNCTION__, 'Entering TriggerNotifications()');
 
-        $Notifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true);
+        $Notifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true, 512, JSON_THROW_ON_ERROR);
         if (empty($Notifiers)) {
             return;
         }
@@ -1015,10 +939,10 @@ END:VCALENDAR
         $this->Logger_Dbg(__FUNCTION__, 'Processing notifications');
         $notifications = [];
         foreach ($Notifiers as $notifier) {
-            $this->Logger_Dbg(__FUNCTION__, 'Process notifier: ' . json_encode($notifier));
+            $this->Logger_Dbg(__FUNCTION__, 'Process notifier: ' . json_encode($notifier, JSON_THROW_ON_ERROR));
             $active                            = false;
             $notifications[$notifier['Ident']] = [];
-            foreach (json_decode($this->ReadAttributeString(self::ICCR_ATTRIBUTE_CALENDAR_BUFFER), true) as $iCalItem) {
+            foreach (json_decode($this->ReadAttributeString(self::ICCR_ATTRIBUTE_CALENDAR_BUFFER), true, 512, JSON_THROW_ON_ERROR) as $iCalItem) {
                 $active = $this->CheckPresence(
                     $iCalItem['Name'],
                     $iCalItem['From'],
@@ -1051,7 +975,7 @@ END:VCALENDAR
             }
         }
 
-        $this->WriteAttributeString(self::ICCR_ATTRIBUTE_NOTIFICATIONS, json_encode($notifications));
+        $this->WriteAttributeString(self::ICCR_ATTRIBUTE_NOTIFICATIONS, json_encode($notifications, JSON_THROW_ON_ERROR));
     }
 
     /***********************************************************************
@@ -1064,7 +988,7 @@ END:VCALENDAR
     public function GetCachedCalendar(): string
     {
         if ($this->GetStatus() !== IS_ACTIVE) {
-            return json_encode([]);
+            return json_encode([], JSON_THROW_ON_ERROR);
         }
         $CalendarBuffer = $this->ReadAttributeString(self::ICCR_ATTRIBUTE_CALENDAR_BUFFER);
         $this->Logger_Dbg(__FUNCTION__, $CalendarBuffer);
@@ -1075,7 +999,7 @@ END:VCALENDAR
     {
         $this->Logger_Dbg(__FUNCTION__, sprintf('Notifications: %s', $this->ReadAttributeString(self::ICCR_ATTRIBUTE_NOTIFICATIONS)));
 
-        $notifications = json_decode($this->ReadAttributeString(self::ICCR_ATTRIBUTE_NOTIFICATIONS), true)[$ident];
-        return json_encode($notifications);
+        $notifications = json_decode($this->ReadAttributeString(self::ICCR_ATTRIBUTE_NOTIFICATIONS), true, 512, JSON_THROW_ON_ERROR)[$ident];
+        return json_encode($notifications, JSON_THROW_ON_ERROR);
     }
 }
