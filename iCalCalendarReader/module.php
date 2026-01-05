@@ -84,12 +84,17 @@ src\Util\RegulateTimezoneFactory
 */
 declare(strict_types=1);
 
-include_once __DIR__ . '/../libs/iCalcreator-master/autoload.php';
-include_once __DIR__ . '/../libs/php-rrule-master/src/RRuleTrait.php';
-include_once __DIR__ . '/../libs/php-rrule-master/src/RRuleInterface.php';
-include_once __DIR__ . '/../libs/php-rrule-master/src/RfcParser.php';
-include_once __DIR__ . '/../libs/php-rrule-master/src/RRule.php';
-include_once __DIR__ . '/../libs/php-rrule-master/src/RSet.php';
+// Autoloader für iCalcreator laden
+require_once __DIR__ . '/../libs/iCalcreator-master/autoload.php';
+
+// php-rrule manuell laden (da kein Autoloader vorhanden oder genutzt wird)
+// Die Reihenfolge ist hier wichtig (Interfaces zuerst)
+$rruleDir = __DIR__ . '/../libs/php-rrule-master/src/';
+require_once $rruleDir . 'RRuleInterface.php';
+require_once $rruleDir . 'RRuleTrait.php';
+require_once $rruleDir . 'RfcParser.php';
+require_once $rruleDir . 'RRule.php';
+require_once $rruleDir . 'RSet.php';
 
 require_once 'iCalImporter.php';
 
@@ -197,11 +202,11 @@ class iCalCalendarReader extends IPSModuleStrict
                 $curl_result = '';
                 $Status      = $this->LoadCalendarURL($curl_result);
             }
-            $this->SetStatus($Status);
-
         } else {
             $Status = IS_INACTIVE;
         }
+
+        $this->SetStatus($Status);
 
         $iCalMediaID = $this->ReadPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID);
         if ($iCalMediaID >= 10000){
@@ -209,8 +214,6 @@ class iCalCalendarReader extends IPSModuleStrict
         } else {
             $this->SetSummary($this->ReadPropertyString(self::ICCR_PROPERTY_CALENDAR_URL));
         }
-
-        $this->SetStatus($Status);
 
         $propNotifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true, 512, JSON_THROW_ON_ERROR);
 
@@ -560,27 +563,19 @@ class iCalCalendarReader extends IPSModuleStrict
     private function getNotifierListValues():array
     {
         $savedNotifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true, 512, JSON_THROW_ON_ERROR);
-
-        //Sonderprüfung: Prüfen, ob Idents doppelt vorkommen. Sollte nicht sein, aber schon einmal gesehen ...
-        $idents = array_column($savedNotifiers, self::ICCR_PROPERTY_NOTIFIER_IDENT);
-        for ($i = count($idents) -1; $i > 0;$i--){
-            if (in_array($idents[$i], array_slice($idents, 0, ($i - 1)), true)){
-                $savedNotifiers[$i][self::ICCR_PROPERTY_NOTIFIER_IDENT] = '';
-                $this->Logger_Err(sprintf('not unique ident \'%s\'', $idents[$i]));
-            }
-        }
-        //Ende Sonderprüfung - kann später gelöscht werden, wenn es keine Vorkommnisse gab
-
         $listValues = [];
 
-         foreach ($savedNotifiers as $notifier){
+        foreach ($savedNotifiers as $notifier){
             $row = $notifier;
-            $id = @$this->GetIDForIdent($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]);
-            if ($id){
+            $ident = $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT];
+
+            $id = ($ident !== '') ? @$this->GetIDForIdent($ident) : 0;
+
+            if ($id !== 0) {
                 $row[self::ICCR_PROPERTY_NOTIFIER_NAME] = IPS_GetObject($id)['ObjectName'];
             } else {
-                $row[self::ICCR_PROPERTY_NOTIFIER_IDENT] = '';
-                $row[self::ICCR_PROPERTY_NOTIFIER_NAME] = $this->Translate('invalid ident') . ' ' . $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT];
+                $row[self::ICCR_PROPERTY_NOTIFIER_IDENT] = ''; // Markieren als ungültig für die UI
+                $row[self::ICCR_PROPERTY_NOTIFIER_NAME] = $this->Translate('invalid or missing variable');
             }
             $listValues[] = $row;
         }

@@ -1,6 +1,6 @@
 <?php
 
-// version: 2.20 build 16
+// version: 2.1 build 116
 declare(strict_types=1);
 
 // get instance ID
@@ -22,25 +22,29 @@ if (IPS_GetInstance($InstanceID)['ModuleInfo']['ModuleID'] !== '{5127CDDC-2859-4
 }
 
 /** @noinspection PhpUndefinedFunctionInspection */
-$CalendarFeed = json_decode(ICCR_GetCachedCalendar($InstanceID), true);
+$rawPayload = ICCR_GetCachedCalendar($InstanceID);
+$CalendarFeed = json_decode($rawPayload, true);
 
-$result = [];
-// convert to calendar format
-foreach ($CalendarFeed as $Event) {
-    $CalEvent          = [];
-    $CalEvent['id']    = $Event['UID'];
-    $CalEvent['title'] = $Event['Name'];
-    $CalEvent['start'] = $Event['FromS'];
-    $CalEvent['end']   = $Event['ToS'];
-    if (isset($Event['allDay'])) {
-        $CalEvent['allDay'] = $Event['allDay'];
-    }
-    $result[] = $CalEvent;
+if (!is_array($CalendarFeed)) {
+    doReturn();
 }
 
+// convert to calendar format
+$result = array_map(static function (array $Event) {
+    return array_filter([
+                            'id'     => $Event['UID'] ?? null,
+                            'title'  => $Event['Name'] ?? '',
+                            'start'  => $Event['FromS'] ?? '',
+                            'end'    => $Event['ToS'] ?? '',
+                            'allDay' => $Event['allDay'] ?? null,
+                        ], static fn($value) => $value !== null);
+}, $CalendarFeed);
+
+header('Content-Type: application/json');
 echo json_encode($result);
 
 function doReturn()
 {
+    header('Content-Type: application/json');
     exit(json_encode([]));
 }
