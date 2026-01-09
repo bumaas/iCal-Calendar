@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection AutoloadingIssuesInspection */
 
 /*
 Anmerkungen: aktuelle iCalcreator-master Versionen gibt es unter https://github.com/iCalcreator/iCalcreator/commits/master
@@ -192,47 +192,13 @@ class iCalCalendarReader extends IPSModuleStrict
             return;
         }
 
-        if ($this->ReadPropertyBoolean(self::ICCR_PROPERTY_ACTIVE)) {
-            //validate Configuration
-            if ($this->CheckCalendarMediaID()){
-                $Status = IS_ACTIVE;
-            } elseif (!$this->CheckCalendarURLSyntax()) {
-                $Status = self::STATUS_INST_INVALID_URL;
-            } else {
-                $curl_result = '';
-                $Status      = $this->LoadCalendarURL($curl_result);
-            }
-        } else {
-            $Status = IS_INACTIVE;
-        }
-
+        $Status = $this->determineStatus();
         $this->SetStatus($Status);
 
-        $iCalMediaID = $this->ReadPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID);
-        if ($iCalMediaID >= 10000){
-            $this->SetSummary(IPS_GetName($iCalMediaID));
-        } else {
-            $this->SetSummary($this->ReadPropertyString(self::ICCR_PROPERTY_CALENDAR_URL));
-        }
+        $this->updateSummary();
 
         $propNotifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true, 512, JSON_THROW_ON_ERROR);
-
-        $this->DeleteUnusedVariables($propNotifiers);
-
-        //Meldevariablen registrieren
-        foreach ($propNotifiers as $notifier) {
-            if (str_starts_with($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT], 'NOTIFIER')){
-                if ($this->RegisterVariableBoolean(
-                    $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT],
-                    sprintf('%s (%s)',$this->Translate('Notifier'), substr($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT], 8)),
-                    '~Switch', 0
-                )){
-                    $this->Logger_Dbg(__FUNCTION__, sprintf('Variable %s registriert', $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]));
-                } else {
-                    $this->Logger_Dbg(__FUNCTION__, sprintf('Variable %s konnte nicht registriert werden!', $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]));
-                }
-            }
-        }
+        $this->syncNotifierVariables($propNotifiers);
 
         $this->RegisterReferences();
 
@@ -244,6 +210,47 @@ class iCalCalendarReader extends IPSModuleStrict
         $this->SetTimerInterval(self::TIMER_UPDATECALENDAR, $this->ReadPropertyInteger(self::ICCR_PROPERTY_UPDATE_FREQUENCY) * 1000 * 60);
         $this->SetTimerInterval(self::TIMER_TRIGGERNOTIFICATIONS, 1000 * 60); //jede Minute werden die Notifications getriggert
 
+    }
+
+    private function determineStatus(): int
+    {
+        if (!$this->ReadPropertyBoolean(self::ICCR_PROPERTY_ACTIVE)) {
+            return IS_INACTIVE;
+        }
+
+        if ($this->CheckCalendarMediaID()) {
+            return IS_ACTIVE;
+        }
+
+        if (!$this->CheckCalendarURLSyntax()) {
+            return self::STATUS_INST_INVALID_URL;
+        }
+
+        $unused = '';
+        return $this->LoadCalendarURL($unused);
+    }
+
+    private function updateSummary(): void
+    {
+        $iCalMediaID = $this->ReadPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID);
+        if ($iCalMediaID >= 10000) {
+            $this->SetSummary(IPS_GetName($iCalMediaID));
+        } else {
+            $this->SetSummary($this->ReadPropertyString(self::ICCR_PROPERTY_CALENDAR_URL));
+        }
+    }
+
+    private function syncNotifierVariables(array $propNotifiers): void
+    {
+        $this->DeleteUnusedVariables($propNotifiers);
+
+        foreach ($propNotifiers as $notifier) {
+            $ident = $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT];
+            if (str_starts_with($ident, 'NOTIFIER')) {
+                $name = sprintf('%s (%s)', $this->Translate('Notifier'), substr($ident, 8));
+                $this->RegisterVariableBoolean($ident, $name, '~Switch', 0);
+            }
+        }
     }
 
     private function RegisterReferences(): void
@@ -874,44 +881,40 @@ class iCalCalendarReader extends IPSModuleStrict
     /*
         check if an event is triggering a presence notification
     */
+
+
     private function CheckPresence(
-        string $calDescription,
-        int $calStart,
-        int $calEnd,
-        string $notFind,
-        bool $notRegExpression,
-        int $notPre,
-        int $notPost
+        string $subject,
+        int $startTime,
+        int $endTime,
+        string $searchPattern,
+        bool $useRegExpression,
+        int $offsetBefore,
+        int $offsetAfter
     ): bool {
         $ts = time();
-        $this->Logger_Dbg(
-            __FUNCTION__,
-            sprintf(
-                '\'%s\' - Now: %s, Start: %s, End: %s, Pre: %s, $Post: %s',
-                $calDescription,
-                $this->formatDate($ts),
-                $this->formatDate($calStart),
-                $this->formatDate($calEnd),
-                $notPre,
-                $notPost
-            )
-        );
 
-        if ((($calStart - $notPre) <= $ts) && (($calEnd + $notPost) > $ts)) {
-            $this->Logger_Dbg(__FUNCTION__, sprintf('find: \'%s\', description: \'%s\'', $notFind, $calDescription));
-            if ($calDescription !== '' && $notFind !== '') {
-                if ($notRegExpression) {
-                    return @preg_match($notFind, $calDescription) > 0;
-                }
-                $this->Logger_Dbg(__FUNCTION__, sprintf('strpos: %s', (int)strpos($notFind, $calDescription)));
-                return str_contains($calDescription, $notFind);
-            }
-            return $notFind === '';
+        // Zeitfenster prüfen (unter Berücksichtigung der Offsets in Sekunden)
+        if ($ts < ($startTime - $offsetBefore) || $ts >= ($endTime + $offsetAfter)) {
+            return false;
         }
 
-        return false;
-    }
+        $this->Logger_Dbg(__FUNCTION__, sprintf('find: \'%s\', subject: \'%s\'', $searchPattern, $subject));
 
+        if ($subject === '' || $searchPattern === '') {
+            return $searchPattern === '';
+        }
+
+        if ($useRegExpression) {
+            $result = preg_match($searchPattern, $subject);
+            return $result !== false && $result > 0;
+        }
+
+        $this->Logger_Dbg(__FUNCTION__, sprintf('str_contains: checking if \'%s\' contains \'%s\'', $subject, $searchPattern));
+
+        return str_contains($subject, $searchPattern);
+    }
+    // ... existing code ...
     private function formatDate(int $ts): string
     {
         return date('Y-m-d H:i:s', $ts);
@@ -933,11 +936,13 @@ class iCalCalendarReader extends IPSModuleStrict
 
         $this->Logger_Dbg(__FUNCTION__, 'Processing notifications');
         $notifications = [];
+        $calendarData = json_decode($this->ReadAttributeString(self::ICCR_ATTRIBUTE_CALENDAR_BUFFER), true, 512, JSON_THROW_ON_ERROR);
+
         foreach ($Notifiers as $notifier) {
             $this->Logger_Dbg(__FUNCTION__, 'Process notifier: ' . json_encode($notifier, JSON_THROW_ON_ERROR));
             $active                            = false;
             $notifications[$notifier['Ident']] = [];
-            foreach (json_decode($this->ReadAttributeString(self::ICCR_ATTRIBUTE_CALENDAR_BUFFER), true, 512, JSON_THROW_ON_ERROR) as $iCalItem) {
+            foreach ($calendarData as $iCalItem) {
                 $active = $this->CheckPresence(
                     $iCalItem['Name'],
                     $iCalItem['From'],

@@ -95,16 +95,13 @@ class iCalImporter
     */
     private function iCalDateTimeArrayToDateTime(array $dtValue, bool $WholeDay): DateTime
     {
-        //call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('dtValue: %s, WholeDay: %s', print_r($dtValue, true), (int) $WholeDay));
+        //logDebug(__FUNCTION__, sprintf('dtValue: %s, WholeDay: %s', print_r($dtValue, true), (int) $WholeDay));
 
         if (!($dtValue['value'] instanceof DateTime)) {
             throw new RuntimeException('Component is not of type DateTime');
         }
 
         $value = $dtValue['value'];
-        if (isset($dtValue['params'])) {
-            $params = $dtValue['params'];
-        }
 
         $Year  = (int)$value->format('Y');
         $Month = (int)$value->format('n');
@@ -114,6 +111,7 @@ class iCalImporter
         $Sec   = (int)$value->format('s');
 
         // owncloud calendar
+        $params = $dtValue['params'] ?? [];
         $TimezoneName = $params['TZID'] ?? $value->getTimezone()->getName();
 
         $DateTime = new DateTime();
@@ -128,7 +126,7 @@ class iCalImporter
             try {
                 $tz = new DateTimeZone($TimezoneName);
             } catch (Exception) {
-                call_user_func($this->Logger_Err, sprintf('"%s" is no Standard Timezone', $TimezoneName));
+                $this->logError(sprintf('"%s" is no Standard Timezone', $TimezoneName));
                 // no standard timezone, set to UTC first
                 $tz                 = new DateTimeZone('UTC');
                 $IsStandardTimezone = false;
@@ -141,7 +139,7 @@ class iCalImporter
                 // set UTC offset if provided in calendar data
                 $DateTime = $this->ApplyCustomTimezoneOffset($DateTime, 'UTC');
             }
-            // convert to local timezone
+            // convert to the local timezone
             $DateTime->setTimezone(new DateTimeZone($this->Timezone));
         }
         return $DateTime;
@@ -180,7 +178,7 @@ class iCalImporter
             $vCalendar->parse($stringCalendarToParse);
             //$vCalendar->parse($iCalData);
         } catch (Exception $e) {
-            call_user_func($this->Logger_Err, 'parse: ' . $e->getMessage());
+            $this->logError('parse: ' . $e->getMessage());
             return [];
         }
 
@@ -193,14 +191,7 @@ class iCalImporter
             $Standard = $vTimezone->getComponent('STANDARD');
 
             if ($Standard === false) {
-                call_user_func(
-                    $this->Logger_Err,
-                    sprintf(
-                        'Uncomplete vtimezone: %s, STANDARD: %s',
-                        $vTimezone->getTzid(),
-                        json_encode($Standard, JSON_THROW_ON_ERROR)
-                    )
-                );
+                $this->logError(sprintf('Uncomplete vtimezone: %s', $vTimezone->getTzid()));
                 continue;
             }
 
@@ -227,7 +218,7 @@ class iCalImporter
             $ProvidedTZ['TZOFFSETTO']   = $Standard->getTzoffsetto(); //todo
             $ProvidedTZ['TZOFFSETFROM'] = $Standard->getTzoffsetfrom(); //todo
 
-            call_user_func($this->Logger_Dbg, __FUNCTION__, 'ProvidedTZ: ' . print_r($ProvidedTZ, true));
+            $this->logDebug(__FUNCTION__, 'ProvidedTZ: ' . print_r($ProvidedTZ, true));
             $this->CalendarTimezones[] = $ProvidedTZ;
         }
 
@@ -238,8 +229,7 @@ class iCalImporter
 
         $CacheDateTimeFrom  = (new DateTime('today'))->sub(new DateInterval('P' . $this->DaysToCacheBack . 'D')); //P='Period', D='Days'
         $CacheDateTimeUntil = (new DateTime('today'))->add(new DateInterval('P' . ($this->DaysToCacheAhead + 1) . 'D'));
-        call_user_func(
-            $this->Logger_Dbg,
+        $this->logDebug(
             __FUNCTION__,
             sprintf(
                 'cached time: (DaysToCacheBack: %s, DaysToCache: %s, %s - %s)',
@@ -258,8 +248,7 @@ class iCalImporter
             $propDtstart = $vEvent->getDtstart(true); // incl. params
 
             if ($propDtstart === false) {
-                call_user_func(
-                    $this->Logger_Err,
+                $this->logError(
                     sprintf(
                         'Event \'%s\': DTSTART can\'t be processed, ignoring',
                         $vEvent->getSummary()
@@ -272,8 +261,7 @@ class iCalImporter
 
             if ($dtStartingTime->getTimestamp() > $CacheDateTimeUntil->getTimestamp()) {
                 // event is too far in the future, ignore
-                call_user_func(
-                    $this->Logger_Dbg,
+                $this->logDebug(
                     __FUNCTION__,
                     sprintf(
                         'Event \'%s\' (%s) is too far in the future, ignoring',
@@ -294,8 +282,7 @@ class iCalImporter
             }
         }
 
-        call_user_func(
-            $this->Logger_Dbg,
+        $this->logDebug(
             __FUNCTION__,
             sprintf(
                 'vEvents: %s, vEvents_with_RRULE: %s, vEvents_with_Recurrence_id: %s',
@@ -321,8 +308,7 @@ class iCalImporter
             $dtDuration = $vEvent->getDuration(false, true); //specform: the end date is already calculated
 
 
-            call_user_func(
-                $this->Logger_Dbg,
+            $this->logDebug(
                 __FUNCTION__,
                 sprintf(
                     '#Event# dtStartingTime: %s, dtEndingTime: %s, dtDuration: %s',
@@ -358,8 +344,7 @@ class iCalImporter
             }
             $dtDuration = $vEvent->getDuration(false, false);
 
-            call_user_func(
-                $this->Logger_Dbg,
+            $this->logDebug(
                 __FUNCTION__,
                 sprintf(
                     '#Event_RRULE# dtStartingTime: %s, dtEndingTime: %s, dtDuration: %s',
@@ -393,8 +378,7 @@ class iCalImporter
                     $CalRRule['BYDAY'] = implode(',', $CalRRule['BYDAY']);
                 }
 
-                call_user_func(
-                    $this->Logger_Dbg,
+                $this->logDebug(
                     __FUNCTION__,
                     sprintf(
                         'CalRRule \'%s\': %s',
@@ -406,18 +390,17 @@ class iCalImporter
                 try {
                     $RRule = new RRule($CalRRule);
                 } catch (Exception $e) {
-                    call_user_func(
-                        $this->Logger_Err,
+                    $this->logError(
                         sprintf('Error \'%s\' in CalRRule \'%s\': %s', $e->getMessage(), $vEvent->getSummary(), print_r($CalRRule, true))
                     );
                     continue;
                 }
             } else {
-                call_user_func($this->Logger_Dbg, __FUNCTION__, '$RRule not set!');
+                $this->logDebug( __FUNCTION__, '$RRule not set!');
             }
 
             if (!isset($RRule)) {
-                call_user_func($this->Logger_Dbg, __FUNCTION__, '$RRule not set!');
+                $this->logDebug( __FUNCTION__, '$RRule not set!');
                 continue;
             }
 
@@ -429,24 +412,24 @@ class iCalImporter
                         $this->iCalDateTimeArrayToDateTime(['value' => $exDateValue, 'params' => $exDates['params']], $this->isAllDayEvent($vEvent));
                 }
             }
-            call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('dtExDates: %s', json_encode($dtExDates, JSON_THROW_ON_ERROR)));
+            $this->logDebug( __FUNCTION__, sprintf('dtExDates: %s', json_encode($dtExDates, JSON_THROW_ON_ERROR)));
 
             //get the occurrences
             $dtOccurences = $RRule->getOccurrencesBetween($CacheDateTimeFrom, $CacheDateTimeUntil);
-            call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('dtOccurrences: %s', json_encode($dtOccurences, JSON_THROW_ON_ERROR)));
+            $this->logDebug(__FUNCTION__, sprintf('dtOccurrences: %s', json_encode($dtOccurences, JSON_THROW_ON_ERROR)));
             foreach ($dtOccurences as $dtOccurrence) {
                 if (!($dtOccurrence instanceof DateTime)) {
                     throw new RuntimeException('Component is not of type DateTime');
                 }
 
-                //check if occurrence was deleted
-                call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('dtOccurrence: %s', json_encode($dtOccurrence, JSON_THROW_ON_ERROR)));
+                //check if the occurrence was deleted
+                $this->logDebug( __FUNCTION__, sprintf('dtOccurrence: %s', json_encode($dtOccurrence, JSON_THROW_ON_ERROR)));
                 if (in_array($dtOccurrence, $dtExDates, false)) { //compare the content, not the instance
-                    call_user_func($this->Logger_Dbg, __FUNCTION__, 'excluded');
+                    $this->logDebug(__FUNCTION__, 'excluded');
                     continue;
                 }
 
-                //check if occurrence was changed
+                //check if the occurrence was changed
                 $changedEvent = $this->getChangedEvent($vEvents_with_Recurrence_id, (string)$vEvent->getUid(), $dtOccurrence);
                 if ($changedEvent) {
                     $dtStartingTime = $changedEvent->getDtstart();
@@ -469,8 +452,7 @@ class iCalImporter
 
         foreach ($eventArray as $event) {
             if ($this->isEventOutsideCachedTime($event, $CacheDateTimeFrom, $CacheDateTimeUntil)) {
-                call_user_func(
-                    $this->Logger_Dbg,
+                $this->logDebug(
                     __FUNCTION__,
                     sprintf(
                         'Event \'%s\' (%s - %s) is outside the cached time, is ignored',
@@ -506,10 +488,8 @@ class iCalImporter
 
     private function getDateTime(array $dateTimeWithParams): DateTime
     {
-        //var_dump($dateTimeWithParams);
         $params = $dateTimeWithParams['params'];
         if ((isset($params['VALUE']) && $params['VALUE'] === 'DATE') || (isset($params['ISLOCALTIME']) && ($params['ISLOCALTIME']))) {
-            //var_dump($dateTimeWithParams['value']->format('Y-m-d H:i:s'));
             return new DateTime($dateTimeWithParams['value']->format('Y-m-d H:i:s'));
         }
 
@@ -526,7 +506,7 @@ class iCalImporter
             if ($vEvent->getUid() === $uid) {
                 $dtFound = $this->iCalDateTimeArrayToDateTime($vEvent->getRecurrenceid(true), $this->isAllDayEvent($vEvent));
                 if ($dtOccurrence == $dtFound) {
-                    call_user_func($this->Logger_Dbg, __FUNCTION__, sprintf('ChangedEvent found: %s', $dtOccurrence->getTimestamp()));
+                    $this->logDebug(__FUNCTION__, sprintf('ChangedEvent found: %s', $dtOccurrence->getTimestamp()));
                     return $vEvent;
                 }
             }
@@ -573,23 +553,24 @@ class iCalImporter
                 throw new RuntimeException(sprintf('UID: %s, Component is not of type valarm', $Event['UID']));
             }
             $trigger = $vAlarm->getTrigger();
-            if ($trigger !== false) {
-                if ($trigger instanceof DateInterval) {
-                    $reference         = new DateTimeImmutable('@' . $tsFrom);
-                    $totalSeconds      = $reference->add($trigger)->getTimestamp() - $tsFrom;
-                    $Event['Alarms'][] = $totalSeconds;
-                } elseif ($trigger instanceof DateTime) {
-                    $Event['Alarms'][] = $trigger->getTimestamp() - $tsFrom;
-                } else {
-                    var_dump($trigger);
-                    throw new RuntimeException(sprintf('UID: %s, Unknown trigger type', $Event['UID']));
-                }
-            } else {
-                $Event['Alarms'][] = 0;
-            }
+
+            $Event['Alarms'][] = match (true) {
+                $trigger instanceof DateInterval =>
+                    (new DateTimeImmutable())->setTimestamp($tsFrom)->add($trigger)->getTimestamp() - $tsFrom,
+
+                $trigger instanceof DateTimeInterface =>
+                    $trigger->getTimestamp() - $tsFrom,
+
+                $trigger === false => 0,
+
+                default => throw new RuntimeException(sprintf(
+                                                          'UID: %s, Unknown trigger type: %s',
+                                                          $Event['UID'],
+                                                          get_debug_type($trigger)
+                                                      )),
+            };
         }
-        call_user_func(
-            $this->Logger_Dbg,
+        $this->logDebug(
             __FUNCTION__,
             sprintf('Event: %s', json_encode($Event, JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR))
         );
@@ -612,4 +593,15 @@ class iCalImporter
         }
         return false;
     }
+
+    private function logDebug(string $method, string $message): void
+    {
+        call_user_func($this->Logger_Dbg, $method, $message);
+    }
+
+    private function logError(string $message): void
+    {
+        call_user_func($this->Logger_Err, $message);
+    }
+
 }
