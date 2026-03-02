@@ -19,9 +19,9 @@ Diese Bibliothek beinhaltet ein Modul zur Einspeisung von Kalenderinformationen 
 Das Modul dient dem Einlesen von Kalenderdaten in Symcon (getestet mit Google Calendar, ownCloud Calendar, Synology Calendar, iCloud und Office 365). Zum einen können die eingebundenen Kalender auf einfache Weise im Webfront angezeigt werden, zum anderen können eingetragene Termine zum Setzen von Statusvariablen ausgewertet werden.
 Die eingelesenen Daten müssen [rfc5545](https://tools.ietf.org/html/rfc5545 "Internet Calendaring and Scheduling Core Object Specification") konform sein.
 
-Damit ist es z.B. sehr einfach möglich einen zentralen Anwesenheitskalender im Internet zu pflegen, IP Symcon steuert damit automatisch Heizung, Alarmanlage und Anwesenheitssimulation.
+Damit ist es z. B. sehr einfach möglich, einen zentralen Anwesenheitskalender im Internet zu pflegen, IP Symcon steuert damit automatisch Heizung, Alarmanlage und Anwesenheitssimulation.
 
-Auch die Visualisierungen von Einträgen in öffentlichen Kalendern (z.B. Müllabfuhrtermine, Kinoprogramm, ...) im Webfront können ohne viel Skript-Programmierung realisiert werden. Z.B. können Abfuhrtermine immer bereits 1 Tag vorher angezeigt werden.
+Auch die Visualisierungen von Einträgen in öffentlichen Kalendern (z. B. Müllabfuhrtermine, Kinoprogramm, ...) im Webfront können ohne viel Skript-Programmierung realisiert werden. Z.B. können Abfuhrtermine immer bereits 1 Tag vorher angezeigt werden.
 
 Kalender werden beim Laden unter Berücksichtigung ihrer jeweiligen Zeitzone in die lokale Zeitzone umgerechnet, sich wiederholende Termine werden als mehrere Einzeltermine abgespeichert.
 
@@ -82,7 +82,7 @@ Zu finden in der Kalender-App. Links in der Liste der Kalender auf *"..."* klick
 
 **Synology:**
 `http[s]://(server-name)[:server-port]/caldav/(user-name)/(calendar.name)--(suffix)`  
-Zu finden in der Calendar-App. Rechts in der Liste der Kalender das nach unten zeigende Dreieck neben dem Kalendernamen anklicken, *"CalDAV-Konto"* auswählen, in dem PopUp die Adresse für Thunderbird kopieren.  
+Zu finden in der Calendar-App. Rechts in der Liste der Kalender das nach unten zeigende Dreieck neben dem Kalendernamen anklicken, *"CalDAV-Konto"* auswählen, in dem Pop-up die Adresse für Thunderbird kopieren.  
 
 **iCloud:**
 `https://(server).icloud.com/published/(number)/(secret-hash-string-1)-(secret-hash-string-2)`  
@@ -94,7 +94,7 @@ Alternativ kann der Link auch im Webportal https://www.icloud.com/#calendar durc
 In der Outlook Web-App (OWA) in den Einstellungen > Kalender > Geteilte Kalender einen Kalender veröffentlichen und den dazugehörigen ICS Link kopieren.  
 
 #### Einlesen des Kalenders aus einer Datei
-Für den Fall, dass eine vorliegende Kalenderdatei mit Terminen (z.B. eine iCal konforme Datei vom Abfallentsorger mit den Abholterminen) übernommen werden soll, so ist diese Datei zunächst in ein Medienobjekt vom Typ "Dokument" in Symcon zu übernehmen. Die Id der Medien Objekts ist dann in der Konfiguration anzugeben. 
+Für den Fall, dass eine vorliegende Kalenderdatei mit Terminen (z. B. eine iCal konforme Datei vom Abfallentsorger mit den Abholterminen) übernommen werden soll, so ist diese Datei zunächst in ein Medienobjekt vom Typ "Dokument" in Symcon zu übernehmen. Die Id der Medien Objekts ist dann in der Konfiguration anzugeben. 
 
 
 Sobald eine URL bzw. eine Media-ID angegeben und gespeichert wurde, beginnt die Synchronisierung. Fehler beim Zugriff auf den Kalender stehen im Systemlog (Tabreiter **Meldungen** bzw. **Statusprotokoll** in der Symcon Management Konsole). Bei jeder Änderung der Parameter wird eine sofortige Synchronisation und ein Update auf alle Meldevariablen gegeben.
@@ -104,18 +104,18 @@ Sobald eine URL bzw. eine Media-ID angegeben und gespeichert wurde, beginnt die 
 Am Beispiel eines Müllkalenders soll die Vorgehensweise bei der Erstellung von Meldevariablen erläutert werden.
 
 **Szenario:** <br> 
-*In einem Kalender gibt es Einträge für die Müllabholtermine. An den Müllabfuhrtagen soll - getrennt nach den Tonnenarten - eine entsprechende Statusvariable auf 'true' gesetzt werden.*
+*In einem Kalender gibt es Einträge für die Müllabholtermine. An den Müllabfuhrtagen soll – getrennt nach den Tonnenarten – eine entsprechende Statusvariable auf 'true' gesetzt werden.*
 
 Die Einträge im Google Kalender lauten
 
 ![image](docs/Kalender_Termine.png)
 
-Nun wird für jede zu erstellende Statusvariable ein Eintrag unter "Meldevariablen" angelegt. Im Beispiel soll eine Statusvariable für die Papiertonne erstellt werden. Wenn ein Kalendereintrag mit dem Begriff "Papiertonne" gefunden wird, dann soll die Statusvariable mit 24 Stunden Vorlauf (=1440 Minuten) und 5 Stunden Nachlauf auf "true" gesetzt werden.
+Nun wird für jede zu erstellende Statusvariable ein Eintrag unter "Meldevariablen" angelegt. Im Beispiel soll eine Statusvariable für die Papiertonne erstellt werden. Wenn ein Kalendereintrag mit dem Begriff "Papiertonne" gefunden wird, soll die Statusvariable mit 24 Stunden Vorlauf (=1440 Minuten) und 5 Stunden Nachlauf auf "true" gesetzt werden.
 ![image](docs/Instanz_Meldevariable_definieren.png)
 
 Als Suchbegriff kann auch ein "Regulärer Ausdruck" verwendet werden. Zum Testen des Ausdrucks gibt es eine Testfunktion.
 ![image](docs/Testfunktion_RegExpr.png)
-Es gibt aber auch im Web verschiedene Seiten (z.B. [regular expressions 101](https://regex101.com/)), die beim Ausformulieren von Suchmustern helfen.
+Es gibt aber auch im Web verschiedene Seiten (z. B. [regular expressions 101](https://regex101.com/)), die beim Ausformulieren von Suchmustern helfen.
 
 
 Die gleiche Vorgehensweise gilt für die anderen Tonnen:
@@ -126,13 +126,13 @@ Nachdem die Instanz gesichert wurde, gibt es dann im Objektbaum die folgenden Va
 
 ![image](docs/Objektbaum_Statusvariablen.png)
 
-Die Statusvariablen können im Objektbaum zur besseren Übersicht nach Belieben umbenannt werden: .... 
+Die Statusvariablen können im Objektbaum zur besseren Übersicht nach Belieben umbenannt werden: 
 
 ![image](docs/Objektbaum_Statusvariablen_umbenannt.png)
 
 ### 5. Statusvariablen und Profile
 
-Für jede in der Instanz angelegten Meldevariablen wird eine Statusvariable mit dem Ident 'NOTIFIER' und einer laufenden Nummer angelegt.
+Für jede in der Instanz angelegte Meldevariable wird eine Statusvariable mit dem Ident 'NOTIFIER' und einer laufenden Nummer angelegt.
 Die jeweilige Statusvariable zeigt an, ob ein Kalendereintrag unter Berücksichtigung der im Modul angegebenen Zeiten und des angegebenen Filters aktiv ist.
 
 Es werden keine eigenen Variablenprofile angelegt.
@@ -153,7 +153,7 @@ Forciert eine sofortige Überprüfung, ob die Statusvariablen aktualisiert werde
 Diese Funktion wird intern jede Minute aufgerufen.  
 
 `json_string ICCR_UpdateCalendar(integer $InstanceID);`   
-Forciert eine sofortiges Neuladen des Kalenders.
+Forciert ein sofortiger Neuladen des Kalenders.
 Diese Funktion wird intern regelmäßig, wie in "Update-freq. (minutes)" konfiguriert, aufgerufen.
 Gibt ein Array mit den zwischengespeicherten und in die lokale Zeitzone übertragenen Kalenderdaten als JSON-kodierten String aus. 
  
