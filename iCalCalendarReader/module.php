@@ -198,6 +198,7 @@ class iCalCalendarReader extends IPSModuleStrict
         $this->updateSummary();
 
         $propNotifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true, 512, JSON_THROW_ON_ERROR);
+        $this->ValidateNotifierPatterns($propNotifiers);
         $this->syncNotifierVariables($propNotifiers);
 
         $this->RegisterReferences();
@@ -237,6 +238,29 @@ class iCalCalendarReader extends IPSModuleStrict
             $this->SetSummary(IPS_GetName($iCalMediaID));
         } else {
             $this->SetSummary($this->ReadPropertyString(self::ICCR_PROPERTY_CALENDAR_URL));
+        }
+    }
+
+    private function ValidateNotifierPatterns(array $propNotifiers): void
+    {
+        foreach ($propNotifiers as $notifier) {
+            if (empty($notifier[self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION])) {
+                continue;
+            }
+
+            $find = $notifier[self::ICCR_PROPERTY_NOTIFIER_FIND] ?? '';
+            if ($find === '') {
+                continue;
+            }
+
+            $normalized = $this->NormalizeRegexPattern($find);
+            if (@preg_match($normalized, '') === false) {
+                $ident = $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT] ?? '';
+                $this->LogMessage(
+                    sprintf("Notifier '%s': invalid regular expression in Find '%s'", $ident, $find),
+                    KL_WARNING
+                );
+            }
         }
     }
 
@@ -499,14 +523,20 @@ class iCalCalendarReader extends IPSModuleStrict
                             
                             $hits = 0;
                             $module = new IPSModule($id);
+                            $pattern = $module->NormalizeRegexPattern($Pattern2);
+                            $invalid = (@preg_match($pattern, "") === false);
                             foreach ($calendar as $event){
-                                if (@preg_match($Pattern2, $event[\'Name\'])){
+                                if (!$invalid && @preg_match($pattern, $event[\'Name\'])){
                                     echo sprintf (\'%s - %s\', date(\'d.m.Y h:i:s\', $event[\'From\']), $event[\'Name\']). PHP_EOL;
                                     $hits++;
                                 } 
                             }
 
-                            echo PHP_EOL . $hits . \' \' . $module->translate(\'Hits\') . PHP_EOL;                        '
+                            if ($invalid) {
+                                echo $module->Translate("Invalid regular expression") . ": " . $pattern;
+                            } else {
+                                echo PHP_EOL . $hits . \' \' . $module->translate(\'Hits\') . PHP_EOL;
+                            }                        '
                     ]
                 ],
                 'visible' => $this->GetStatus() === IS_ACTIVE,
@@ -521,7 +551,11 @@ class iCalCalendarReader extends IPSModuleStrict
                         'caption' => 'Test Regular Expression',
                         'onClick' => '
                             $module = new IPSModule($id);
-                            if (@preg_match($Pattern, $Subject)){
+                            $pattern = $module->NormalizeRegexPattern($Pattern);
+                            $result = @preg_match($pattern, $Subject);
+                            if ($result === false) {
+                                echo $module->Translate("Invalid regular expression") . ": " . $pattern;
+                            } elseif ($result > 0) {
                                 echo $module->Translate("Hit!");
                             } else {
                                 echo $module->Translate("No Hit!");
@@ -906,8 +940,16 @@ class iCalCalendarReader extends IPSModuleStrict
         }
 
         if ($useRegExpression) {
-            $result = preg_match($searchPattern, $subject);
-            return $result !== false && $result > 0;
+            $normalized = $this->NormalizeRegexPattern($searchPattern);
+            $result     = @preg_match($normalized, $subject);
+            if ($result === false) {
+                $this->Logger_Dbg(
+                    __FUNCTION__,
+                    sprintf('Invalid regex pattern. raw: \'%s\', normalized: \'%s\'', $searchPattern, $normalized)
+                );
+                return false;
+            }
+            return $result > 0;
         }
 
         $this->Logger_Dbg(__FUNCTION__, sprintf('str_contains: checking if \'%s\' contains \'%s\'', $subject, $searchPattern));
@@ -918,6 +960,28 @@ class iCalCalendarReader extends IPSModuleStrict
     private function formatDate(int $ts): string
     {
         return date('Y-m-d H:i:s', $ts);
+    }
+
+    public function NormalizeRegexPattern(string $pattern): string
+    {
+        if ($pattern === '') {
+            return $pattern;
+        }
+
+        // If pattern already has valid delimiters, keep as-is
+        if (preg_match('/^([^\w\\\\\\0]).*\\1[imsxeADSUXJu]*$/', $pattern) === 1) {
+            return $pattern;
+        }
+
+        // Choose a delimiter that does not occur in the pattern
+        foreach (['#', '~', '%', '!', '/'] as $delimiter) {
+            if (strpos($pattern, $delimiter) === false) {
+                return $delimiter . $pattern . $delimiter;
+            }
+        }
+
+        // Fallback: escape the default delimiter
+        return '/' . str_replace('/', '\\/', $pattern) . '/';
     }
 
     /*
@@ -952,7 +1016,6 @@ class iCalCalendarReader extends IPSModuleStrict
                     $notifier[self::ICCR_PROPERTY_NOTIFIER_PRENOTIFY] * 60,
                     $notifier[self::ICCR_PROPERTY_NOTIFIER_POSTNOTIFY] * 60
                 );
-                $this->Logger_Dbg(__FUNCTION__, 'Result: ' . (int)$active);
                 if ($active) {
                     $notifications[$notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]] = $iCalItem;
                     break;
