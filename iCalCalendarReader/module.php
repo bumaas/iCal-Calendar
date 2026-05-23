@@ -512,6 +512,11 @@ class iCalCalendarReader extends IPSModuleStrict
                 'visible' => $this->GetStatus() === IS_ACTIVE,
             ],
             [
+                'type'    => 'Label',
+                'caption' => 'Example: Papiertonne',
+                'visible' => $this->GetStatus() === IS_ACTIVE,
+            ],
+            [
                 'type'  => 'RowLayout',
                 'items' => [
                     ['type' => 'ValidationTextBox', 'name' => 'Pattern2', 'caption' => 'Pattern'],
@@ -523,7 +528,7 @@ class iCalCalendarReader extends IPSModuleStrict
                             
                             $hits = 0;
                             $module = new IPSModule($id);
-                            $pattern = $module->NormalizeRegexPattern($Pattern2);
+                            $pattern = ICCR_NormalizeRegexPattern($id, $Pattern2);
                             $invalid = (@preg_match($pattern, "") === false);
                             foreach ($calendar as $event){
                                 if (!$invalid && @preg_match($pattern, $event[\'Name\'])){
@@ -542,6 +547,11 @@ class iCalCalendarReader extends IPSModuleStrict
                 'visible' => $this->GetStatus() === IS_ACTIVE,
             ],
             [
+                'type'    => 'Label',
+                'caption' => 'Example: (Papier|Bio)tonne',
+                'visible' => $this->GetStatus() === IS_ACTIVE,
+            ],
+            [
                 'type'  => 'RowLayout',
                 'items' => [
                     ['type' => 'ValidationTextBox', 'name' => 'Pattern', 'caption' => 'Pattern'],
@@ -551,7 +561,7 @@ class iCalCalendarReader extends IPSModuleStrict
                         'caption' => 'Test Regular Expression',
                         'onClick' => '
                             $module = new IPSModule($id);
-                            $pattern = $module->NormalizeRegexPattern($Pattern);
+                            $pattern = ICCR_NormalizeRegexPattern($id, $Pattern);
                             $result = @preg_match($pattern, $Subject);
                             if ($result === false) {
                                 echo $module->Translate("Invalid regular expression") . ": " . $pattern;
@@ -563,6 +573,11 @@ class iCalCalendarReader extends IPSModuleStrict
                         '
                     ]
                 ],
+                'visible' => $this->GetStatus() === IS_ACTIVE,
+            ],
+            [
+                'type'    => 'Label',
+                'caption' => 'Example: Pattern (Papier|Bio)tonne, Subject Papiertonne',
                 'visible' => $this->GetStatus() === IS_ACTIVE,
             ]
         ];
