@@ -979,6 +979,8 @@ class iCalCalendarReader extends IPSModuleStrict
 
     public function NormalizeRegexPattern(string $pattern): string
     {
+        $pattern = trim($pattern);
+
         if ($pattern === '') {
             return $pattern;
         }
