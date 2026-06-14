@@ -516,29 +516,12 @@ class iCalImporter
 
     private function GetEventAttributes(Kigkonsult\Icalcreator\Vevent $vEvent, int $tsFrom, int $tsTo): array
     {
-        $Event         = [];
-        $Event['UID']  = (string)$vEvent->getUid();
-        $Event['Name'] = $vEvent->getSummary();
-        $status        = $vEvent->getStatus();
-        if ($status) {
-            $Event['Status'] = $vEvent->getStatus();
-        } else {
-            $Event['Status'] = '';
-        }
-
-        $location = $vEvent->getLocation();
-        if ($location) {
-            $Event['Location'] = $location;
-        } else {
-            $Event['Location'] = '';
-        }
-
-        $description = $vEvent->getDescription();
-        if ($description) {
-            $Event['Description'] = $description;
-        } else {
-            $Event['Description'] = '';
-        }
+        $Event                 = [];
+        $Event['UID']          = (string)$vEvent->getUid();
+        $Event['Name']         = $vEvent->getSummary()     ?: '';
+        $Event['Status']       = $vEvent->getStatus()      ?: '';
+        $Event['Location']     = $vEvent->getLocation()    ?: '';
+        $Event['Description']  = $vEvent->getDescription() ?: '';
         $Event['Categories'] = $vEvent->getCategories();
         $Event['From']       = $tsFrom;
         $Event['To']         = $tsTo;

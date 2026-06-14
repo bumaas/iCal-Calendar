@@ -627,7 +627,7 @@ class DateTimeFactory
         }
 
         //bumaas: different check on 32 bit system
-        if ((int) 10000000000 == 10000000000){//64 bit System?
+        if (PHP_INT_SIZE >= 8) {//64 bit System?
             return ( false !== strtotime ( $string ));
         }
 
