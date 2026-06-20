@@ -740,6 +740,10 @@ class iCalCalendarReader extends IPSModuleStrict
         curl_setopt($curl, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115 Safari/537.36');
 
         if ($username !== '') {
+            // Server-Auth-Verfahren automatisch aushandeln (Basic oder Digest).
+            // Ohne CURLOPT_HTTPAUTH nutzt curl nur Basic; Digest-Server (z.B. Baikal/SabreDAV)
+            // antworten dann mit "No 'Authorization: Digest' header found".
+            curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
             curl_setopt($curl, CURLOPT_USERPWD, $username . ':' . $password);
         }
 
