@@ -217,7 +217,7 @@ class iCalCalendarReader extends IPSModuleStrict
             $ident = $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT];
             if (str_starts_with($ident, 'NOTIFIER')) {
                 $name = sprintf('%s (%s)', $this->Translate('Notifier'), substr($ident, 8));
-                $this->RegisterVariableBoolean($ident, $name, '~Switch', 0);
+                $this->RegisterVariableBoolean($ident, $name, ['PRESENTATION' => VARIABLE_PRESENTATION_SWITCH], 0);
             }
         }
     }
