@@ -418,7 +418,68 @@ class iCalImporter
             return [];
         }
 
-        // get calendar supplied timezones
+        $this->collectCalendarTimezones($vCalendar);
+
+        $CacheDateTimeFrom  = (clone $this->ReferenceDate)->sub(new DateInterval('P' . $this->DaysToCacheBack . 'D')); //P='Period', D='Days'
+        $CacheDateTimeUntil = (clone $this->ReferenceDate)->add(new DateInterval('P' . ($this->DaysToCacheAhead + 1) . 'D'));
+        $this->logDebug(
+            __FUNCTION__,
+            sprintf(
+                'cached time: (DaysToCacheBack: %s, DaysToCache: %s, %s - %s)',
+                $this->DaysToCacheBack,
+                $this->DaysToCacheAhead,
+                $CacheDateTimeFrom->format('Y-m-d H:i:s'),
+                $CacheDateTimeUntil->format('Y-m-d H:i:s')
+            )
+        );
+
+        [$vEvents, $vEvents_with_RRULE, $vEvents_with_Recurrence_id] = $this->classifyVevents($vCalendar, $CacheDateTimeUntil);
+
+        $eventArray = [];
+
+        foreach ($vEvents as $vEvent) {
+            $eventArray[] = $this->processSingleEvent($vEvent);
+        }
+
+        foreach ($vEvents_with_RRULE as $vEvent) {
+            array_push(
+                $eventArray,
+                ...$this->processRecurringEvent($vEvent, $vEvents_with_Recurrence_id, $CacheDateTimeFrom, $CacheDateTimeUntil)
+            );
+        }
+
+        foreach ($eventArray as $event) {
+            if ($this->isEventOutsideCachedTime($event, $CacheDateTimeFrom, $CacheDateTimeUntil)) {
+                $this->logDebug(
+                    __FUNCTION__,
+                    sprintf(
+                        'Event \'%s\' (%s - %s) is outside the cached time, is ignored',
+                        $event['Name'],
+                        $event['FromS'],
+                        $event['ToS']
+                    )
+                );
+            } else {
+                // insert event
+                $iCalCalendarArray[] = $event;
+            }
+        }
+
+        // sort by start date/time to make the check on changes work
+        usort(
+            $iCalCalendarArray, static function ($a, $b) {
+            return $a['From'] - $b['From'];
+        }
+        );
+        return $iCalCalendarArray;
+    }
+
+    /*
+        die im Kalender mitgelieferten VTIMEZONE-Definitionen einsammeln
+        (Basis für den Fallback ApplyCustomTimezoneOffset bei unbekannten Zeitzonen)
+    */
+    private function collectCalendarTimezones(Kigkonsult\Icalcreator\Vcalendar $vCalendar): void
+    {
         while ($vTimezone = $vCalendar->getComponent(IcalInterface::VTIMEZONE)) {
             if (!($vTimezone instanceof Kigkonsult\Icalcreator\Vtimezone)) {
                 throw new RuntimeException('Component is not of type Vtimezone');
@@ -459,24 +520,17 @@ class iCalImporter
             $this->logDebug(__FUNCTION__, 'ProvidedTZ: ' . print_r($ProvidedTZ, true));
             $this->CalendarTimezones[] = $ProvidedTZ;
         }
+    }
 
-        //get different kind of events
+    /*
+        alle VEVENTs des Kalenders einsammeln und klassifizieren;
+        liefert [Einzeltermine, Serientermine (RRULE), geänderte Serienelemente (RECURRENCE-ID)]
+    */
+    private function classifyVevents(Kigkonsult\Icalcreator\Vcalendar $vCalendar, DateTime $CacheDateTimeUntil): array
+    {
         $vEvents                    = [];
         $vEvents_with_RRULE         = [];
         $vEvents_with_Recurrence_id = [];
-
-        $CacheDateTimeFrom  = (clone $this->ReferenceDate)->sub(new DateInterval('P' . $this->DaysToCacheBack . 'D')); //P='Period', D='Days'
-        $CacheDateTimeUntil = (clone $this->ReferenceDate)->add(new DateInterval('P' . ($this->DaysToCacheAhead + 1) . 'D'));
-        $this->logDebug(
-            __FUNCTION__,
-            sprintf(
-                'cached time: (DaysToCacheBack: %s, DaysToCache: %s, %s - %s)',
-                $this->DaysToCacheBack,
-                $this->DaysToCacheAhead,
-                $CacheDateTimeFrom->format('Y-m-d H:i:s'),
-                $CacheDateTimeUntil->format('Y-m-d H:i:s')
-            )
-        );
 
         while (($vEvent = $vCalendar->getComponent(IcalInterface::VEVENT)) !== false) {
             if (!($vEvent instanceof Kigkonsult\Icalcreator\Vevent)) {
@@ -530,188 +584,183 @@ class iCalImporter
             )
         );
 
-        $eventArray = [];
+        return [$vEvents, $vEvents_with_RRULE, $vEvents_with_Recurrence_id];
+    }
 
-        foreach ($vEvents as $vEvent) {
-            if (!($vEvent instanceof Kigkonsult\Icalcreator\Vevent)) {
-                throw new RuntimeException('Component is not of type vevent');
-            }
+    /*
+        DTSTART/DTEND/DURATION eines Events ermitteln
+        $durationSpecform = true: getDuration liefert das bereits berechnete Enddatum
+    */
+    private function getEventTimes(Kigkonsult\Icalcreator\Vevent $vEvent, bool $durationSpecform, string $logTag): array
+    {
+        $dtStartingTime = $this->getDateTime($vEvent->getDtstart(true));
+        if ($vEvent->getDtend(true) === false) {
+            $dtEndingTime = false;
+        } else {
+            $dtEndingTime = $this->getDateTime($vEvent->getDtend(true));
+        }
+        $dtDuration = $vEvent->getDuration(false, $durationSpecform);
 
-            $dtStartingTime = $this->getDateTime($vEvent->getDtstart(true));
-            if ($vEvent->getDtend(true) === false) {
-                $dtEndingTime = false;
-            } else {
-                $dtEndingTime = $this->getDateTime($vEvent->getDtend(true));
-            }
-            $dtDuration = $vEvent->getDuration(false, true); //specform: the end date is already calculated
+        $this->logDebug(
+            __FUNCTION__,
+            sprintf(
+                '%s dtStartingTime: %s, dtEndingTime: %s, dtDuration: %s',
+                $logTag,
+                json_encode($dtStartingTime, JSON_THROW_ON_ERROR),
+                json_encode($dtEndingTime, JSON_THROW_ON_ERROR),
+                json_encode($dtDuration, JSON_THROW_ON_ERROR)
+            )
+        );
 
+        return [$dtStartingTime, $dtEndingTime, $dtDuration];
+    }
 
-            $this->logDebug(
-                __FUNCTION__,
-                sprintf(
-                    '#Event# dtStartingTime: %s, dtEndingTime: %s, dtDuration: %s',
-                    json_encode($dtStartingTime, JSON_THROW_ON_ERROR),
-                    json_encode($dtEndingTime, JSON_THROW_ON_ERROR),
-                    json_encode($dtDuration, JSON_THROW_ON_ERROR)
-                )
-            );
+    /*
+        einen Einzeltermin in einen Event-Eintrag umsetzen
+    */
+    private function processSingleEvent(Kigkonsult\Icalcreator\Vevent $vEvent): array
+    {
+        [$dtStartingTime, $dtEndingTime, $dtDuration] = $this->getEventTimes($vEvent, true, '#Event#');
 
-            $tsStartingTime = $dtStartingTime->getTimestamp();
+        $tsStartingTime = $dtStartingTime->getTimestamp();
 
-            if ($dtDuration !== false) {
-                $tsEndingTime = $dtDuration->getTimestamp();
-            } elseif ($dtEndingTime === false) {
-                $tsEndingTime = $tsStartingTime;
-            } else {
-                $tsEndingTime = $dtEndingTime->getTimestamp();
-            }
-
-            $eventArray[] = $this->GetEventAttributes($vEvent, $tsStartingTime, $tsEndingTime);
+        if ($dtDuration !== false) {
+            $tsEndingTime = $dtDuration->getTimestamp();
+        } elseif ($dtEndingTime === false) {
+            $tsEndingTime = $tsStartingTime;
+        } else {
+            $tsEndingTime = $dtEndingTime->getTimestamp();
         }
 
-        foreach ($vEvents_with_RRULE as $vEvent) {
-            if (!($vEvent instanceof Kigkonsult\Icalcreator\Vevent)) {
-                throw new RuntimeException('Component is not of type vevent');
+        return $this->GetEventAttributes($vEvent, $tsStartingTime, $tsEndingTime);
+    }
+
+    /*
+        einen Serientermin (RRULE) in seine Vorkommen innerhalb des Cache-Fensters auflösen;
+        EXDATEs werden ausgelassen, per RECURRENCE-ID geänderte Vorkommen ersetzt
+    */
+    private function processRecurringEvent(
+        Kigkonsult\Icalcreator\Vevent $vEvent,
+        array $vEvents_with_Recurrence_id,
+        DateTime $CacheDateTimeFrom,
+        DateTime $CacheDateTimeUntil
+    ): array {
+        [$dtStartingTime, $dtEndingTime, $dtDuration] = $this->getEventTimes($vEvent, false, '#Event_RRULE#');
+
+        $RRule = $this->buildRRule($vEvent, $dtStartingTime);
+        if ($RRule === null) {
+            return [];
+        }
+
+        $dtExDates = $this->getExDates($vEvent);
+        $this->logDebug(__FUNCTION__, sprintf('dtExDates: %s', json_encode($dtExDates, JSON_THROW_ON_ERROR)));
+
+        $events       = [];
+        $dtOccurences = $RRule->getOccurrencesBetween($CacheDateTimeFrom, $CacheDateTimeUntil);
+        $this->logDebug(__FUNCTION__, sprintf('dtOccurrences: %s', json_encode($dtOccurences, JSON_THROW_ON_ERROR)));
+
+        foreach ($dtOccurences as $dtOccurrence) {
+            if (!($dtOccurrence instanceof DateTime)) {
+                throw new RuntimeException('Component is not of type DateTime');
             }
 
-            $dtStartingTime = $this->getDateTime($vEvent->getDtstart(true));
-            if ($vEvent->getDtend(true) === false) {
-                $dtEndingTime = false;
-            } else {
-                $dtEndingTime = $this->getDateTime($vEvent->getDtend(true));
-            }
-            $dtDuration = $vEvent->getDuration(false, false);
-
-            $this->logDebug(
-                __FUNCTION__,
-                sprintf(
-                    '#Event_RRULE# dtStartingTime: %s, dtEndingTime: %s, dtDuration: %s',
-                    json_encode($dtStartingTime, JSON_THROW_ON_ERROR),
-                    json_encode($dtEndingTime, JSON_THROW_ON_ERROR),
-                    json_encode($dtDuration, JSON_THROW_ON_ERROR)
-                )
-            );
-
-
-            $CalRRule = $vEvent->getRrule();
-            if ($CalRRule) {
-                if (array_key_exists('UNTIL', $CalRRule)) {
-                    $UntilDateTime = $this->iCalDateTimeArrayToDateTime(['value' => $CalRRule['UNTIL']], false);
-                    // replace iCal date array with datetime object
-                    $CalRRule['UNTIL'] = $UntilDateTime;
-                }
-
-                // replace/set iCal date array with datetime object
-                $CalRRule['DTSTART'] = $dtStartingTime;
-
-                // the "BYDAY" element needs to be string. If not, lift it up
-                if (array_key_exists('BYDAY', $CalRRule)) {
-                    foreach ($CalRRule['BYDAY'] as &$day) {
-                        if (is_array($day) && array_key_exists('DAY', $day)) {
-                            $day = implode('', $day);
-                        }
-                    }
-                    unset($day);
-
-                    $CalRRule['BYDAY'] = implode(',', $CalRRule['BYDAY']);
-                }
-
-                $this->logDebug(
-                    __FUNCTION__,
-                    sprintf(
-                        'CalRRule \'%s\': %s',
-                        $vEvent->getSummary(),
-                        json_encode($CalRRule, JSON_THROW_ON_ERROR)
-                    )
-                );
-
-                try {
-                    $RRule = new RRule($CalRRule);
-                } catch (Exception $e) {
-                    $this->logError(
-                        sprintf('Error \'%s\' in CalRRule \'%s\': %s', $e->getMessage(), $vEvent->getSummary(), print_r($CalRRule, true))
-                    );
-                    continue;
-                }
-            } else {
-                $this->logDebug( __FUNCTION__, '$RRule not set!');
-            }
-
-            if (!isset($RRule)) {
-                $this->logDebug( __FUNCTION__, '$RRule not set!');
+            //check if the occurrence was deleted
+            $this->logDebug(__FUNCTION__, sprintf('dtOccurrence: %s', json_encode($dtOccurrence, JSON_THROW_ON_ERROR)));
+            if (in_array($dtOccurrence, $dtExDates, false)) { //compare the content, not the instance
+                $this->logDebug(__FUNCTION__, 'excluded');
                 continue;
             }
 
-            //get the EXDATES
-            $dtExDates = [];
-            while (false !== ($exDates = $vEvent->getExdate(null, true))) {
-                foreach ($exDates['value'] as $exDateValue) {
-                    $dtExDates[] =
-                        $this->iCalDateTimeArrayToDateTime(['value' => $exDateValue, 'params' => $exDates['params']], $this->isAllDayEvent($vEvent));
-                }
-            }
-            $this->logDebug( __FUNCTION__, sprintf('dtExDates: %s', json_encode($dtExDates, JSON_THROW_ON_ERROR)));
-
-            //get the occurrences
-            $dtOccurences = $RRule->getOccurrencesBetween($CacheDateTimeFrom, $CacheDateTimeUntil);
-            $this->logDebug(__FUNCTION__, sprintf('dtOccurrences: %s', json_encode($dtOccurences, JSON_THROW_ON_ERROR)));
-            foreach ($dtOccurences as $dtOccurrence) {
-                if (!($dtOccurrence instanceof DateTime)) {
-                    throw new RuntimeException('Component is not of type DateTime');
-                }
-
-                //check if the occurrence was deleted
-                $this->logDebug( __FUNCTION__, sprintf('dtOccurrence: %s', json_encode($dtOccurrence, JSON_THROW_ON_ERROR)));
-                if (in_array($dtOccurrence, $dtExDates, false)) { //compare the content, not the instance
-                    $this->logDebug(__FUNCTION__, 'excluded');
-                    continue;
-                }
-
-                //check if the occurrence was changed
-                $changedEvent = $this->getChangedEvent($vEvents_with_Recurrence_id, (string)$vEvent->getUid(), $dtOccurrence);
-                if ($changedEvent) {
-                    $dtStartingTime = $changedEvent->getDtstart();
-                    $dtEndingTime   = $changedEvent->getDtend();
-                    $eventArray[]   = $this->GetEventAttributes(
-                        $changedEvent,
-                        ($changedEvent->getDtstart())->getTimestamp(),
-                        ($changedEvent->getDtend())->getTimestamp()
-                    );
-                } else {
-                    if ($dtDuration !== false) {
-                        $tsTo = ((clone $dtOccurrence)->add($dtDuration))->getTimestamp();
-                    } else {
-                        $tsTo = $dtOccurrence->getTimestamp() + ($dtEndingTime->getTimestamp() - $dtStartingTime->getTimestamp());
-                    }
-                    $eventArray[] = $this->GetEventAttributes($vEvent, $dtOccurrence->getTimestamp(), $tsTo);
-                }
-            }
-        }
-
-        foreach ($eventArray as $event) {
-            if ($this->isEventOutsideCachedTime($event, $CacheDateTimeFrom, $CacheDateTimeUntil)) {
-                $this->logDebug(
-                    __FUNCTION__,
-                    sprintf(
-                        'Event \'%s\' (%s - %s) is outside the cached time, is ignored',
-                        $event['Name'],
-                        $event['FromS'],
-                        $event['ToS']
-                    )
+            //check if the occurrence was changed
+            $changedEvent = $this->getChangedEvent($vEvents_with_Recurrence_id, (string)$vEvent->getUid(), $dtOccurrence);
+            if ($changedEvent) {
+                // Hinweis: Start-/Endzeit des geänderten Vorkommens gelten ab hier auch für die
+                // Dauerberechnung der nachfolgenden Vorkommen (bisheriges Verhalten beibehalten)
+                $dtStartingTime = $changedEvent->getDtstart();
+                $dtEndingTime   = $changedEvent->getDtend();
+                $events[]       = $this->GetEventAttributes(
+                    $changedEvent,
+                    $dtStartingTime->getTimestamp(),
+                    $dtEndingTime->getTimestamp()
                 );
             } else {
-                // insert event
-                $iCalCalendarArray[] = $event;
+                if ($dtDuration !== false) {
+                    $tsTo = ((clone $dtOccurrence)->add($dtDuration))->getTimestamp();
+                } else {
+                    $tsTo = $dtOccurrence->getTimestamp() + ($dtEndingTime->getTimestamp() - $dtStartingTime->getTimestamp());
+                }
+                $events[] = $this->GetEventAttributes($vEvent, $dtOccurrence->getTimestamp(), $tsTo);
             }
         }
 
-        // sort by start date/time to make the check on changes work
-        usort(
-            $iCalCalendarArray, static function ($a, $b) {
-            return $a['From'] - $b['From'];
+        return $events;
+    }
+
+    /*
+        die RRULE eines Events in ein RRule-Objekt umsetzen; null bei fehlender/ungültiger Regel
+    */
+    private function buildRRule(Kigkonsult\Icalcreator\Vevent $vEvent, DateTime $dtStartingTime): ?RRule
+    {
+        $CalRRule = $vEvent->getRrule();
+        if (!$CalRRule) {
+            $this->logDebug(__FUNCTION__, '$RRule not set!');
+            return null;
         }
+
+        if (array_key_exists('UNTIL', $CalRRule)) {
+            // replace iCal date array with datetime object
+            $CalRRule['UNTIL'] = $this->iCalDateTimeArrayToDateTime(['value' => $CalRRule['UNTIL']], false);
+        }
+
+        // replace/set iCal date array with datetime object
+        $CalRRule['DTSTART'] = $dtStartingTime;
+
+        // the "BYDAY" element needs to be string. If not, lift it up
+        if (array_key_exists('BYDAY', $CalRRule)) {
+            foreach ($CalRRule['BYDAY'] as &$day) {
+                if (is_array($day) && array_key_exists('DAY', $day)) {
+                    $day = implode('', $day);
+                }
+            }
+            unset($day);
+
+            $CalRRule['BYDAY'] = implode(',', $CalRRule['BYDAY']);
+        }
+
+        $this->logDebug(
+            __FUNCTION__,
+            sprintf(
+                'CalRRule \'%s\': %s',
+                $vEvent->getSummary(),
+                json_encode($CalRRule, JSON_THROW_ON_ERROR)
+            )
         );
-        return $iCalCalendarArray;
+
+        try {
+            return new RRule($CalRRule);
+        } catch (Exception $e) {
+            $this->logError(
+                sprintf('Error \'%s\' in CalRRule \'%s\': %s', $e->getMessage(), $vEvent->getSummary(), print_r($CalRRule, true))
+            );
+            return null;
+        }
+    }
+
+    /*
+        die EXDATEs eines Events als DateTime-Liste ermitteln
+    */
+    private function getExDates(Kigkonsult\Icalcreator\Vevent $vEvent): array
+    {
+        $dtExDates = [];
+        while (false !== ($exDates = $vEvent->getExdate(null, true))) {
+            foreach ($exDates['value'] as $exDateValue) {
+                $dtExDates[] = $this->iCalDateTimeArrayToDateTime(
+                    ['value' => $exDateValue, 'params' => $exDates['params']],
+                    $this->isAllDayEvent($vEvent)
+                );
+            }
+        }
+        return $dtExDates;
     }
 
     private function isEventOutsideCachedTime(array $event, DateTime $cacheDateTimeFrom, DateTime $cacheDateTimeUntil): bool

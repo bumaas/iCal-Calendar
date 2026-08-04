@@ -540,26 +540,26 @@ class iCalCalendarReader extends IPSModuleStrict
         return json_encode($form, JSON_THROW_ON_ERROR);
     }
 
- public function RequestAction($Ident, $Value): void
- {
-    $this->Logger_Dbg(__FUNCTION__, sprintf('Ident: %s, Value: %s', $Ident, $Value));
+    public function RequestAction($Ident, $Value): void
+    {
+        $this->Logger_Dbg(__FUNCTION__, sprintf('Ident: %s, Value: %s', $Ident, $Value));
 
-    switch ($Ident){
-        case self::ICCR_PROPERTY_NOTIFIERS . '_onAdd':
-            $notifiers = json_decode($Value, true, 512, JSON_THROW_ON_ERROR);
-            foreach ($notifiers as $key=>$notifier){
-                if ($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT] === ''){
-                    $notifiers[$key][self::ICCR_PROPERTY_NOTIFIER_IDENT] = 'NOTIFIER' . $this->GetNextFreeNotifierNumber(array_column($notifiers, self::ICCR_PROPERTY_NOTIFIER_IDENT));
+        switch ($Ident) {
+            case self::ICCR_PROPERTY_NOTIFIERS . '_onAdd':
+                $notifiers = json_decode($Value, true, 512, JSON_THROW_ON_ERROR);
+                foreach ($notifiers as $key => $notifier) {
+                    if ($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT] === '') {
+                        $notifiers[$key][self::ICCR_PROPERTY_NOTIFIER_IDENT] =
+                            'NOTIFIER' . $this->GetNextFreeNotifierNumber(array_column($notifiers, self::ICCR_PROPERTY_NOTIFIER_IDENT));
+                    }
                 }
-            }
-            $this->UpdateFormField(self::ICCR_PROPERTY_NOTIFIERS, 'values', json_encode($notifiers, JSON_THROW_ON_ERROR));
-            break;
+                $this->UpdateFormField(self::ICCR_PROPERTY_NOTIFIERS, 'values', json_encode($notifiers, JSON_THROW_ON_ERROR));
+                break;
 
-        default:
-            trigger_error(sprintf('unexpected Ident: %s', $Ident), E_USER_WARNING);
+            default:
+                trigger_error(sprintf('unexpected Ident: %s', $Ident), E_USER_WARNING);
+        }
     }
-
- }
 
     private function getNotifierListValues():array
     {
@@ -656,7 +656,6 @@ class iCalCalendarReader extends IPSModuleStrict
     */
     public function LoadCalendarURL(string &$content): int
     {
-        $test = false;
         $instStatus = IS_ACTIVE;
         $url        = $this->ReadPropertyString(self::ICCR_PROPERTY_CALENDAR_URL);
         $username   = $this->ReadPropertyString(self::ICCR_PROPERTY_USERNAME);
@@ -692,79 +691,17 @@ class iCalCalendarReader extends IPSModuleStrict
             curl_setopt($curl, CURLOPT_USERPWD, $username . ':' . $password);
         }
 
-        if ($test){
-            $content = file_get_contents(__DIR__ . '/../docs/Examples/Testdaten/TestDaten_Joachim_Exception.txt');
-            $this->Logger_Dbg(__FUNCTION__, sprintf('%s', strlen($content)));
-            $content = str_replace('<CR><LF>', PHP_EOL, $content);
-        } else {
-            $content = curl_exec($curl);
-        }
+        $content = curl_exec($curl);
 
         $curl_error_nr  = curl_errno($curl);
         $curl_error_str = curl_error($curl);
         curl_close($curl);
 
-        // check on curl error
         if ($curl_error_nr) {
             $this->Logger_Err(sprintf('Error (%s) on connect - %s for %s', $curl_error_nr, $curl_error_str, $url));
-            // only differentiate between invalid, connect, SSL and auth
-            switch ($curl_error_nr) {
-                case CURLE_OPERATION_TIMEOUTED:
-                case CURLE_SSL_CONNECT_ERROR:
-                    $instStatus = self::STATUS_INST_OPERATION_TIMED_OUT;
-                    break;
-                case CURLE_UNSUPPORTED_PROTOCOL:
-                case CURLE_URL_MALFORMAT:
-                case CURLE_URL_MALFORMAT_USER:
-                    // invalid URL
-                    $instStatus = self::STATUS_INST_INVALID_URL;
-                    break;
-                case CURLE_SSL_ENGINE_NOTFOUND:
-                case CURLE_SSL_ENGINE_SETFAILED:
-                case CURLE_SSL_CERTPROBLEM:
-                case CURLE_SSL_CIPHER:
-                case CURLE_SSL_CACERT:
-                case CURLE_SSL_CACERT_BADFILE:
-                    // SSL error
-                    $instStatus = self::STATUS_INST_SSL_ERROR;
-                    break;
-                case 67: //CURLE_LOGIN_DENIED
-                    // auth error
-                    $instStatus = self::STATUS_INST_INVALID_USER_PASSWORD;
-                    break;
-                default:
-                    // connect error
-                    $instStatus = self::STATUS_INST_CONNECTION_ERROR;
-                    break;
-            }
-        } // no curl error, continue
-        elseif (!str_contains($content, 'BEGIN:VCALENDAR')) {
-            // handle error document
-            $instStatus = self::STATUS_INST_UNEXPECTED_RESPONSE;
-
-            // ownCloud sends XML error messages
-            libxml_use_internal_errors(true);
-            $XML = simplexml_load_string($content);
-
-            // owncloud error?
-            if ($XML !== false) {
-                $XML->registerXPathNamespace('d', 'DAV:');
-                if (count($XML->xpath('//d:error')) > 0) {
-                    // XML error document
-                    $children = $XML->children('http://sabredav.org/ns');
-                    if (isset($children)){
-                        $this->Logger_Err(sprintf('Error: %s - Message: %s', $children->exception, $children->message));
-                    }
-                    $instStatus = self::STATUS_INST_INVALID_USER_PASSWORD;
-                }
-            } // synology sends plain text
-            elseif (str_starts_with($content, 'Please log in')) {
-                $this->Logger_Err('Error logging on - invalid user/password combination for ' . $url);
-                $instStatus = self::STATUS_INST_INVALID_USER_PASSWORD;
-            } // everything else goes here
-            else {
-                $this->Logger_Err(sprintf('Error on connect - this is not a valid response (URL: %s, response: %s', $url, $content));
-            }
+            $instStatus = $this->MapCurlErrorToStatus($curl_error_nr);
+        } elseif (!str_contains($content, 'BEGIN:VCALENDAR')) {
+            $instStatus = $this->AnalyzeUnexpectedResponse($content, $url);
         }
 
         if ($instStatus === IS_ACTIVE) {
@@ -776,6 +713,65 @@ class iCalCalendarReader extends IPSModuleStrict
             $this->Logger_Dbg(__FUNCTION__, 'Error, curl_result: empty');
         }
         return $instStatus;
+    }
+
+    /*
+        curl-Fehlernummer auf einen Instanzstatus abbilden
+        (nur unterschieden nach ungültiger URL, Verbindung, SSL und Authentifizierung)
+    */
+    private function MapCurlErrorToStatus(int $curlErrorNr): int
+    {
+        return match ($curlErrorNr) {
+            CURLE_OPERATION_TIMEOUTED,
+            CURLE_SSL_CONNECT_ERROR     => self::STATUS_INST_OPERATION_TIMED_OUT,
+
+            CURLE_UNSUPPORTED_PROTOCOL,
+            CURLE_URL_MALFORMAT,
+            CURLE_URL_MALFORMAT_USER    => self::STATUS_INST_INVALID_URL,
+
+            CURLE_SSL_ENGINE_NOTFOUND,
+            CURLE_SSL_ENGINE_SETFAILED,
+            CURLE_SSL_CERTPROBLEM,
+            CURLE_SSL_CIPHER,
+            CURLE_SSL_CACERT,
+            CURLE_SSL_CACERT_BADFILE    => self::STATUS_INST_SSL_ERROR,
+
+            67 /* CURLE_LOGIN_DENIED */ => self::STATUS_INST_INVALID_USER_PASSWORD,
+
+            default                     => self::STATUS_INST_CONNECTION_ERROR,
+        };
+    }
+
+    /*
+        eine Antwort ohne "BEGIN:VCALENDAR" untersuchen: bekannte Fehlerdokumente
+        (ownCloud/SabreDAV-XML, Synology-Klartext) erkennen und Status ableiten
+    */
+    private function AnalyzeUnexpectedResponse(string $content, string $url): int
+    {
+        // ownCloud/SabreDAV meldet Fehler als XML-Dokument
+        libxml_use_internal_errors(true);
+        $XML = simplexml_load_string($content);
+
+        if ($XML !== false) {
+            $XML->registerXPathNamespace('d', 'DAV:');
+            if (count($XML->xpath('//d:error')) > 0) {
+                $children = $XML->children('http://sabredav.org/ns');
+                if (isset($children)) {
+                    $this->Logger_Err(sprintf('Error: %s - Message: %s', $children->exception, $children->message));
+                }
+                return self::STATUS_INST_INVALID_USER_PASSWORD;
+            }
+            return self::STATUS_INST_UNEXPECTED_RESPONSE;
+        }
+
+        // Synology meldet Fehler als Klartext
+        if (str_starts_with($content, 'Please log in')) {
+            $this->Logger_Err('Error logging on - invalid user/password combination for ' . $url);
+            return self::STATUS_INST_INVALID_USER_PASSWORD;
+        }
+
+        $this->Logger_Err(sprintf('Error on connect - this is not a valid response (URL: %s, response: %s', $url, $content));
+        return self::STATUS_INST_UNEXPECTED_RESPONSE;
     }
 
     /*
@@ -828,11 +824,6 @@ class iCalCalendarReader extends IPSModuleStrict
     private function Logger_Err(string $message): void
     {
         $this->SendDebug('LOG_ERR', $message, 0);
-        /*
-        if (function_exists('IPSLogger_Err') && $this->ReadPropertyBoolean('WriteLogInformationToIPSLogger')) {
-            IPSLogger_Err(__CLASS__, $message);
-        }
-        */
         $this->LogMessage($message, KL_ERROR);
     }
 
@@ -920,12 +911,6 @@ class iCalCalendarReader extends IPSModuleStrict
 
         return str_contains($subject, $searchPattern);
     }
-    // ... existing code ...
-    private function formatDate(int $ts): string
-    {
-        return date('Y-m-d H:i:s', $ts);
-    }
-
     public function NormalizeRegexPattern(string $pattern): string
     {
         $pattern = trim($pattern);
@@ -970,15 +955,15 @@ class iCalCalendarReader extends IPSModuleStrict
 
         foreach ($Notifiers as $notifier) {
             $this->Logger_Dbg(__FUNCTION__, 'Process notifier: ' . json_encode($notifier, JSON_THROW_ON_ERROR));
-            $active                            = false;
-            $notifications[$notifier['Ident']] = [];
+            $active                                                        = false;
+            $notifications[$notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]] = [];
             foreach ($calendarData as $iCalItem) {
                 $active = $this->CheckPresence(
                     $iCalItem['Name'],
                     $iCalItem['From'],
                     $iCalItem['To'],
-                    $notifier['Find'],
-                    $notifier['RegExpression'],
+                    $notifier[self::ICCR_PROPERTY_NOTIFIER_FIND],
+                    $notifier[self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION],
                     $notifier[self::ICCR_PROPERTY_NOTIFIER_PRENOTIFY] * 60,
                     $notifier[self::ICCR_PROPERTY_NOTIFIER_POSTNOTIFY] * 60
                 );
