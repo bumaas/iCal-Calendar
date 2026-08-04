@@ -54,3 +54,7 @@ Temporary Items
 # ===============
 # Testdaten
 docs/Examples/Testdaten
+# ===============
+# Claude Code (Persönliches bleibt lokal, settings.json wird committet)
+.claude/settings.local.json
+CLAUDE.local.md

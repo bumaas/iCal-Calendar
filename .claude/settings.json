@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php -l *)",
+      "Bash(/c/php/php -l *)",
+      "Bash(C:/php/php -l *)",
+      "Bash(php tests/check_locale.php)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(Select-String *)",
+      "PowerShell(Get-Clipboard)",
+      "PowerShell(Set-Clipboard *)",
+      "mcp__ide__getDiagnostics",
+      "mcp__claude-in-chrome__get_page_text",
+      "mcp__claude-in-chrome__tabs_context_mcp"
+    ]
+  }
+}
