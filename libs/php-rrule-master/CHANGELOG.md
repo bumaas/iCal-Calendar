@@ -2,6 +2,33 @@
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-07-29
+
+- Drop support for PHP < 7.3 [#119](https://github.com/rlanvin/php-rrule/issues/119)
+- Add support for PHP 8.4
+
+### Fixed
+
+- Added a workaround for a Carbon 3 bug that makes occursAt fail in some cases [#164](https://github.com/rlanvin/php-rrule/issues/164)
+- Fix RSet not de-duplicating when using array access [#165](https://github.com/rlanvin/php-rrule/issues/165)
+- Fix timezone conversion skipped with DateTimeImmutable [#171](https://github.com/rlanvin/php-rrule/pull/171)
+
+## [2.6.0] - 2025-04-25
+
+### Added
+
+- Bengali (bn) localization [#159](https://github.com/rlanvin/php-rrule/pull/159)
+- Danish (da) localization [#161](https://github.com/rlanvin/php-rrule/pull/161)
+- Greek (el) localization [#157](https://github.com/rlanvin/php-rrule/pull/157)
+- Russian (ru) localization [#153](https://github.com/rlanvin/php-rrule/pull/153)
+
+## [2.5.2] - 2025-02-21
+
+### Fixed
+
+- Fix "november" typo in french translation [#155](https://github.com/rlanvin/php-rrule/issues/155)
+- Fix incorrect calculation from partially filled cache [#160](https://github.com/rlanvin/php-rrule/issues/160)
+
 ## [2.5.1] - 2024-06-23
 
 ### Fixed
@@ -273,7 +300,10 @@
 
 - First release, everything before that was unversioned (`dev-master` was used).
 
-[Unreleased]: https://github.com/rlanvin/php-rrule/compare/v2.5.1...HEAD
+[Unreleased]: https://github.com/rlanvin/php-rrule/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/rlanvin/php-rrule/compare/v2.6.0...v3.0.0
+[2.6.0]: https://github.com/rlanvin/php-rrule/compare/v2.5.2...v2.6.0
+[2.5.2]: https://github.com/rlanvin/php-rrule/compare/v2.5.1...v2.5.2
 [2.5.1]: https://github.com/rlanvin/php-rrule/compare/v2.5.0...v2.5.1
 [2.5.0]: https://github.com/rlanvin/php-rrule/compare/v2.4.1...v2.5.0
 [2.4.1]: https://github.com/rlanvin/php-rrule/compare/v2.4.0...v2.4.1

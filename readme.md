@@ -29,12 +29,12 @@ Wie Kalenderdaten aus einer oder mehreren **iCalCalendarReader**-Instanzen in ei
 
 Diese Bibliothek nutzt folgende externe Bibliotheken im Verzeichnis `/lib`:
 * iCalcreator (Version 2.40.10) `https://github.com/iCalcreator/iCalcreator/tags`
-* RRULE for PHP (Version 2.5.1 - 2024-06-27) `https://github.com/rlanvin/php-rrule`, MIT-Lizenz
+* RRULE for PHP (Version 3.0.0 - 2026-07-29) `https://github.com/rlanvin/php-rrule`, MIT-Lizenz
 
 
 ### 2. Voraussetzungen
 
-- Symcon ab Version 6.0
+- Symcon ab Version 7.0
 - Kalender im iCal-Format
 
 
