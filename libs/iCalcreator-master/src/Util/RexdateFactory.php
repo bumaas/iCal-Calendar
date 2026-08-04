@@ -5,7 +5,7 @@
  * This file is a part of iCalcreator.
  *
  * @author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @copyright 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * @copyright 2007-2024 Kjell-Inge Gustafsson, kigkonsult AB, All rights reserved
  * @link      https://kigkonsult.se
  * @license   Subject matter of licence is the software iCalcreator.
  *            The above copyright, link, package and version notices,
@@ -31,117 +31,46 @@ namespace Kigkonsult\Icalcreator\Util;
 
 use DateTimeInterface;
 use DateInterval;
+use DateTime;
 use Exception;
 use InvalidArgumentException;
 use Kigkonsult\Icalcreator\IcalInterface;
-use Kigkonsult\Icalcreator\Vcalendar;
+use Kigkonsult\Icalcreator\Pc;
 
-use function array_keys;
 use function count;
-use function explode;
 use function is_array;
 use function reset;
 use function substr;
-use function usort;
 use function var_export;
 
 /**
  * iCalcreator EXDATE/RDATE support class
  *
- * @since 2.29.16 2020-01-24
+ * @since 2.41.88 - 2024-01-18
  */
 class RexdateFactory
 {
     /**
-     * @var string[]
-     */
-    private static array $DEFAULTVALUEDATETIME = [
-        IcalInterface::VALUE => IcalInterface::DATE_TIME
-    ];
-
-    /**
      * @var string
      */
-    private static string $REXDATEERR = 'Unknown %s value (#%d) : %s';
-
-    /**
-     * Return formatted output for calendar component property data value type recur
-     *
-     * @param array $exdateData
-     * @param bool    $allowEmpty
-     * @return string
-     * @throws Exception
-     * @throws InvalidArgumentException
-     * @since 2.29.2 2019-06-23
-     */
-    public static function formatExdate( array $exdateData, bool $allowEmpty ) : string
-    {
-        static $SORTER1 = [ SortFactory::class, 'sortExdate1', ];
-        static $SORTER2 = [ SortFactory::class, 'sortExdate2', ];
-        $output  = Util::$SP0;
-        $exdates = [];
-        foreach(( array_keys( $exdateData )) as $ex ) {
-            $theExdate = $exdateData[$ex];
-            if( empty( $theExdate[Util::$LCvalue] )) {
-                if( $allowEmpty ) {
-                    $output .= StringFactory::createElement( IcalInterface::EXDATE );
-                }
-                continue;
-            }
-            if( 1 < count( $theExdate[Util::$LCvalue] )) {
-                usort( $theExdate[Util::$LCvalue], $SORTER1 );
-            }
-            $exdates[] = $theExdate;
-        } // end foreach
-        if( 1 < count( $exdates )) {
-            usort( $exdates, $SORTER2 );
-        }
-        foreach(( array_keys( $exdates )) as $ex ) {
-            $theExdate   = $exdates[$ex];
-            $isValueDate = ParameterFactory::isParamsValueSet(
-                $theExdate,
-                IcalInterface::DATE
-            );
-            $isLocalTime = isset( $theExdate[Util::$LCparams][Util::$ISLOCALTIME] );
-            $content     = null;
-            foreach(( array_keys( $theExdate[Util::$LCvalue] )) as $eix ) {
-                $formatted  = DateTimeFactory::dateTime2Str(
-                    $theExdate[Util::$LCvalue][$eix],
-                    $isValueDate,
-                    $isLocalTime
-                );
-                $content .= ( 0 < $eix ) ? Util::$COMMA . $formatted : $formatted;
-            } // end foreach
-            $output .= StringFactory::createElement(
-                IcalInterface::EXDATE,
-                ParameterFactory::createParams( $theExdate[Util::$LCparams] ),
-                $content
-            );
-        } // end foreach(( array_keys( $exdates...
-        return $output;
-    }
+    public static string $REXDATEERR = 'Unknown %s value (#%d) : %s';
 
     /**
      * Return prepared calendar component property exdate input
      *
-     * @param string[]|DateTimeInterface[] $exdates
-     * @param null|array $params
-     * @return array
+     * @param Pc $pc
+     * @return Pc
      * @throws Exception
      * @throws InvalidArgumentException
-     * @since 2.29.16 2020-01-24
+     * @since 2.41.88 - 2024-01-18
      */
-    public static function prepInputExdate( array $exdates, ? array $params = [] ) : array
+    public static function prepInputExdate( Pc $pc ) : Pc
     {
-        $output = [
-            Util::$LCvalue  => [],
-            Util::$LCparams => ParameterFactory::setParams(
-                $params,
-                self::$DEFAULTVALUEDATETIME
-            )
-        ];
-        $isValueDate = ParameterFactory::isParamsValueSet( $output, IcalInterface::DATE );
-        $paramTZid   = ParameterFactory::getParamTzid( $output );
+        $exdates     = $pc->getValue();
+        $output      = ( clone $pc )->setValue( [] );
+        $output->addParam( IcalInterface::VALUE, IcalInterface::DATE_TIME, false );
+        $isValueDate = $output->hasParamValue( IcalInterface::DATE );
+        $paramTZid   = $output->getParams( IcalInterface::TZID ) ?? StringFactory::$SP0;
         $forceUTC    = ( IcalInterface::UTC === $paramTZid );
         $isLocalTime = false;
         if( ! empty( $paramTZid )) {
@@ -152,22 +81,23 @@ class RexdateFactory
                 DateTimeZoneFactory::assertDateTimeZone( $paramTZid );
             }
         }
-        foreach(( array_keys( $exdates )) as $eix ) {
-            $theExdate = $exdates[$eix];
-            $wDate     = match ( true ) {
+        $output2 = [];
+        foreach( $exdates as $eix => $theExdate ) {
+            $wDate     = match( true ) {
                 $theExdate instanceof DateTimeInterface => DateTimeFactory::conformDateTime(
                     DateTimeFactory::toDateTime( $theExdate ),
                     $isValueDate,
                     $forceUTC,
                     $paramTZid
                 ),
-                DateTimeFactory::isStringAndDate( $theExdate ) => DateTimeFactory::conformStringDate(
-                    $theExdate,
-                    $isValueDate,
-                    $forceUTC,
-                    $isLocalTime,
-                    $paramTZid
-                ),
+                DateTimeFactory::isStringAndDate( $theExdate ) =>
+                    DateTimeFactory::conformStringDate(
+                        $theExdate,
+                        $isValueDate,
+                        $forceUTC,
+                        $isLocalTime,
+                        $paramTZid
+                    ),
                 default => throw new InvalidArgumentException(
                     sprintf(
                         self::$REXDATEERR,
@@ -176,181 +106,42 @@ class RexdateFactory
                         var_export( $theExdate, true )
                     )
                 ),
-            }; // end switch
-            $output[Util::$LCvalue][] = $wDate;
+            }; // end match
+            $output2[] = $wDate;
         } // end foreach(( array_keys( $exdates...
-        if( 0 < count( $output[Util::$LCvalue] )) {
-            DateTimeFactory::conformDateTimeParams(
-                $output[Util::$LCparams], $isValueDate, $isLocalTime, $paramTZid
-            );
+        $output->setValue( $output2 );
+        if( 0 < count( $output2 )) {
+            DateTimeFactory::conformDateTimeParams( $output, $isValueDate, $isLocalTime, $paramTZid );
         }
         return $output;
-    }
-
-    /**
-     * Return formatted output for calendar component property rdate
-     *
-     * @param array $rdateData
-     * @param bool     $allowEmpty
-     * @param string   $compType
-     * @return string
-     * @throws Exception
-     * @since  2.40 - 2021-10-04
-     */
-    public static function formatRdate(
-        array $rdateData,
-        bool $allowEmpty,
-        string $compType
-    ) : string
-    {
-        static $SORTER1 = [ SortFactory::class, 'sortRdate1' ];
-        static $SORTER2 = [ SortFactory::class, 'sortRdate2' ];
-        $utcTime     = Util::isCompInList( $compType, Vcalendar::$TZCOMPS );
-        $output      = Util::$SP0;
-        $rDates      = [];
-        foreach(( array_keys( $rdateData )) as $rpix ) {
-            $theRdate    = $rdateData[$rpix];
-            if( empty( $theRdate[Util::$LCvalue] )) {
-                if( $allowEmpty ) {
-                    $output .= StringFactory::createElement( IcalInterface::RDATE );
-                }
-                continue;
-            }
-            if( $utcTime ) {
-                unset( $theRdate[Util::$LCparams][IcalInterface::TZID] );
-            }
-            if( 1 < count( $theRdate[Util::$LCvalue] )) {
-                usort( $theRdate[Util::$LCvalue], $SORTER1 );
-            }
-            $rDates[] = $theRdate;
-        } // end foreach
-        if( 1 < count( $rDates )) {
-            usort( $rDates, $SORTER2 );
-        }
-        foreach(( array_keys( $rDates )) as $rpix ) {
-            $theRdate    = $rDates[$rpix];
-            $isValueDate = ParameterFactory::isParamsValueSet(
-                $theRdate,
-                IcalInterface::DATE
-            );
-            $isLocalTime = isset( $theRdate[Util::$LCparams][Util::$ISLOCALTIME] );
-            $attributes  = ParameterFactory::createParams( $theRdate[Util::$LCparams] );
-            $cnt         = count( $theRdate[Util::$LCvalue] );
-            $content     = Util::$SP0;
-            $rno         = 1;
-            foreach(( array_keys( $theRdate[Util::$LCvalue] )) as $rix ) {
-                $rdatePart = $theRdate[Util::$LCvalue][$rix];
-                if( is_array( $rdatePart ) &&
-                    ParameterFactory::isParamsValueSet( $theRdate, IcalInterface::PERIOD )) {
-                    // PERIOD part 1
-                    $contentPart  = DateTimeFactory::dateTime2Str(
-                        $rdatePart[0],
-                        $isValueDate,
-                        $isLocalTime
-                    );
-                    $contentPart .= '/';
-                    // PERIOD part 2
-                    if( $rdatePart[1] instanceof DateInterval ) {
-                        $contentPart .= DateIntervalFactory::dateInterval2String(
-                            $rdatePart[1]
-                        );
-                    }
-                    else { // date-time
-                        $contentPart .=
-                            DateTimeFactory::dateTime2Str(
-                                $rdatePart[1],
-                                $isValueDate,
-                                $isLocalTime
-                            );
-                    }
-
-                } // PERIOD end
-                else { // SINGLE date start
-                    $contentPart = DateTimeFactory::dateTime2Str(
-                        $rdatePart,
-                        $isValueDate,
-                        $isLocalTime
-                    );
-                }
-                $content .= $contentPart;
-                if( $rno < $cnt ) {
-                    $content .= Util::$COMMA;
-                }
-                $rno++;
-            } // end foreach(( array_keys( $theRdate[Util::$LCvalue]...
-            $output .= StringFactory::createElement(
-                IcalInterface::RDATE,
-                $attributes,
-                $content
-            );
-        } // foreach(( array_keys( $rDates...
-        return $output;
-    }
-
-    /**
-     * Return value and parameters from parsed row and propAttr
-     *
-     * @param string $row
-     * @param array $propAttr
-     * @return array
-     * @since  2.27.11 - 2019-01-04
-     */
-    public static function parseRexdate( string $row, array $propAttr ) : array
-    {
-        static $SS = '/';
-        if( empty( $row )) {
-            return [ null, $propAttr ];
-        }
-        $values = explode( Util::$COMMA, $row );
-        foreach( $values as $vix => $value ) {
-            if( ! str_contains( $value, $SS ) ) {
-                continue;
-            }
-            $value2 = explode( $SS, $value );
-            if( 1 < count( $value2 )) {
-                $values[$vix] = $value2;
-            }
-        } // end foreach
-        return [ $values, $propAttr ];
     }
 
     /**
      * Return prepared calendar component property rdate input
      *
-     * @param string[]|DateTimeInterface[]|string[][]|DateTimeInterface[][]|array $rDates
-     * @param null|string[]                 $params
-     * @return array
+     * @param Pc $input
+     * @return Pc
      * @throws InvalidArgumentException
      * @throws Exception
-     * @since 2.29.16 2020-01-24
+     * @since 2.41.88 - 2024-01-18
      */
-    public static function prepInputRdate( array $rDates, ? array $params = [] ) : array
+    public static function prepInputRdate( Pc $input ) : Pc
     {
-        $output = [
-            Util::$LCparams => ParameterFactory::setParams(
-                $params,
-                self::$DEFAULTVALUEDATETIME
-            )
-        ];
-        $isValuePeriod = ParameterFactory::isParamsValueSet(
-            $output,
-            IcalInterface::PERIOD
-        );
-        $isValueDate   = ParameterFactory::isParamsValueSet(
-            $output,
-            IcalInterface::DATE
-        );
-        $isLocalTime   = isset( $params[Util::$ISLOCALTIME] );
+        $rDates = $input->getValue();
+        $output = $input->setValue( [] );
+        $output->addParam( IcalInterface::VALUE, IcalInterface::DATE_TIME, false );
+        $isValuePeriod = $output->hasParamValue( IcalInterface::PERIOD );
+        $isValueDate   = $output->hasParamValue( IcalInterface::DATE );
+        $isLocalTime   = $output->hasParamIsLocalTime();
         if( $isLocalTime ) {
             $isValuePeriod = $isValueDate = false;
             $paramTZid = IcalInterface::UTC;
         }
         else {
-            $paramTZid = ParameterFactory::getParamTzid( $output );
+            $paramTZid = $output->getParams( IcalInterface::TZID ) ?? '';
             if( ! empty( $paramTZid )) {
                 if( DateTimeZoneFactory::hasOffset( $paramTZid )) {
-                    $paramTZid =
-                        DateTimeZoneFactory::getTimeZoneNameFromOffset( $paramTZid );
+                    $paramTZid = DateTimeZoneFactory::getTimeZoneNameFromOffset( $paramTZid );
                 }
                 else {
                     DateTimeZoneFactory::assertDateTimeZone( $paramTZid );
@@ -358,6 +149,7 @@ class RexdateFactory
             }
         }
         $forceUTC = ( IcalInterface::UTC === $paramTZid );
+        $output2  = [];
         foreach( $rDates as $rpix => $theRdate ) {
             switch( true ) {
                 case $isValuePeriod : // PERIOD
@@ -368,18 +160,18 @@ class RexdateFactory
                         $paramTZid,
                         $isLocalTime
                     );
-                    $output[Util::$LCvalue][] = $wDate;
+                    $output2[] = $wDate;
                     break;
                 case ( $theRdate instanceof DateTimeInterface ) : // SINGLE DateTime
-                    $output[Util::$LCvalue][] = DateTimeFactory::conformDateTime(
+                    $output2[] = DateTimeFactory::conformDateTime(
                         DateTimeFactory::toDateTime( $theRdate ),
                         $isValueDate,
                         $forceUTC,
                         $paramTZid
                     );
                     break;
-                case ( DateTimeFactory::isStringAndDate( $theRdate )) : // SINGLE string date(time)
-                    $output[Util::$LCvalue][] = DateTimeFactory::conformStringDate(
+                case DateTimeFactory::isStringAndDate( $theRdate ) : // SINGLE string date(time)
+                    $output2[] = DateTimeFactory::conformStringDate(
                         $theRdate,
                         $isValueDate,
                         $forceUTC,
@@ -397,24 +189,23 @@ class RexdateFactory
                     );
             } // end switch
         } // end foreach( $rDates as $rpix => $theRdate )
-        DateTimeFactory::conformDateTimeParams(
-            $output[Util::$LCparams], $isValueDate, $isLocalTime, $paramTZid
-        );
+        $output->setValue( $output2 );
+        DateTimeFactory::conformDateTimeParams( $output, $isValueDate, $isLocalTime, $paramTZid );
         return $output;
     }
 
     /**
-     * Return managed period (dateTime/dateTime or dateTime/dateInterval)
+     * Return processed period (dateTime/dateTime or dateTime/dateInterval)
      *
-     * @param array $period
-     * @param int     $rpix
-     * @param bool    $isValueDate
-     * @param string  $paramTZid
-     * @param bool    $isLocalTime
+     * @param array  $period
+     * @param int    $rpix
+     * @param bool   $isValueDate
+     * @param string $paramTZid
+     * @param bool   $isLocalTime
      * @return array
      * @throws Exception
      * @throws InvalidArgumentException
-     * @since 2.40 2021-10-04
+     * @since 2.41.57 2022-08-18
      */
     private static function getPeriod(
         array $period,
@@ -433,51 +224,78 @@ class RexdateFactory
                 $wDate[$perX] = $rPeriod;
                 continue;
             }
-            if( is_array( $rPeriod ) && ( 1 === count( $rPeriod )) &&
-                DateTimeFactory::isStringAndDate( reset( $rPeriod ))) { // text-date
+            if( is_array( $rPeriod ) &&
+                ( 1 === count( $rPeriod )) &&
+                DateTimeFactory::isStringAndDate( reset( $rPeriod ))) { // text date ex. 2006-08-03 10:12:18
                 $rPeriod = reset( $rPeriod );
             }
-            switch( true ) {
-                case ( $rPeriod instanceof DateTimeInterface ) :
-                    $wDate[$perX] = DateTimeFactory::conformDateTime(
-                        DateTimeFactory::toDateTime( $rPeriod ),
-                        $isValueDate,
-                        $forceUTC,
-                        $paramTZid
-                    );
-                    if( empty( $paramTZid ) && ! $isLocalTime ) {
-                        $paramTZid = $wDate[$perX]->getTimezone()->getName();
-                    }
-                    break;
-                case DateIntervalFactory::isStringAndDuration( $rPeriod ) :  // string format duration
-                    if( DateIntervalFactory::$P !== $rPeriod[0] ) {
-                        $rPeriod = substr( $rPeriod, 1 );
-                    }
-                    $wDate[$perX] =
-                        DateIntervalFactory::conformDateInterval(
-                            new DateInterval( $rPeriod )
-                        );
-                    continue 2;
-                case ( DateTimeFactory::isStringAndDate( $rPeriod )) : // text date ex. 2006-08-03 10:12:18
-                    $wDate[$perX] = DateTimeFactory::conformStringDate(
+            $wDate[$perX] = match( true ) {
+                ( $rPeriod instanceof DateTimeInterface ) =>
+                    self::getPeriodDateTime(
                         $rPeriod,
                         $isValueDate,
                         $forceUTC,
                         $isLocalTime,
                         $paramTZid
-                    );
-                    break;
-                default :
+                    ),
+                DateIntervalFactory::isStringAndDuration( $rPeriod ) =>  // string format duration
+                    self::getPeriodStringDuration( $rPeriod ),
+                DateTimeFactory::isStringAndDate( $rPeriod ) => // text date ex. 2006-08-03 10:12:18
+                    DateTimeFactory::conformStringDate(
+                        $rPeriod,
+                        $isValueDate,
+                        $forceUTC,
+                        $isLocalTime,
+                        $paramTZid
+                    ),
+                default =>
                     throw new InvalidArgumentException(
-                        sprintf(
-                            self::$REXDATEERR,
-                            IcalInterface::RDATE,
-                            $rpix,
-                            var_export( $rPeriod, true )
-                        )
-                    );
-            } // end switch
+                        sprintf( self::$REXDATEERR, IcalInterface::RDATE, $rpix, var_export( $rPeriod, true ))
+                    )
+            }; // end match
         } // end foreach( $theRdate as $rix => $rPeriod )
         return [ $wDate, $paramTZid ];
+    }
+
+    /**
+     * @param DateTimeInterface $rPeriod
+     * @param bool     $isValueDate
+     * @param bool     $forceUTC
+     * @param bool     $isLocalTime
+     * @param string   $paramTZid
+     * @return DateTimeInterface
+     * @throws Exception
+     */
+    private static function getPeriodDateTime(
+        DateTimeInterface $rPeriod,
+        bool $isValueDate,
+        bool $forceUTC,
+        bool $isLocalTime,
+        string & $paramTZid
+    ) : DateTimeInterface
+    {
+        $output = DateTimeFactory::conformDateTime(
+            DateTimeFactory::toDateTime( $rPeriod ),
+            $isValueDate,
+            $forceUTC,
+            $paramTZid
+        );
+        if( empty( $paramTZid ) && ! $isLocalTime ) {
+            $paramTZid = $output->getTimezone()->getName();
+        }
+        return $output;
+    }
+
+    /**
+     * @param string $rPeriod
+     * @return DateInterval
+     * @throws Exception
+     */
+    private static function getPeriodStringDuration( string $rPeriod ) : DateInterval
+    {
+        if( DateIntervalFactory::$P !== $rPeriod[0] ) {
+            $rPeriod = substr( $rPeriod, 1 );
+        }
+        return DateIntervalFactory::conformDateInterval( new DateInterval( $rPeriod ));
     }
 }

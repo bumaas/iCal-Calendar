@@ -5,7 +5,7 @@
  * This file is a part of iCalcreator.
  *
  * @author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @copyright 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * @copyright 2007-2024 Kjell-Inge Gustafsson, kigkonsult AB, All rights reserved
  * @link      https://kigkonsult.se
  * @license   Subject matter of licence is the software iCalcreator.
  *            The above copyright, link, package and version notices,
@@ -32,10 +32,10 @@ namespace Kigkonsult\Icalcreator\Traits;
 use DateTimeInterface;
 use Exception;
 use InvalidArgumentException;
+use Kigkonsult\Icalcreator\Formatter\Property\Rdate;
+use Kigkonsult\Icalcreator\Pc;
 use Kigkonsult\Icalcreator\Util\DateTimeFactory;
-use Kigkonsult\Icalcreator\Util\ParameterFactory;
 use Kigkonsult\Icalcreator\Util\RexdateFactory;
-use Kigkonsult\Icalcreator\Util\Util;
 use Kigkonsult\Icalcreator\Vcalendar;
 
 use function count;
@@ -45,28 +45,27 @@ use function reset;
 /**
  * RDATE property functions
  *
- * @since 2.29.2 2019-06-23
+ * @since 2.41.85 2024-01-18
  */
 trait RDATEtrait
 {
     /**
-     * @var null|array component property RDATE value
+     * @var null|Pc[] component property RDATE value
      */
-    protected ?array $rdate = null;
+    protected ? array $rdate = null;
 
     /**
      * Return formatted output for calendar component property rdate
      *
      * @return string
      * @throws Exception
+     * @since 2.41.68 2022-10-03
      */
     public function createRdate() : string
     {
-        if( empty( $this->rdate )) {
-            return Util::$SP0;
-        }
-        return RexdateFactory::formatRdate(
-            $this->rdate,
+        return Rdate::format(
+            self::RDATE,
+            $this->rdate ?? [],
             $this->getConfig( self::ALLOWEMPTY ),
             $this->getCompType()
         );
@@ -85,7 +84,7 @@ trait RDATEtrait
             unset( $this->propDelIx[self::RDATE] );
             return false;
         }
-        return  self::deletePropertyM(
+        return self::deletePropertyM(
             $this->rdate,
             self::RDATE,
             $this,
@@ -98,72 +97,79 @@ trait RDATEtrait
      *
      * @param null|int    $propIx specific property in case of multiply occurrence
      * @param null|bool   $inclParam
-     * @return string|array|bool
+     * @return bool|string|array|Pc
      * @throws Exception
-     * @since 2.40 2021-10-04
+     * @since 2.41.44 2022-04-27
      */
-    public function getRdate( ?int $propIx = null, ?bool $inclParam = false ) : array | string | bool
+    public function getRdate( ? int $propIx = null, ? bool $inclParam = false ) : bool | string | array | Pc
     {
         if( empty( $this->rdate )) {
             unset( $this->propIx[self::RDATE] );
             return false;
         }
-        $output =  self::getPropertyM(
+        $output = self::getMvalProperty(
             $this->rdate,
             self::RDATE,
             $this,
             $propIx,
             $inclParam
         );
-        if( empty( $output )) {
-            return false;
-        }
-        return $output;
+        return empty( $output ) ? false : $output;
+    }
+
+    /**
+     * Return array, all calendar component property rdate
+     *
+     * @param null|bool   $inclParam
+     * @return Pc[]
+     * @since 2.41.58 2022-08-24
+     */
+    public function getAllRdate( ? bool $inclParam = false ) : array
+    {
+        return self::getMvalProperties( $this->rdate, $inclParam );
+    }
+
+    /**
+     * Return bool true if set (and ignore empty property)
+     *
+     * @return bool
+     * @since 2.41.35 2022-03-28
+     */
+    public function isRdateSet() : bool
+    {
+        return self::isMvalSet( $this->rdate );
     }
 
     /**
      * Set calendar component property rdate
      *
-     * @param null|string|array|DateTimeInterface $value
-     * @param null|string[]   $params
-     * @param null|integer $index
+     * @param null|string|Pc|array|DateTimeInterface $value
+     * @param null|int|array $params
+     * @param null|int         $index
      * @return static
      * @throws Exception
      * @throws InvalidArgumentException
-     * @since 2.29.2 2019-06-23
+     * @since 2.41.85 2024-01-18
      */
     public function setRdate(
-        null|string|array|DateTimeInterface $value = null,
-        ? array $params = [],
+        null|string|array|DateTimeInterface|Pc $value = null,
+        null|int|array $params = [],
         ? int $index = null
     ) : static
     {
-        if( empty( $value ) ||
-            ( is_array( $value) && ( 1 === count( $value )) && empty( reset( $value )))
-        ) {
-            $this->assertEmptyValue( $value, self::RDATE );
-            self::setMval( $this->rdate, Util::$SP0, [], null, $index );
+        $pc      = self::marshallInputMval( $value, $params, $index );
+        $pcValue = $pc->getValue();
+        if( empty( $pcValue ) ||
+            ( is_array( $pcValue ) && ( 1 === count( $pcValue )) && empty( reset( $pcValue )))) {
+            $this->assertEmptyValue( $pcValue, self::RDATE );
+            self::setMval( $this->rdate, $pc->setEmpty(), $index );
             return $this;
         }
-        $params = $params ?? [];
-        $value  = self::checkSingleRdates(
-            $value,
-            ParameterFactory::isParamsValueSet(
-                [ Util::$LCparams => $params ],
-                self::PERIOD
-            )
-        );
-        if( Util::isCompInList( $this->getCompType(), Vcalendar::$TZCOMPS )) {
-            $params[Util::$ISLOCALTIME] = true;
+        $pc->setValue( self::checkSingleRdates( $pcValue, $pc->hasParamValue( self::PERIOD )));
+        if( Vcalendar::isTzComp( $this->getCompType() )) {
+            $pc->addParam( self::ISLOCALTIME, true );
         }
-        $input = RexdateFactory::prepInputRdate( $value, $params );
-        self::setMval(
-            $this->rdate,
-            $input[Util::$LCvalue],
-            $input[Util::$LCparams],
-            null,
-            $index
-        );
+        self::setMval( $this->rdate, RexdateFactory::prepInputRdate( $pc ), $index );
         return $this;
     }
 
@@ -172,12 +178,12 @@ trait RDATEtrait
      *
      * @param string|array|DateTimeInterface $rDates
      * @param bool $isPeriod
-     * @return array
+     * @return string|array
      * @throws Exception
      * @throws InvalidArgumentException
-     * @since 2.29.16 2020-01-24
+     * @since 2.41.57 2022-08-57
      */
-    private static function checkSingleRdates( string|array|DateTimeInterface $rDates, bool $isPeriod ) : array
+    private static function checkSingleRdates( string|array|DateTimeInterface $rDates, bool $isPeriod ) : string|array
     {
         if( $rDates instanceof DateTimeInterface ) {
             return [ DateTimeFactory::toDateTime( $rDates ) ];
@@ -190,7 +196,7 @@ trait RDATEtrait
             if( $first instanceof DateTimeInterface ) {
                 return [ $rDates ];
             }
-            if( DateTimeFactory::isStringAndDate( $first )) {
+            if( DateTimeFactory::isStringAndDate( $first )){
                 return [ $rDates ];
             }
         }

@@ -2,7 +2,8 @@
 
 declare(strict_types=1);
 
-use Kigkonsult\Icalcreator\Util\RegulateTimezoneFactory;
+use Kigkonsult\Icalcreator\IcalInterface;
+use Kigkonsult\Icalcreator\Pc;
 use RRule\RRule;
 
 /***********************************************************************
@@ -10,6 +11,88 @@ use RRule\RRule;
  ************************************************************************/
 class iCalImporter
 {
+    /**
+     * MS-/Windows-Zeitzonennamen mit zugehörigem UTC-Offset (Standardzeit).
+     * Übernommen aus der mit iCalcreator 2.41.57 entfallenen RegulateTimezoneFactory
+     * ($MStimezoneToOffset); wird von regulateTimezones() genutzt, da das Symcon-PHP
+     * kein ext-intl (IntlTimeZone::getIDForWindowsID) bereitstellt.
+     */
+    private const MS_TIMEZONE_TO_OFFSET = [
+        'Afghanistan Standard Time'       => '+04:30',
+        'Arab Standard Time'              => '+03:00',
+        'Arabian Standard Time'           => '+04:00',
+        'Arabic Standard Time'            => '+03:00',
+        'Argentina Standard Time'         => '-03:00',
+        'Atlantic Standard Time'          => '-04:00',
+        'AUS Eastern Standard Time'       => '+10:00',
+        'Azerbaijan Standard Time'        => '+04:00',
+        'Bangladesh Standard Time'        => '+06:00',
+        'Belarus Standard Time'           => '+03:00',
+        'Cape Verde Standard Time'        => '-01:00',
+        'Caucasus Standard Time'          => '+04:00',
+        'Central America Standard Time'   => '-06:00',
+        'Central Asia Standard Time'      => '+06:00',
+        'Central Europe Standard Time'    => '+01:00',
+        'Central European Standard Time'  => '+01:00',
+        'Central Pacific Standard Time'   => '+11:00',
+        'Central Standard Time (Mexico)'  => '-06:00',
+        'China Standard Time'             => '+08:00',
+        'E. Africa Standard Time'         => '+03:00',
+        'E. Europe Standard Time'         => '+02:00',
+        'E. South America Standard Time'  => '-03:00',
+        'Eastern Standard Time'           => '-05:00',
+        'Egypt Standard Time'             => '+02:00',
+        'Fiji Standard Time'              => '+12:00',
+        'FLE Standard Time'               => '+02:00',
+        'Georgian Standard Time'          => '+04:00',
+        'GMT Standard Time'               => '',
+        'Greenland Standard Time'         => '-03:00',
+        'Greenwich Standard Time'         => '',
+        'GTB Standard Time'               => '+02:00',
+        'Hawaiian Standard Time'          => '-10:00',
+        'India Standard Time'             => '+05:30',
+        'Israel Standard Time'            => '+02:00',
+        'Jordan Standard Time'            => '+02:00',
+        'Korea Standard Time'             => '+09:00',
+        'Mauritius Standard Time'         => '+04:00',
+        'Middle East Standard Time'       => '+02:00',
+        'Montevideo Standard Time'        => '-03:00',
+        'Morocco Standard Time'           => '',
+        'Myanmar Standard Time'           => '+06:30',
+        'Namibia Standard Time'           => '+01:00',
+        'Nepal Standard Time'             => '+05:45',
+        'New Zealand Standard Time'       => '+12:00',
+        'Pacific SA Standard Time'        => '-03:00',
+        'Pacific Standard Time'           => '-08:00',
+        'Pakistan Standard Time'          => '+05:00',
+        'Paraguay Standard Time'          => '-04:00',
+        'Romance Standard Time'           => '+01:00',
+        'Russian Standard Time'           => '+03:00',
+        'SA Eastern Standard Time'        => '-03:00',
+        'SA Pacific Standard Time'        => '-05:00',
+        'SA Western Standard Time'        => '-04:00',
+        'Samoa Standard Time'             => '+13:00',
+        'SE Asia Standard Time'           => '+07:00',
+        'Singapore Standard Time'         => '+08:00',
+        'South Africa Standard Time'      => '+02:00',
+        'Sri Lanka Standard Time'         => '+05:30',
+        'Syria Standard Time'             => '+02:00',
+        'Taipei Standard Time'            => '+08:00',
+        'Tokyo Standard Time'             => '+09:00',
+        'Tonga Standard Time'             => '+13:00',
+        'Turkey Standard Time'            => '+02:00',
+        'Ulaanbaatar Standard Time'       => '+08:00',
+        'UTC'                             => '',
+        'UTC-02'                          => '-02:00',
+        'UTC-11'                          => '-11:00',
+        'UTC+12'                          => '+12:00',
+        'Venezuela Standard Time'         => '-04:30',
+        'W. Central Africa Standard Time' => '+01:00',
+        'W. Europe Standard Time'         => '+01:00',
+        'West Asia Standard Time'         => '+05:00',
+        'West Pacific Standard Time'      => '+10:00',
+    ];
+
     private string $Timezone;
 
     private int    $DaysToCacheAhead;
@@ -93,7 +176,7 @@ class iCalImporter
         convert iCal format to PHP DateTime respecting timezone information
         every information will be transformed into the current timezone!
     */
-    private function iCalDateTimeArrayToDateTime(array $dtValue, bool $WholeDay): DateTime
+    private function iCalDateTimeArrayToDateTime(Pc|array $dtValue, bool $WholeDay): DateTime
     {
         //logDebug(__FUNCTION__, sprintf('dtValue: %s, WholeDay: %s', print_r($dtValue, true), (int) $WholeDay));
 
@@ -158,6 +241,148 @@ class iCalImporter
     }
 
     /*
+        Nicht-PHP-Zeitzonenbezeichner im iCal-Text durch PHP-Zeitzonen ersetzen.
+        Ersetzt die mit iCalcreator 2.41.57 entfallene RegulateTimezoneFactory —
+        notwendig, weil iCalcreator 2.41.x beim Parsen für unbekannte TZIDs eine
+        Exception wirft (und der IntlTimeZone-Fallback ohne ext-intl nicht existiert).
+        Behandelt werden:
+        - mit '"' oder '\' verunstaltete TZIDs (bisherige bumaas-Patches in der Lib)
+        - Windows-/MS-Namen ("W. Europe Standard Time", Tabelle MS_TIMEZONE_TO_OFFSET)
+        - Exchange-Displaynamen ("(UTC+01:00) Amsterdam, ...", "(GMT +01:00) ...", "(UTC)")
+        - Offsets ohne Doppelpunkt-Norm ("+02", "GMT+0200")
+        - unbekannte Namen ("Customized Time Zone"), sofern der Kalender eine
+          VTIMEZONE-Definition mit TZOFFSETTO mitliefert (Offset-Ableitung)
+    */
+    private function regulateTimezones(string $iCalData): string
+    {
+        // Zeilen entfalten (RFC-5545-Folding), damit TZID-Werte vollständig vorliegen;
+        // der Parser akzeptiert ungefaltete Zeilen beliebiger Länge
+        $unfolded = preg_replace('/\r?\n[ \t]/', '', $iCalData);
+        if (!is_string($unfolded)) {
+            return $iCalData;
+        }
+
+        // alle TZID-Werte einsammeln: Property-Zeilen (VTIMEZONE) und Parameter
+        $rawTzids = [];
+        if (preg_match_all('/^TZID(?:;[^:]*)?:(.+?)\r?$/m', $unfolded, $matches)) {
+            $rawTzids = $matches[1];
+        }
+        if (preg_match_all('/;TZID="([^"]+)"/', $unfolded, $matches)) {
+            $rawTzids = array_merge($rawTzids, $matches[1]);
+        }
+        if (preg_match_all('/;TZID=([^";:=\r\n]+)[;:]/', $unfolded, $matches)) {
+            $rawTzids = array_merge($rawTzids, $matches[1]);
+        }
+
+        $replacements = [];
+        foreach (array_unique($rawTzids) as $rawTzid) {
+            $phpTz = $this->mapTzidToPhpTimezone($rawTzid, $unfolded);
+            if (($phpTz !== null) && ($phpTz !== $rawTzid)) {
+                $replacements[$rawTzid] = $phpTz;
+            }
+        }
+
+        // nur im TZID-Kontext ersetzen (Property-Zeile bzw. Parameter), nicht im Freitext
+        foreach ($replacements as $rawTzid => $phpTz) {
+            $this->logDebug(__FUNCTION__, sprintf('TZID "%s" -> "%s"', $rawTzid, $phpTz));
+            $quoted   = preg_quote($rawTzid, '/');
+            $unfolded = preg_replace(
+                ['/^(TZID(?:;[^:]*)?:)' . $quoted . '(\r?)$/m', '/;TZID="?' . $quoted . '"?(?=[;:])/'],
+                ['${1}' . $phpTz . '${2}', ';TZID=' . $phpTz],
+                $unfolded
+            );
+        }
+
+        return $unfolded;
+    }
+
+    /*
+        einen einzelnen TZID-Wert auf eine PHP-Zeitzone abbilden;
+        null = keine Ersetzung nötig/möglich
+    */
+    private function mapTzidToPhpTimezone(string $rawTzid, string $unfoldedIcal): ?string
+    {
+        // '\'-Escapes (z. B. "\," ) und umschließende '"' entfernen
+        $clean = trim(str_replace('\\', '', $rawTzid), '" ');
+
+        // reiner Offset ("+02", "+02:00", "GMT+0200"): fester Offset OHNE Sommerzeit.
+        // Muss vor der PHP-Zeitzonen-Prüfung stehen, denn "+02:00" wäre zwar gültig,
+        // würde von iCalcreator aber wieder auf eine DST-behaftete Zone abgebildet;
+        // Etc/GMT-Zonen (Vorzeichen invertiert!) bleiben dagegen unangetastet
+        if (preg_match('/^(?:UTC|GMT)?([+-])(\d{1,2}):?(\d{2})?$/', $clean, $matches)) {
+            $sign    = $matches[1];
+            $hours   = (int)$matches[2];
+            $minutes = (int)($matches[3] ?? 0);
+            if (($minutes === 0) && ($hours <= 14)) {
+                return 'Etc/GMT' . ($sign === '+' ? '-' : '+') . $hours;
+            }
+            return sprintf('%s%02d:%02d', $sign, $hours, $minutes);
+        }
+
+        // bereits eine gültige PHP-Zeitzone?
+        try {
+            $tzName = (new DateTimeZone($clean))->getName();
+            if (strcasecmp($tzName, $clean) === 0) {
+                return ($clean === $rawTzid) ? null : $clean;
+            }
+        } catch (Exception) {
+            // keine gültige PHP-Zeitzone, weiter mit den Mappings
+        }
+
+        // Windows-/MS-Name laut Tabelle
+        if (isset(self::MS_TIMEZONE_TO_OFFSET[$clean])) {
+            return $this->offsetToPhpTimezone(self::MS_TIMEZONE_TO_OFFSET[$clean]);
+        }
+
+        // Exchange-Displayname "(UTC+01:00) ...", "(GMT +01:00) ..." — solche Namen
+        // bezeichnen DST-behaftete Zonen, daher Abbildung auf eine benannte Zeitzone
+        if (preg_match('/^\((?:UTC|GMT)\s?([+-]\d{2}:\d{2})\)/', $clean, $matches)) {
+            return $this->offsetToPhpTimezone($matches[1]);
+        }
+        if (preg_match('/^\((?:UTC|GMT)\)/', $clean)) {
+            return 'UTC';
+        }
+
+        // unbekannter Name: Offset aus der VTIMEZONE-Definition des Kalenders ableiten
+        $pattern = '/BEGIN:VTIMEZONE.*?TZID(?:;[^:]*)?:' . preg_quote($rawTzid, '/')
+                   . '.*?BEGIN:STANDARD.*?TZOFFSETTO:([+-]\d{4}).*?END:VTIMEZONE/s';
+        if (preg_match($pattern, $unfoldedIcal, $matches)) {
+            $offset = substr($matches[1], 0, 3) . ':' . substr($matches[1], 3);
+            return $this->offsetToPhpTimezone($offset);
+        }
+
+        // letzte Stufe: als lokale Zeitzone interpretieren, damit der Kalender nicht
+        // komplett verloren geht (iCalcreator 2.41.x bricht bei unbekannter TZID ab)
+        $this->logError(
+            sprintf('TZID "%s" konnte keiner PHP-Zeitzone zugeordnet werden und wird als "%s" interpretiert', $rawTzid, $this->Timezone)
+        );
+        return $this->Timezone;
+    }
+
+    /*
+        UTC-Offset (Standardzeit, "+HH:MM") auf eine PHP-Zeitzone abbilden
+    */
+    private function offsetToPhpTimezone(string $offset): ?string
+    {
+        if ($offset === '' || $offset === '+00:00' || $offset === '-00:00') {
+            return 'UTC';
+        }
+        // bisheriges Verhalten beibehalten: das frühere explizite Mapping des Moduls
+        // ("(UTC+01:00) Amsterdam, Berlin, ..." -> Europe/Amsterdam)
+        if ($offset === '+01:00') {
+            return 'Europe/Amsterdam';
+        }
+        $seconds = ((int)substr($offset, 0, 3)) * 3600
+                   + (int)($offset[0] . substr($offset, 4, 2)) * 60;
+        $tzName  = timezone_name_from_abbr('', $seconds, 0);
+        if ($tzName !== false) {
+            return $tzName;
+        }
+        // keine benannte Zone gefunden: fester Offset ist ebenfalls eine gültige PHP-Zeitzone
+        return $offset;
+    }
+
+    /*
         main import method
     */
     public function ImportCalendar(string $iCalData): array
@@ -167,11 +392,10 @@ class iCalImporter
         $iCalCalendarArray       = [];
         $this->CalendarTimezones = [];
 
-        $rTZFactory = RegulateTimezoneFactory::factory($iCalData);
-        //var_dump($rTZFactory);
-        $rTZFactory = $rTZFactory->addOtherTzPhpRelation('(UTC+01:00) Amsterdam, Berlin, Bern, Rom, Stockholm, Wien', 'Europe/Amsterdam', true);
-
-        $stringCalendarToParse = $rTZFactory->processCalendar()->getOutputiCal();
+        // Nicht-PHP-Zeitzonen (Windows-IDs, Exchange-Displaynamen wie "(UTC+01:00) Amsterdam, ...")
+        // vor dem Parsen durch PHP-Zeitzonen ersetzen; ersetzt die mit iCalcreator 2.41.57
+        // entfallene RegulateTimezoneFactory
+        $stringCalendarToParse = $this->regulateTimezones($iCalData);
 
         try {
             $vCalendar = new Kigkonsult\Icalcreator\Vcalendar();
@@ -183,12 +407,14 @@ class iCalImporter
         }
 
         // get calendar supplied timezones
-        while ($vTimezone = $vCalendar->getComponent('vtimezone')) {
+        while ($vTimezone = $vCalendar->getComponent(IcalInterface::VTIMEZONE)) {
             if (!($vTimezone instanceof Kigkonsult\Icalcreator\Vtimezone)) {
                 throw new RuntimeException('Component is not of type Vtimezone');
             }
 
-            $Standard = $vTimezone->getComponent('STANDARD');
+            // seit iCalcreator 2.41.x liefert getComponent() Subkomponenten nur noch
+            // der Reihe nach; STANDARD/DAYLIGHT daher gezielt über getComponents() holen
+            $Standard = $vTimezone->getComponents(IcalInterface::STANDARD)[0] ?? false;
 
             if ($Standard === false) {
                 $this->logError(sprintf('Uncomplete vtimezone: %s', $vTimezone->getTzid()));
@@ -202,7 +428,7 @@ class iCalImporter
             $ProvidedTZ         = [];
             $ProvidedTZ['TZID'] = $vTimezone->getTzid();
 
-            $Daylight = $vTimezone->getComponent('DAYLIGHT');
+            $Daylight = $vTimezone->getComponents(IcalInterface::DAYLIGHT)[0] ?? false;
             if ($Daylight) {
                 if (!($Daylight instanceof Kigkonsult\Icalcreator\Daylight)) {
                     throw new RuntimeException('Component is not of type Daylight');
@@ -240,7 +466,7 @@ class iCalImporter
             )
         );
 
-        while (($vEvent = $vCalendar->getComponent('vevent')) !== false) {
+        while (($vEvent = $vCalendar->getComponent(IcalInterface::VEVENT)) !== false) {
             if (!($vEvent instanceof Kigkonsult\Icalcreator\Vevent)) {
                 throw new RuntimeException('Component is not of type vevent');
             }
@@ -486,7 +712,7 @@ class iCalImporter
         return $isBeforeCacheTime || $isAfterCacheTime || $isSameTimeAndAllDay;
     }
 
-    private function getDateTime(array $dateTimeWithParams): DateTime
+    private function getDateTime(Pc|array $dateTimeWithParams): DateTime
     {
         $params = $dateTimeWithParams['params'];
         if ((isset($params['VALUE']) && $params['VALUE'] === 'DATE') || (isset($params['ISLOCALTIME']) && ($params['ISLOCALTIME']))) {
@@ -530,8 +756,8 @@ class iCalImporter
         $Event['allDay']     = $this->isAllDayEvent($vEvent);
         $Event['Alarms']     = [];
 
-        while ($vAlarm = $vEvent->getComponent('valarm')) {
-            //$vAlarm = $vEvent->getComponent('valarm');
+        while ($vAlarm = $vEvent->getComponent(IcalInterface::VALARM)) {
+            //$vAlarm = $vEvent->getComponent(IcalInterface::VALARM);
             if (!($vAlarm instanceof Kigkonsult\Icalcreator\Valarm)) {
                 throw new RuntimeException(sprintf('UID: %s, Component is not of type valarm', $Event['UID']));
             }

@@ -5,7 +5,7 @@
  * This file is a part of iCalcreator.
  *
  * @author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @copyright 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * @copyright 2007-2024 Kjell-Inge Gustafsson, kigkonsult AB, All rights reserved
  * @link      https://kigkonsult.se
  * @license   Subject matter of licence is the software iCalcreator.
  *            The above copyright, link, package and version notices,
@@ -29,22 +29,23 @@
 declare( strict_types = 1 );
 namespace Kigkonsult\Icalcreator\Traits;
 
+use Kigkonsult\Icalcreator\Formatter\Property\IntProperty;
+use Kigkonsult\Icalcreator\Pc;
 use Kigkonsult\Icalcreator\Util\StringFactory;
 use Kigkonsult\Icalcreator\Util\Util;
-use Kigkonsult\Icalcreator\Util\ParameterFactory;
 use InvalidArgumentException;
 
 /**
  * PRIORITY property functions
  *
- * @since 2.27.2 2019-01-03
+ * @since 2.41.85 2024-01-18
  */
 trait PRIORITYtrait
 {
     /**
-     * @var null|array component property PRIORITY value
+     * @var null|Pc component property PRIORITY value
      */
-    protected ?array $priority = null;
+    protected ? Pc $priority = null;
 
     /**
      * Return formatted output for calendar component property priority
@@ -53,20 +54,10 @@ trait PRIORITYtrait
      */
     public function createPriority() : string
     {
-        if( empty( $this->priority )) {
-            return Util::$SP0;
-        }
-        if( ! isset( $this->priority[Util::$LCvalue] ) ||
-            ( empty( $this->priority[Util::$LCvalue] ) &&
-                ! is_numeric( $this->priority[Util::$LCvalue] ))) {
-            return $this->getConfig( self::ALLOWEMPTY )
-                ? StringFactory::createElement( self::PRIORITY )
-                : Util::$SP0;
-        }
-        return StringFactory::createElement(
+        return IntProperty::format(
             self::PRIORITY,
-            ParameterFactory::createParams( $this->priority[Util::$LCparams] ),
-            (string) $this->priority[Util::$LCvalue]
+            $this->priority,
+            $this->getConfig( self::ALLOWEMPTY )
         );
     }
 
@@ -86,47 +77,57 @@ trait PRIORITYtrait
      * Get calendar component property priority
      *
      * @param null|bool   $inclParam
-     * @return bool|int|string|array
-     * @since  2.27.1 - 2018-12-12
+     * @return bool|int|string|Pc
+     * @since 2.41.85 2024-01-18
      */
-    public function getPriority( ?bool $inclParam = false ) : array | bool | string | int
+    public function getPriority( ? bool $inclParam = false ) : bool | int | string | Pc
     {
         if( empty( $this->priority )) {
             return false;
         }
-        if( null === $this->priority[Util::$LCvalue] ) {
-            $this->priority[Util::$LCvalue] = Util::$SP0;
-        }
-        return ( $inclParam )
-            ? $this->priority
-            : $this->priority[Util::$LCvalue];
+        return $inclParam ? clone $this->priority : $this->priority->getValue();
+    }
+
+    /**
+     * Return bool true if set (and ignore empty property)
+     *
+     * @return bool
+     * @since 2.41.88 2024-01-19
+     */
+    public function isPrioritySet() : bool
+    {
+        return self::isIntPropSet( $this->priority );
     }
 
     /**
      * Set calendar component property priority
      *
-     * @param null|int|string $value
-     * @param null|string[]      $params
+     * .. an integer in the range 0 to 9.
+     * A value of 0 specifies an undefined priority.
+     * A value of 1 is the highest priority.
+     * A value of 2 is the second highest priority.
+     * Subsequent numbers specify a decreasing ordinal priority.
+     * A value of 9 is the lowest priority.
+     *
+     * @param null|int|string|Pc $value
+     * @param null|mixed[] $params
      * @return static
      * @throws InvalidArgumentException
-     * @since 2.27.2 2019-01-03
+     * @since 2.41.85 2024-01-18
      */
-    public function setPriority( null|int|string $value = null, ? array $params = [] ) : static
+    public function setPriority( null|int|string|Pc $value = null, ? array $params = [] ) : static
     {
-        if(( $value === null ) || ( $value === Util::$SP0 )) {
-            $this->assertEmptyValue( $value, self::PRIORITY );
-            $value  = null;
-            $params = [];
-
+        $pc      = Pc::factory( $value, $params );
+        $pcValue = $pc->getValue() ?: null;
+        if(( null === $pcValue ) || ( StringFactory::$SP0 === $pcValue )) {
+            $this->assertEmptyValue( $pcValue, self::PRIORITY );
+            $pc->setEmpty();
         }
         else {
-            Util::assertInteger( $value, self::PRIORITY, 0, 9 );
-            $value = (int) $value;
+            Util::assertInteger( $pcValue, self::PRIORITY, 0, 9 );
+            $pc->setValue((int) $pcValue );
         }
-        $this->priority = [
-            Util::$LCvalue  => $value,
-            Util::$LCparams => ParameterFactory::setParams( $params ?? [] ),
-        ];
+        $this->priority = $pc;
         return $this;
     }
 }

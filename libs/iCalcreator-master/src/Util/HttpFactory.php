@@ -5,7 +5,7 @@
  * This file is a part of iCalcreator.
  *
  * @author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @copyright 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * @copyright 2007-2024 Kjell-Inge Gustafsson, kigkonsult AB, All rights reserved
  * @link      https://kigkonsult.se
  * @license   Subject matter of licence is the software iCalcreator.
  *            The above copyright, link, package and version notices,
@@ -26,12 +26,13 @@
  *            You should have received a copy of the GNU Lesser General Public License
  *            along with iCalcreator. If not, see <https://www.gnu.org/licenses/>.
  */
-
+declare( strict_types = 1 );
 namespace Kigkonsult\Icalcreator\Util;
 
 use Exception;
 use InvalidArgumentException;
 use Kigkonsult\Icalcreator\IcalInterface;
+use Kigkonsult\Icalcreator\Pc;
 use Kigkonsult\Icalcreator\Vcalendar;
 
 use function clearstatcache;
@@ -52,7 +53,7 @@ use function utf8_encode;
 /**
  * iCalcreator http support class
  *
- * @since  2.30.3 - 2021-02-14
+ * @since 2.41.88 - 2024-01-18
  */
 class HttpFactory
 {
@@ -95,7 +96,7 @@ class HttpFactory
         if( empty( $fileName ) ) {
             $fileName = self::getFakedFilename();
         }
-        $output   = $calendar->createCalendar();
+        $output     = $calendar->createCalendar();
         if( $utf8Encode ?? false ) {
             $output = utf8_encode( $output );
         }
@@ -142,59 +143,49 @@ class HttpFactory
      * @param string $url
      * @return void
      * @throws InvalidArgumentException
-     * @since  2.27.3 - 2018-12-28
+     * @since  2.41.68 - 2022-09-26
      */
     public static function assertUrl( string $url ) : void
     {
-        return; //bma: Beispiel der Creativa:   URL;VALUE=URI:message:%3Cb8e68943-f96c-4431-9399-d036b1fd7be3@ind1s01mta9
-
+        return; //bumaas: Kalender mit ungültigen URL-Properties tolerieren (z. B. "URL;VALUE=URI:message:%3C...")
         static $UC   = '_';
         static $URN  = 'urn';
         static $HTTP = 'http://';
         static $MSG  = 'URL validity error #%d, \'%s\'';
-        $url2 = (str_contains( $url, $UC ))
-            ? str_replace( $UC, Util::$MINUS, $url )
+        $url2 = str_contains( $url, $UC )
+            ? str_replace( $UC, StringFactory::$MINUS, $url )
             : $url;
-        $no   = 0;
-        do {
-            if( false !== filter_var( $url2, FILTER_VALIDATE_URL )) {
-                break;
-            }
-            if( empty( parse_url( $url2, PHP_URL_SCHEME)) &&
-                ( false !== filter_var( $HTTP . $url2, FILTER_VALIDATE_URL ))) {
-                break;
-            }
-            $no = 1;
-            if( 0 !== strcasecmp( $URN, substr( $url, 0, 3 ))) {
-                $no = 2;
-            }
-            break;
-        } while( true );
-        if( ! empty( $no )) {
-            throw new InvalidArgumentException( sprintf( $MSG, $no, $url ));
-        }
+        switch( true ) {
+            case ( false !== filter_var( $url2, FILTER_VALIDATE_URL )) :
+                return;
+            case ( empty( parse_url( $url2, PHP_URL_SCHEME )) &&
+                ( false !== filter_var( $HTTP . $url2, FILTER_VALIDATE_URL ))) :
+                return;
+            case ( 0 !== strcasecmp( $URN, substr( $url, 0, 3 ))) :
+                throw new InvalidArgumentException( sprintf( $MSG, 2, $url ));
+            default :
+                throw new InvalidArgumentException( sprintf( $MSG, 1, $url ));
+        } // end switch
     }
 
     /**
      * Set calendar component property uri; URL, TZURL, SOURCE
      *
-     * @param null|array $valueArr
-     * @param null|string    $value
-     * @param null|string[]  $params
+     * @param null|Pc  $propValue
+     * @param Pc       $value
      * @return void
      * @throws InvalidArgumentException
-     * @since  2.30.3 - 2021-02-14
+     * @since 2.41.88 - 2024-01-18
      */
-    public static function urlSet( ? array & $valueArr = [], ? string $value = null, ? array $params = [] ) : void
+    public static function urlSet( ? Pc & $propValue, Pc $value ) : void
     {
-        if( ! empty( $value )) {
-            StringFactory::checkFixUriValue( $value );
-            self::assertUrl( $value );
+        $pcValue = $value->getValue();
+        if( ! empty( $pcValue )) {
+            StringFactory::checkFixUrlDecode( $pcValue );
+            self::assertUrl( $pcValue );
+            $value->setValue( $pcValue );
+            $value->removeParam(IcalInterface::VALUE );
         }
-        ParameterFactory::ifExistRemove( $params, IcalInterface::VALUE, IcalInterface::URI );
-        $valueArr = [
-            Util::$LCvalue  => $value,
-            Util::$LCparams => ParameterFactory::setParams( $params ?? [] ),
-        ];
+        $propValue = $value;
     }
 }

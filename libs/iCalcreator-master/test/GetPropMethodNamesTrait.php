@@ -5,7 +5,7 @@
  * This file is a part of iCalcreator.
  *
  * @author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @copyright 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * @copyright 2007-2023 Kjell-Inge Gustafsson, kigkonsult AB, All rights reserved
  * @link      https://kigkonsult.se
  * @license   Subject matter of licence is the software iCalcreator.
  *            The above copyright, link, package and version notices,
@@ -29,23 +29,27 @@
 declare( strict_types = 1 );
 namespace Kigkonsult\Icalcreator;
 
+use Kigkonsult\Icalcreator\Util\StringFactory;
+
 /**
- * iCalcreator VEVENT/VTODO component base class
- *
- * @since  2.29.24 - 2019-07-02
+ * @since 2.41.47 2022-04-29
  */
-abstract class VetComponent extends Vcomponent
+trait GetPropMethodNamesTrait
 {
     /**
-     * Return Valarm object instance
+     * Return method names for property
      *
-     * @return Valarm
-     * @since  2.27.2 - 2018-12-21
+     * @param string $propName
+     * @return array
      */
-    public function newValarm() : Valarm
+    public static function getPropMethodnames( string $propName ) : array
     {
-        $ix = $this->getNextComponentIndex();
-        $this->components[$ix] = new Valarm( $this->getConfig());
-        return $this->components[$ix];
+        return [
+            StringFactory::getCreateMethodName( $propName ),
+            StringFactory::getDeleteMethodName( $propName ),
+            StringFactory::getGetMethodName( $propName ),
+            StringFactory::getIsMethodSetName( $propName ),
+            StringFactory::getSetMethodName( $propName )
+        ];
     }
 }

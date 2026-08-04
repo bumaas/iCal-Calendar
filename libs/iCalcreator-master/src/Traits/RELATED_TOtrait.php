@@ -5,7 +5,7 @@
  * This file is a part of iCalcreator.
  *
  * @author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @copyright 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * @copyright 2007-2024 Kjell-Inge Gustafsson, kigkonsult AB, All rights reserved
  * @link      https://kigkonsult.se
  * @license   Subject matter of licence is the software iCalcreator.
  *            The above copyright, link, package and version notices,
@@ -29,48 +29,37 @@
 declare( strict_types = 1 );
 namespace Kigkonsult\Icalcreator\Traits;
 
+use InvalidArgumentException;
+use Kigkonsult\Icalcreator\Formatter\Property\MultiProps;
+use Kigkonsult\Icalcreator\Pc;
 use Kigkonsult\Icalcreator\Util\StringFactory;
 use Kigkonsult\Icalcreator\Util\Util;
-use Kigkonsult\Icalcreator\Util\ParameterFactory;
-use InvalidArgumentException;
 
 /**
  * RELATED-TO property functions
  *
- * @since 2.29.14 2019-09-03
+ * @since 2.41.85 2024-01-18
  */
 trait RELATED_TOtrait
 {
     /**
-     * @var null|array component property RELATED_TO value
+     * @var null|Pc[] component property RELATED_TO value
      */
-    protected ?array $relatedto = null;
+    protected ? array $relatedto = null;
 
     /**
      * Return formatted output for calendar component property related-to
      *
      * @return string
-     * @since 2.29.9 2019-08-05
+     * @since 2.41.36 2022-04-03
      */
     public function createRelatedto() : string
     {
-        if( empty( $this->relatedto )) {
-            return Util::$SP0;
-        }
-        $output = Util::$SP0;
-        foreach( $this->relatedto as $relation ) {
-            if( ! empty( $relation[Util::$LCvalue] )) {
-                $output .= StringFactory::createElement(
-                    self::RELATED_TO,
-                    ParameterFactory::createParams( $relation[Util::$LCparams] ),
-                    StringFactory::strrep( $relation[Util::$LCvalue] )
-                );
-            }
-            elseif( $this->getConfig( self::ALLOWEMPTY )) {
-                $output .= StringFactory::createElement( self::RELATED_TO );
-            }
-        }
-        return $output;
+        return MultiProps::format(
+            self::RELATED_TO,
+            $this->relatedto ?? [],
+            $this->getConfig( self::ALLOWEMPTY )
+        );
     }
 
     /**
@@ -86,7 +75,7 @@ trait RELATED_TOtrait
             unset( $this->propDelIx[self::RELATED_TO] );
             return false;
         }
-        return  self::deletePropertyM(
+        return self::deletePropertyM(
             $this->relatedto,
             self::RELATED_TO,
             $this,
@@ -99,16 +88,16 @@ trait RELATED_TOtrait
      *
      * @param null|int    $propIx specific property in case of multiply occurrence
      * @param null|bool   $inclParam
-     * @return string|array|bool
-     * @since  2.27.1 - 2018-12-12
+     * @return bool|string|Pc
+     * @since 2.41.36 2022-04-03
      */
-    public function getRelatedto( ?int $propIx = null, ?bool $inclParam = false ) : string | array | bool
+    public function getRelatedto( ? int $propIx = null, ? bool $inclParam = false ) : bool | string | Pc
     {
         if( empty( $this->relatedto )) {
             unset( $this->propIx[self::RELATED_TO] );
             return false;
         }
-        return self::getPropertyM(
+        return self::getMvalProperty(
             $this->relatedto,
             self::RELATED_TO,
             $this,
@@ -118,37 +107,60 @@ trait RELATED_TOtrait
     }
 
     /**
+     * Return array, all calendar component property relatedto
+     *
+     * @param null|bool   $inclParam
+     * @return Pc[]
+     * @since 2.41.58 2022-08-24
+     */
+    public function getAllRelatedto( ? bool $inclParam = false ) : array
+    {
+        return self::getMvalProperties( $this->relatedto, $inclParam );
+    }
+
+    /**
+     * Return bool true if set (and ignore empty property)
+     *
+     * @return bool
+     * @since 2.41.35 2022-03-28
+     */
+    public function isRelatedtoSet() : bool
+    {
+        return self::isMvalSet( $this->relatedto );
+    }
+
+    /**
      * Set calendar component property related-to
      *
-     * @param null|string    $value
-     * @param null|string[]  $params
+     * @param null|string|Pc $value
+     * @param null|int|array $params
      * @param null|int       $index
      * @return static
      * @throws InvalidArgumentException
-     * @since 2.29.14 2019-09-03
+     * @since 2.41.85 2024-01-18
      */
-    public function setRelatedto( ? string $value = null, ? array $params = [], ? int $index = null ) : static
+    public function setRelatedto(
+        null|string|Pc $value = null,
+        null|int|array $params = [],
+        ? int $index = null
+    ) : static
     {
         static $RELTYPE = 'RELTYPE';
         static $PARENT  = 'PARENT';
-        if( empty( $value )) {
-            $this->assertEmptyValue( $value, self::RELATED_TO );
-            $value  = Util::$SP0;
-            $params = [];
-
+        $pc      = self::marshallInputMval( $value, $params, $index );
+        $pcValue = $pc->getValue();
+        if( empty( $pcValue )) {
+            $this->assertEmptyValue( $pcValue, self::RELATED_TO );
+            $pc->setEmpty();
         }
-        $params = $params ?? [];
-        if( ! empty( $params )) {
-            ParameterFactory::ifExistRemove( $params, $RELTYPE, $PARENT ); // remove default
+        else {
+            $pc->setValue( StringFactory::trimTrailNL( $pcValue ));
         }
-        Util::assertString( $value, self::RELATED_TO );
-        self::setMval(
-            $this->relatedto,
-            StringFactory::trimTrailNL( $value ),
-            $params,
-            null,
-            $index
-        );
+        if( $this->getCompType() !== self::VALARM ) {
+            Util::assertString( $pc->getValue(), self::RELATED_TO );
+            $pc->removeParam( $RELTYPE, $PARENT ); // remove default
+        }
+        self::setMval( $this->relatedto, $pc, $index );
         return $this;
     }
 }

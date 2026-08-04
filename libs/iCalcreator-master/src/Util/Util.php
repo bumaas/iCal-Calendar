@@ -5,7 +5,7 @@
  * This file is a part of iCalcreator.
  *
  * @author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @copyright 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * @copyright 2007-2023 Kjell-Inge Gustafsson, kigkonsult AB, All rights reserved
  * @link      https://kigkonsult.se
  * @license   Subject matter of licence is the software iCalcreator.
  *            The above copyright, link, package and version notices,
@@ -30,118 +30,96 @@ declare( strict_types = 1 );
 namespace Kigkonsult\Icalcreator\Util;
 
 use InvalidArgumentException;
+
 use function array_key_exists;
 use function in_array;
 use function is_array;
-use function strtolower;
 use function strtoupper;
-use function ucfirst;
 
 /**
  * iCalcreator utility/support class
  *
- * @since  2.27.2 - 2018-12-21
+ * @since  2.41.90 - 2024-01-20
  */
 class Util
 {
     /**
      * @var string  misc. values
+     * @deprecated
      */
     public static string $LCvalue       = 'value';
 
     /**
      * @var string
+     * @deprecated
      */
     public static string $LCparams      = 'params';
 
     /**
      * @var string
-     */
-    public static string $ISLOCALTIME   = 'ISLOCALTIME';
-
-    /**
-     * @var string
+     * @deprecated
      */
     public static string $CRLF          = "\r\n";
 
     /**
      * @var string
+     * @deprecated
      */
     public static string $COMMA         = ',';
 
     /**
      * @var string
+     * @deprecated
      */
     public static string $COLON         = ':';
 
     /**
      * @var string
-     */
-    public static string $SEMIC         = ';';
-
-    /**
-     * @var string
-     */
-    public static string $MINUS         = '-';
-
-    /**
-     * @var string
-     */
-    public static string $PLUS          = '+';
-
-    /**
-     * @var string
-     */
-    public static string $SP0           = '';
-
-    /**
-     * @var string
-     */
-    public static string $SP1           = ' ';
-
-    /**
-     * @var string
-     */
-    public static string $ZERO          = '0';
-
-    /**
-     * @var string
+     * @deprecated
      */
     public static string $DOT           = '.';
 
     /**
      * @var string
+     * @deprecated
+     */
+    public static string $MINUS         = '-';
+
+    /**
+     * @var string
+     * @deprecated
+     */
+    public static string $PLUS          = '+';
+
+    /**
+     * @var string
+     * @deprecated
+     */
+    public static string $SEMIC         = ';';
+
+    /**
+     * @var string
+     * @deprecated
      */
     public static string $SLASH         = '/';
 
     /**
-     * Return bool true if compType is in array
-     *
-     * @param string    $compType   component name
-     * @param string[]  $compList   list of components
-     * @return bool
-     * @since  2.26 - 2018-11-03
+     * @var string
+     * @deprecated
      */
-    public static function isCompInList( string $compType, array $compList ) : bool
-    {
-        if( empty( $compType )) {
-            return false;
-        }
-        return in_array( ucfirst( strtolower( $compType ) ), $compList, true );
-    }
+    public static string $SP0           = '';
 
     /**
-     * Return bool true if property is in array
-     *
-     * @param string   $propName   property name
-     * @param string[] $propList   list of properties
-     * @return bool
-     * @since  2.26 - 2018-11-04
+     * @var string
+     * @deprecated
      */
-    public static function isPropInList( string $propName, array $propList ) : bool
-    {
-        return in_array( strtoupper( $propName ), $propList, true );
-    }
+    public static string $SP1           = ' ';
+
+    /**
+     * @var string
+     * @deprecated
+     */
+    public static string $ZERO          = '0';
 
     /**
      * Return bool true if array key is isset and not empty
@@ -156,7 +134,7 @@ class Util
         if( empty( $array ) || ! is_array( $array )) {
             return false;
         }
-        return ( isset( $array[$key] ) && ! empty( $array[$key] ));
+        return ( ! empty( $array[$key] ) );
     }
 
     /**
@@ -175,7 +153,7 @@ class Util
             ! array_key_exists( $key, $base )) {
             return false;
         }
-        return ( $value == $base[$key] );
+        return ( $value === $base[$key] );
     }
 
     /**
@@ -187,7 +165,7 @@ class Util
      * @param null|int $rangeMax
      * @return void
      * @throws InvalidArgumentException
-     * @since  2.27.14 - 2019-02-19
+     * @since  2.41.79 - 2023-06-27
      */
     public static function assertInteger(
         mixed $value,
@@ -198,7 +176,10 @@ class Util
     {
         static $ERR1 = '%s expects integer value, got %s';
         static $ERR2 = '%s value %s not in range (%d-%d)';
-        if( ! is_scalar( $value ) || ! ctype_digit( (string) $value )) {
+        if( is_string( $value )) {
+            $value = trim( $value );
+        }
+        if( ! is_scalar( $value ) || ! ctype_digit((string) $value )) {
             throw new InvalidArgumentException(
                 sprintf( $ERR1, $propName, var_export( $value, true ))
             );
@@ -214,7 +195,7 @@ class Util
     }
 
     /**
-     * Assert value is string
+     * Assert value is string (i.e. scalar, return string)
      *
      * @param mixed  $value
      * @param string $propName
@@ -227,15 +208,10 @@ class Util
         static $ERR1 = '%s expects string value, got (%s) %s';
         if( ! is_scalar( $value )) {
             throw new InvalidArgumentException(
-                sprintf(
-                    $ERR1,
-                    $propName,
-                    gettype( $value ),
-                    var_export( $value, true )
-                )
+                sprintf( $ERR1, $propName, gettype( $value ), var_export( $value, true ))
             );
         }
-        return  (string) $value;
+        return (string) $value;
     }
 
     /**
@@ -248,14 +224,10 @@ class Util
      * @throws InvalidArgumentException
      * @since  2.27.2 - 2019-01-04
      */
-    public static function assertInEnumeration(
-        mixed  $value,
-        array  $enumeration,
-        string $propName
-    ) : void
+    public static function assertInEnumeration( mixed  $value, array  $enumeration, string $propName ) : void
     {
         static $ERR = 'Invalid %s value : %s';
-        if( ! in_array( strtoupper( $value ), $enumeration, true ) ) {
+        if( ! in_array( strtoupper( $value ), $enumeration, true )) {
             throw new InvalidArgumentException(
                 sprintf( $ERR, $propName, var_export( $value, true ))
             );

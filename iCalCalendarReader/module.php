@@ -1,86 +1,31 @@
 <?php /** @noinspection AutoloadingIssuesInspection */
 
 /*
-Anmerkungen: aktuelle iCalcreator-master Versionen gibt es unter https://github.com/iCalcreator/iCalcreator/commits/master
-derzeit verwendet: v2.40.10
+Anmerkungen: aktuelle iCalcreator-Versionen gibt es unter https://github.com/iCalcreator/iCalcreator
+derzeit verwendet: v2.41.92
 
-aber mit folgenden Modifikationen
+aber mit folgenden Modifikationen (jeweils mit "bumaas" markiert):
 
-src\Traits\ATTENDEEtrait.php    Zeile 128
-            //    CalAddressFactory::assertCalAddress( $value ); //bumaas
+src/Util/CalAddressFactory.php  assertCalAddress(): sofortiges return
+    Kalender mit ungültigen ORGANIZER-/ATTENDEE-Adressen tolerieren
+    (z. B. iCloud-Principal-URLs wie "ORGANIZER;...:/aODMyNTYxNz.../principal/")
 
-scr\Util\DateTimeZoneFactory.php    ab Zeile 94
+src/Util/HttpFactory.php  assertUrl(): sofortiges return
+    Kalender mit ungültigen URL-Properties tolerieren
+    (z. B. "URL;VALUE=URI:message:%3C...", "URL;VALUE=URI:" leer)
 
-            if (strpos($tzString, '(UTC+01:00)') !== false){
-                $tzString = str_replace('(UTC+01:00)', '(UTC +01:00)', $tzString);
-                //bumaas: Exchange2016 reports "(UTC+01:00) Amsterdam ..." (SimonS)
-                //echo sprintf('invalid DateTimeZone (without " ") was corrected: %s -> %s', $org, $tzString) . PHP_EOL;
-            }
-            if (strpos($tzString, '"') !== false){
-                $tzString = str_replace('"', '', $tzString);
-                echo sprintf('invalid character " found. %s -> %s', $org, $tzString) . PHP_EOL;
-            }
+src/Util/DateTimeZoneFactory.php  assertDateTimeZone(): class_exists-Guard um IntlTimeZone
+    das Symcon-PHP hat kein ext-intl; ohne Guard würde der Windows-Zeitzonen-Fallback
+    mit "Class IntlTimeZone not found" fatal enden statt InvalidArgumentException zu werfen
 
-src\Util\DateTimeFactory.php    ab Zeile 629
+src/Util/DateTimeFactory.php  isStringAndDate(): 32-Bit-Sonderfall
+    auf 32-Bit-Systemen scheitert strtotime außerhalb 1901-2038; solche Datumsangaben
+    werden trotzdem als gültig akzeptiert
 
-        if (8 > strlen( $string )){
-            return false;
-        }
-
-        //bumaas: different check on 32 bit system
-        if (PHP_INT_SIZE >= 8) {//64 bit System?
-            return ( false !== strtotime ( $string ));
-        }
-
-        if ((substr($string,0,8) > '19011213') && (substr($string,0,8) < '20380119')){
-            return ( false !== strtotime ( $string ));
-        }
-
-        return true;
-
-src\Util\CalAddressFactory.php  ab Zeile 90
-
-        return; //bumaas
-        //Example todo:
-BEGIN:VEVENT
-CREATED:20191229T194615Z
-DTEND;TZID=Europe/Berlin:20201030T100000
-DTSTAMP:20191229T194616Z
-DTSTART;TZID=Europe/Berlin:20201030T090000
-LAST-MODIFIED:20191229T194615Z
-ORGANIZER;CN="Joachim Päper";EMAIL=j.p@p.com:/aODMyNTYxNz
- k4NjgzMjU2MVoHEZowxAfFMrUCmnQ2QkArD73WdqLg2rSemg8aiWIi/principal/
-SEQUENCE:0
-SUMMARY:🌺 - Impftermin absprechen
-UID:C804A283-FAFE-4DE2-9E71-E64DCEF7D0A0
-URL;VALUE=URI:
-END:VEVENT
-        //
-
-src\Util\HttpFactory.php ab Zeile 149
-
-    public static function assertUrl( $url )
-    {
-        return;
-
-src\Util\StringFactory.php Zeile 387ff
-            if (!isset($tmp[$x])){
-                break;
-                echo sprintf('bumaas %s-> inLen=%s, outLen=%s, x=%s, $tmp="%s"', __FUNCTION__, $inLen, $outLen, $x, $tmp). PHP_EOL;
-            }
-
-            //bumaas: sometimes the TZID string containes '"'
-            $propAttr[IcalInterface::TZID] = trim( $propAttr[IcalInterface::TZID], '"' );
-
-src\Util\RegulateTimezoneFactory
-    322ff
-     //bumaas: sometimes the TZID string containes '"'
-     $propAttr[IcalInterface::TZID] = trim( $propAttr[IcalInterface::TZID], '"' );
-
-    398ff
-    //bumaas: the TZID string sometimes contains `\`
-    $value = str_replace('\\', '', $value);
-
+Die bis v2.40.10 gepatchte RegulateTimezoneFactory (Umschreibung von Windows-/Exchange-
+Zeitzonen vor dem Parsen) ist mit 2.41.57 aus der Lib entfallen; ihre Aufgabe übernimmt
+jetzt iCalImporter::regulateTimezones() (dort auch die früheren TZID-Bereinigungen
+um '"' und '\' sowie das Mapping "(UTC+01:00) ..." -> PHP-Zeitzone).
 */
 declare(strict_types=1);
 

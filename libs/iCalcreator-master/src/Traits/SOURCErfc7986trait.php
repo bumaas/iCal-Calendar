@@ -5,7 +5,7 @@
  * This file is a part of iCalcreator.
  *
  * @author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @copyright 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * @copyright 2007-2024 Kjell-Inge Gustafsson, kigkonsult AB, All rights reserved
  * @link      https://kigkonsult.se
  * @license   Subject matter of licence is the software iCalcreator.
  *            The above copyright, link, package and version notices,
@@ -29,23 +29,23 @@
 declare( strict_types = 1 );
 namespace Kigkonsult\Icalcreator\Traits;
 
-use Kigkonsult\Icalcreator\Util\StringFactory;
+use Kigkonsult\Icalcreator\Formatter\Property\SingleProps;
+use Kigkonsult\Icalcreator\Pc;
 use Kigkonsult\Icalcreator\Util\Util;
 use Kigkonsult\Icalcreator\Util\HttpFactory;
-use Kigkonsult\Icalcreator\Util\ParameterFactory;
 use InvalidArgumentException;
 
 /**
  * SOURCE property functions
  *
- * @since  2.30.2 - 2021-02-04
+ * @since 2.41.85 2024-01-18
  */
 trait SOURCErfc7986trait
 {
     /**
-     * @var null|array component property SOURCE value
+     * @var null|Pc component property SOURCE value
      */
-    protected ?array $source = null;
+    protected ? Pc $source = null;
 
     /**
      * Return formatted output for calendar component property source
@@ -54,18 +54,10 @@ trait SOURCErfc7986trait
      */
     public function createSource() : string
     {
-        if( empty( $this->source )) {
-            return Util::$SP0;
-        }
-        if( empty( $this->source[Util::$LCvalue] )) {
-            return $this->getConfig( self::ALLOWEMPTY )
-                ? StringFactory::createElement( self::SOURCE )
-                : Util::$SP0;
-        }
-        return StringFactory::createElement(
+        return SingleProps::format(
             self::SOURCE,
-            ParameterFactory::createParams( $this->source[Util::$LCparams] ),
-            $this->source[Util::$LCvalue]
+            $this->source,
+            $this->getConfig( self::ALLOWEMPTY )
         );
     }
 
@@ -84,36 +76,49 @@ trait SOURCErfc7986trait
      * Get calendar component property source
      *
      * @param null|bool   $inclParam
-     * @return bool|string|array
+     * @return bool|string|Pc
+     * @since 2.41.85 2024-01-18
      */
-    public function getSource( ?bool $inclParam = false ) : array | bool | string
+    public function getSource( ? bool $inclParam = false ) : bool | string | Pc
     {
         if( empty( $this->source )) {
             return false;
         }
-        return ( $inclParam ) ? $this->source : $this->source[Util::$LCvalue];
+        return $inclParam ? clone $this->source : $this->source->getValue();
+    }
+
+    /**
+     * Return bool true if set (and ignore empty property)
+     *
+     * @return bool
+     * @since 2.41.88 2024-01-19
+     */
+    public function isSourceSet() : bool
+    {
+        return self::isPropSet( $this->source->getValue());
     }
 
     /**
      * Set calendar component property source
      *
-     * @param null|string   $value
-     * @param null|string[] $params
+     * @param null|string|Pc   $value
+     * @param null|mixed[] $params
      * @return static
      * @throws InvalidArgumentException
-     * @since  2.30.2 - 2021-02-04
+     * @since 2.41.85 2024-01-18
      */
-    public function setSource( ? string $value = null, ? array $params = [] ) : static
+    public function setSource( null|string|Pc $value = null, ? array $params = [] ) : static
     {
-        if( empty( $value )) {
-            $this->assertEmptyValue( $value, self::SOURCE );
-            $this->source = [
-                Util::$LCvalue  => Util::$SP0,
-                Util::$LCparams => [],
-            ];
-            return $this;
+        $pc      = Pc::factory( $value, $params );
+        $pcValue = rtrim((string) $pc->getValue());
+        if( empty( $pcValue )) {
+            $this->assertEmptyValue( $pcValue, self::SOURCE );
+            $this->source = $pc->setEmpty();
         }
-        HttpFactory::urlSet( $this->source, $value, $params );
+        else {
+            $pc->setValue( Util::assertString( $pcValue, self::SOURCE ));
+            HttpFactory::urlSet( $this->source, $pc );
+        }
         return $this;
     }
 }

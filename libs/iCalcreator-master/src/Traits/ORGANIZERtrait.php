@@ -5,7 +5,7 @@
  * This file is a part of iCalcreator.
  *
  * @author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @copyright 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * @copyright 2007-2024 Kjell-Inge Gustafsson, kigkonsult AB, All rights reserved
  * @link      https://kigkonsult.se
  * @license   Subject matter of licence is the software iCalcreator.
  *            The above copyright, link, package and version notices,
@@ -29,23 +29,23 @@
 declare( strict_types = 1 );
 namespace Kigkonsult\Icalcreator\Traits;
 
-use Kigkonsult\Icalcreator\Util\StringFactory;
+use Kigkonsult\Icalcreator\Formatter\Property\SingleProps;
+use Kigkonsult\Icalcreator\Pc;
 use Kigkonsult\Icalcreator\Util\Util;
-use Kigkonsult\Icalcreator\Util\ParameterFactory;
 use Kigkonsult\Icalcreator\Util\CalAddressFactory;
 use InvalidArgumentException;
 
 /**
  * ORGANIZER property functions
  *
- * @since  2.27.8 - 2019-03-17
+ * @since 2.41.85 2024-01-18
  */
 trait ORGANIZERtrait
 {
     /**
-     * @var null|array component property ORGANIZER value
+     * @var null|Pc component property ORGANIZER value
      */
-    protected ?array $organizer = null;
+    protected ? Pc $organizer = null;
 
     /**
      * Return formatted output for calendar component property organizer
@@ -54,27 +54,11 @@ trait ORGANIZERtrait
      */
     public function createOrganizer() : string
     {
-        if( empty( $this->organizer )) {
-            return Util::$SP0;
-        }
-        if( empty( $this->organizer[Util::$LCvalue] )) {
-            return $this->getConfig( self::ALLOWEMPTY )
-                ? StringFactory::createElement( self::ORGANIZER )
-                : Util::$SP0;
-        }
-        return StringFactory::createElement(
+        return SingleProps::format(
             self::ORGANIZER,
-            ParameterFactory::createParams(
-                $this->organizer[Util::$LCparams],
-                [
-                    self::CN,
-                    self::DIR,
-                    self::SENT_BY,
-                    self::LANGUAGE,
-                ],
-                $this->getConfig( self::LANGUAGE )
-            ),
-            $this->organizer[Util::$LCvalue]
+            $this->organizer,
+            $this->getConfig( self::ALLOWEMPTY ),
+            $this->getConfig( self::LANGUAGE )
         );
     }
 
@@ -94,56 +78,70 @@ trait ORGANIZERtrait
      * Get calendar component property organizer
      *
      * @param null|bool   $inclParam
-     * @return bool|string|array
-     * @since  2.27.1 - 2018-12-12
+     * @return bool|string|Pc
+     * @since 2.41.85 2024-01-18
      */
-    public function getOrganizer( ?bool $inclParam = false ) : array | bool | string
+    public function getOrganizer( ? bool $inclParam = false ) : bool | string | Pc
     {
         if( empty( $this->organizer )) {
             return false;
         }
-        return ( $inclParam ) ? $this->organizer : $this->organizer[Util::$LCvalue];
+        return $inclParam ? clone $this->organizer : $this->organizer->getValue();
+    }
+
+    /**
+     * Return bool true if set (and ignore empty property)
+     *
+     * @return bool
+     * @since 2.41.88 2024-01-19
+     */
+    public function isOrganizerSet() : bool
+    {
+        return self::isPropSet( $this->organizer );
     }
 
     /**
      * Set calendar component property organizer
      *
-     * @param null|string  $value
-     * @param null|string[] $params
+     * @param null|string|Pc   $value
+     * @param null|mixed[] $params
      * @return static
      * @throws InvalidArgumentException
-     * @since  2.39 - 2021-06-17
-     * @todo ensure value is prefixed by protocol, mailto: if missing
-      */
-    public function setOrganizer( ? string $value = null, ? array $params = [] ) : static
+     * @since 2.41.85 2024-01-18
+     */
+    public function setOrganizer( null|string|Pc $value = null, ? array $params = [] ) : static
     {
-        if( empty( $value )) {
-            $this->assertEmptyValue( $value, self::ORGANIZER );
-            $value  = Util::$SP0;
-            $params = [];
+        $pc      = Pc::factory( $value, $params );
+        $pcValue = $pc->getValue();
+        if( empty( $pcValue )) {
+            $this->assertEmptyValue( $pcValue, self::ORGANIZER );
+            $pc->setEmpty();
         }
-        $value = CalAddressFactory::conformCalAddress( $value, true );
-        if( ! empty( $value )) {
-            CalAddressFactory::assertCalAddress( $value );
+        else {
+            Util::assertString( $pcValue, self::ORGANIZER );
+            if( ! CalAddressFactory::hasProtocolPrefix( $pcValue )) {
+                $pc->setValue( CalAddressFactory::conformCalAddress( $pcValue, true ));
+            }
+            elseif( CalAddressFactory::hasMailtoPrefix( $pcValue )) {
+                $pcValue = CalAddressFactory::conformCalAddress( $pcValue );
+                CalAddressFactory::assertCalAddress( $pcValue );
+                $pc->setValue( $pcValue );
+                CalAddressFactory::sameValueAndEMAILparam( $pc );
+            }
         }
-        $params = array_change_key_case( $params ?? [], CASE_UPPER );
-        CalAddressFactory::sameValueAndEMAILparam( $value, $params );
-        $this->organizer = [
-            Util::$LCvalue  => $value,
-            Util::$LCparams => ParameterFactory::setParams( $params ),
-        ];
-        if( isset( $this->organizer[Util::$LCparams][self::EMAIL] )) {
-            $this->organizer[Util::$LCparams][self::EMAIL] =
-                CalAddressFactory::prepEmail(
-                    $this->organizer[Util::$LCparams][self::EMAIL]
-                );
+        if( $pc->hasParamKey( self::EMAIL )) {
+            $pc->addParam(
+                self::EMAIL,
+                CalAddressFactory::prepEmail( $pc->getParams( self::EMAIL ))
+            );
         } // end if
-        if( isset( $this->organizer[Util::$LCparams][self::SENT_BY] )) {
-            $this->organizer[Util::$LCparams][self::SENT_BY] =
-                CalAddressFactory::prepSentBy(
-                    $this->organizer[Util::$LCparams][self::SENT_BY]
-                );
+        if( $pc->hasParamKey( self::SENT_BY )) {
+            $pc->addParam(
+                self::SENT_BY,
+                CalAddressFactory::prepSentBy( $pc->getParams( self::SENT_BY ))
+            );
         } // end if
+        $this->organizer = $pc;
         return $this;
     }
 }

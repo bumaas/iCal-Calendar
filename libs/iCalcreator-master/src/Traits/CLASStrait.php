@@ -5,7 +5,7 @@
  * This file is a part of iCalcreator.
  *
  * @author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @copyright 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * @copyright 2007-2024 Kjell-Inge Gustafsson, kigkonsult AB, All rights reserved
  * @link      https://kigkonsult.se
  * @license   Subject matter of licence is the software iCalcreator.
  *            The above copyright, link, package and version notices,
@@ -30,23 +30,25 @@ declare( strict_types = 1 );
 namespace Kigkonsult\Icalcreator\Traits;
 
 use InvalidArgumentException;
-use Kigkonsult\Icalcreator\Util\ParameterFactory;
+use Kigkonsult\Icalcreator\Formatter\Property\Property;
+use Kigkonsult\Icalcreator\Pc;
 use Kigkonsult\Icalcreator\Util\StringFactory;
 use Kigkonsult\Icalcreator\Util\Util;
 
+use function in_array;
 use function strtoupper;
 
 /**
  * CLASS property functions
  *
- * @since 2.29.14 2019-09-03
+ * @since 2.41.85 2024-01-18
  */
 trait CLASStrait
 {
     /**
-     * @var null|array component property CLASS value
+     * @var null|Pc component property CLASS value
      */
-    protected ?array $class = null;
+    protected ? Pc $class = null;
 
     /**
      * @var string
@@ -60,18 +62,10 @@ trait CLASStrait
      */
     public function createClass() : string
     {
-        if( empty( $this->{self::$KLASS} )) {
-            return Util::$SP0;
-        }
-        if( empty( $this->{self::$KLASS}[Util::$LCvalue] )) {
-            return $this->getConfig( self::ALLOWEMPTY )
-                ? StringFactory::createElement( self::KLASS )
-                : Util::$SP0;
-        }
-        return StringFactory::createElement(
+        return Property::format(
             self::KLASS,
-            ParameterFactory::createParams( $this->{self::$KLASS}[Util::$LCparams] ),
-            $this->{self::$KLASS}[Util::$LCvalue]
+            $this->{self::$KLASS},
+            $this->getConfig( self::ALLOWEMPTY )
         );
     }
 
@@ -91,48 +85,56 @@ trait CLASStrait
      * Get calendar component property class
      *
      * @param null|bool   $inclParam
-     * @return bool|string|array
-     * @since  2.27.1 - 2018-12-12
+     * @return bool|string|Pc
+     * @since 2.41.85 2024-01-18
      */
-    public function getClass( ?bool $inclParam = false ) : array | bool | string
+    public function getClass( ? bool $inclParam = false ) : bool | string | Pc
     {
         if( empty( $this->{self::$KLASS} )) {
             return false;
         }
-        return ( $inclParam )
-            ? $this->{self::$KLASS}
-            : $this->{self::$KLASS}[Util::$LCvalue];
+        return $inclParam ? clone $this->{self::$KLASS} : $this->{self::$KLASS}->getValue();
+    }
+
+    /**
+     * Return bool true if set (and ignore empty property)
+     *
+     * @return bool
+     * @since 2.41.88 2024-01-19
+     */
+    public function isClassSet() : bool
+    {
+        return self::isPropSet( $this->{self::$KLASS} );
     }
 
     /**
      * Set calendar component property class
      *
-     * @param null|string   $value  "PUBLIC" / "PRIVATE" / "CONFIDENTIAL" / iana-token / x-name
-     * @param null|string[] $params
+     * @param null|string|Pc   $value  "PUBLIC" / "PRIVATE" / "CONFIDENTIAL" / iana-token / x-name
+     * @param null|mixed[] $params
      * @return static
      * @throws InvalidArgumentException
-     * @since 2.29.14 2019-09-03
+     * @since 2.41.85 2024-01-18
      */
-    public function setClass( ? string $value = null, ? array $params = [] ) : static
+    public function setClass( null|string|Pc $value = null, ? array $params = [] ) : static
     {
-        $STDVALUES = [
+        static $STDVALUES = [
             self::P_BLIC,
             self::P_IVATE,
             self::CONFIDENTIAL
         ];
-        if( empty( $value )) {
-            $this->assertEmptyValue( $value, self::KLASS );
-            $value  = Util::$SP0;
-            $params = [];
+        $pc      = Pc::factory( $value, $params );
+        $pcValue = $pc->getValue();
+        if( empty( $pcValue )) {
+            $this->assertEmptyValue( $pcValue, self::KLASS );
+            $pc->setEmpty();
         }
-        elseif( Util::isPropInList( $value, $STDVALUES )) {
-            $value = strtoupper( $value );
+        elseif( ! in_array( $pcValue, $STDVALUES, true )) {
+            $pcValue = Util::assertString( $pcValue, self::KLASS );
+            $pcValue = StringFactory::trimTrailNL( $pcValue );
+            $pc->setValue( strtoupper( $pcValue ));
         }
-        Util::assertString( $value, self::KLASS );
-        $this->{self::$KLASS} = [
-            Util::$LCvalue  => strtoupper( StringFactory::trimTrailNL((string) $value )),
-            Util::$LCparams => ParameterFactory::setParams( $params ?? [] ),
-        ];
+        $this->{self::$KLASS} = $pc;
         return $this;
     }
 }

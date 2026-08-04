@@ -5,7 +5,7 @@
  * This file is a part of iCalcreator.
  *
  * @author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @copyright 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * @copyright 2007-2023 Kjell-Inge Gustafsson, kigkonsult AB, All rights reserved
  * @link      https://kigkonsult.se
  * @license   Subject matter of licence is the software iCalcreator.
  *            The above copyright, link, package and version notices,
@@ -30,22 +30,20 @@ declare( strict_types = 1 );
 namespace Kigkonsult\Icalcreator\Traits;
 
 use InvalidArgumentException;
-use Kigkonsult\Icalcreator\IcalInterface;
+use Kigkonsult\Icalcreator\Formatter\Property\CalMetProVer;
 use Kigkonsult\Icalcreator\Util\Util;
-
-use function sprintf;
 
 /**
  * CALSCALE property functions
  *
- * @since 2.29.14 2019-09-03
+ * @since 2.41.55 2022-08-13
  */
 trait CALSCALEtrait
 {
     /**
      * @var null|string calendar property CALSCALE
      */
-    protected ?string $calscale = null;
+    protected ? string $calscale = null;
 
     /**
      * Return formatted output for calendar property calscale
@@ -54,10 +52,7 @@ trait CALSCALEtrait
      */
     public function createCalscale() : string
     {
-        if( empty( $this->calscale )) {
-            $this->calscale = IcalInterface::GREGORIAN;
-        }
-        return sprintf( self::$FMTICAL, self::CALSCALE, $this->calscale );
+        return CalMetProVer::format( self::CALSCALE, ( $this->calscale ?? self::GREGORIAN ));
     }
 
     /**
@@ -81,9 +76,20 @@ trait CALSCALEtrait
     public function getCalscale() : string
     {
         if( empty( $this->calscale )) {
-            $this->calscale = IcalInterface::GREGORIAN;
+            $this->calscale = self::GREGORIAN;
         }
         return $this->calscale;
+    }
+
+    /**
+     * Return bool true if set (and ignore empty property)
+     *
+     * @return bool
+     * @since 2.41.35 2022-03-28
+     */
+    public function isCalscaleSet() : bool
+    {
+        return ! empty( $this->calscale );
     }
 
     /**
@@ -91,13 +97,13 @@ trait CALSCALEtrait
      *
      * @param null|string $value
      * @return static
-     * @throws InvalidArgumentException;
+     * @throws InvalidArgumentException
      * @since  2.29.14 - 2019-09-03
      */
-    public function setCalscale( ? string $value = null ) : static
+    public function setCalscale( null|string $value = null ) : static
     {
         if( empty( $value )) {
-            $value = IcalInterface::GREGORIAN;
+            $value = self::GREGORIAN;
         }
         Util::assertString( $value, self::CALSCALE );
         $this->calscale = $value;

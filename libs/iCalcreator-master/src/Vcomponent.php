@@ -5,7 +5,7 @@
  * This file is a part of iCalcreator.
  *
  * @author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @copyright 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * @copyright 2007-2023 Kjell-Inge Gustafsson, kigkonsult AB, All rights reserved
  * @link      https://kigkonsult.se
  * @license   Subject matter of licence is the software iCalcreator.
  *            The above copyright, link, package and version notices,
@@ -34,7 +34,7 @@ use Exception;
 /**
  * iCalcreator Vcomponents base class
  *
- * @since  2.27.6 - 2018-12-28
+ * @since  2.41.53 - 2022-08-08
  */
 abstract class Vcomponent extends CalendarComponent
 {
@@ -44,7 +44,7 @@ abstract class Vcomponent extends CalendarComponent
      * Constructor for calendar component
      *
      * @overrides
-     * @param array|null $config
+     * @param null|string[] $config
      * @throws Exception
      * @since  2.27.6 - 2018-12-28
      */
@@ -52,5 +52,26 @@ abstract class Vcomponent extends CalendarComponent
     {
         parent::__construct( $config );
         $this->setDtstamp();
+    }
+
+    /**
+     * Return Vlocation object instance
+     */
+    use Traits\NewVlocationTrait;
+
+    /**
+     * Return Vresource object instance
+     *
+     * @param null|string $resourceType property RESOURCE-TYPE value
+     * @param null|string $name property NAME value
+     * @return Vresource
+     * @throws Exception
+     * @since  2.41.53 - 2022-08-08
+     */
+    public function newVresource( ? string $resourceType = null, ? string $name = null ) : Vresource
+    {
+        $ix = $this->getNextComponentIndex();
+        $this->components[$ix] = Vresource::factory( $this->getConfig(), $resourceType, $name );
+        return $this->components[$ix];
     }
 }

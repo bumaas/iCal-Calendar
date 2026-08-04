@@ -5,7 +5,7 @@
  * This file is a part of iCalcreator.
  *
  * @author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @copyright 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * @copyright 2007-2024 Kjell-Inge Gustafsson, kigkonsult AB, All rights reserved
  * @link      https://kigkonsult.se
  * @license   Subject matter of licence is the software iCalcreator.
  *            The above copyright, link, package and version notices,
@@ -32,20 +32,21 @@ namespace Kigkonsult\Icalcreator\Util;
 use DateTime;
 use Kigkonsult\Icalcreator\CalendarComponent;
 use Kigkonsult\Icalcreator\IcalInterface;
+use Kigkonsult\Icalcreator\Pc;
 use Kigkonsult\Icalcreator\Vcalendar;
 
 use function array_slice;
 use function ctype_digit;
+use function in_array;
 use function is_null;
 use function key;
 use function method_exists;
-use function reset;
 use function strcmp;
 
 /**
  * iCalcreator SortFactory class
  *
- * @since 2.29.17 2020-01-25
+ * @since 2.41.88 - 2024-01-18
  */
 class SortFactory
 {
@@ -78,12 +79,12 @@ class SortFactory
             if( empty( $b->srtk[$k] )) {
                 return 1;
             }
-            $aKey = ctype_digit( $a->srtk[$k] )
+            $aKey = ctype_digit((string) $a->srtk[$k] )
                 ? str_pad((string) $a->srtk[$k], 20, '0', STR_PAD_LEFT )
-                : (string) $a->srtk[$k];
-            $bKey = ctype_digit( $b->srtk[$k] )
+                : $a->srtk[$k];
+            $bKey = ctype_digit((string) $b->srtk[$k] )
                 ? str_pad((string) $b->srtk[$k], 20, '0', STR_PAD_LEFT )
-                : (string)$b->srtk[$k];
+                : $b->srtk[$k];
             $sortStat = strcmp( $aKey, $bKey );
             if( 0 === $sortStat ) {
                 continue;
@@ -98,131 +99,105 @@ class SortFactory
      *
      * @param CalendarComponent $c valendar component
      * @param null|string       $sortArg
-     * @since 2.29.17 2020-01-25
+     * @since 2.41.68 2022-10-03
      */
     public static function setSortArgs( CalendarComponent $c, ? string $sortArg = null ) : void
     {
         static $INITARR = [ '0', '0', '0', '0' ];
-        $c->srtk  = $INITARR;
+        static $GETRECURRIDMETHOD = null;
+        static $GETSEQMETHOD      = null;
+        $c->srtk        = $INITARR;
         $compType = $c->getCompType();
         if( IcalInterface::VTIMEZONE === $compType ) {
             $c->srtk[0] = $c->cno; // set order
             return;
         }
-        if( ! is_null( $sortArg )) {
-            if( Util::isPropInList( $sortArg, Vcalendar::$MPROPS1 )) { // all string
-                $propValues = [];
-                $c->getProperties( $sortArg, $propValues );
-                if( ! empty( $propValues )) {
-                    $c->srtk[0] = key( array_slice( $propValues, 0, 1, true ));
-                }
-                if( IcalInterface::RELATED_TO === $sortArg ) {
-                    $c->srtk[0] = $c->getUid();
-                }
-            } // end if( Util::isPropInList( $sortArg, Util::$MPROPS1 ))
-            else {
-                $method = StringFactory::getGetMethodName( $sortArg );
-                if( method_exists( $c, $method ) && ( false !== ( $d = $c->{$method}()))) {
-                    $c->srtk[0] = ( $d instanceof DateTime ) ? $d->getTimestamp() : $d;
-                    if( IcalInterface::UID === $sortArg ) {
-                        if(( IcalInterface::VFREEBUSY !== $compType  ) &&
-                            ( false !== ( $d = $c->getRecurrenceid()))) {
-                            $c->srtk[1] = $d->getTimestamp();
-                            if( false === ( $c->srtk[2] = $c->getSequence())) {
-                                $c->srtk[2] = 0; // missing sequence equals sequence:0 in comb. with recurr.-id
-                            }
-                        }
-                        else {
-                            $c->srtk[1] = $c->srtk[2] = PHP_INT_MAX;
-                        }
-                    } // end if( Vcalendar::UID == $sortArg )
-                } // end if
-            } // end elseif( false !== ( $d = $c->getProperty( $sortArg )))
+        if( is_null( $sortArg )) {
+            self::setSortDefaultArgs( $c );
             return;
-        } // end elseif( $sortArg )
-        switch( true ) { // sortkey 0 : dtstart
-            case ( false !== ( $d = $c->getXprop( IcalInterface::X_CURRENT_DTSTART ))) :
-                $c->srtk[0] = $d[1];
-                break;
-            case ( false !== ( $d = $c->getDtstart())) :
-                $c->srtk[0] = $d->getTimestamp();
-                break;
-        } // end switch
-        switch( true ) { // sortkey 1 : dtend/due(/duration)
-            case ( false !== ( $d = $c->getXprop( IcalInterface::X_CURRENT_DTEND ))) :
-                $c->srtk[1] = $d[1];
-                break;
-            case ((( IcalInterface::VEVENT === $compType ) ||
-                   ( IcalInterface::VFREEBUSY === $compType  )) &&
-                ( false !== ( $d = $c->getDtend()))) :
-                $c->srtk[1] = $d->getTimestamp();
-                break;
-            case ( false !== ( $d = $c->getXprop( IcalInterface::X_CURRENT_DUE ))) :
-                $c->srtk[1] = $d[1];
-                break;
-            case (( IcalInterface::VTODO === $compType  ) && ( false !== ( $d = $c->getDue()))) :
-                $c->srtk[1] = $d->getTimestamp();
-                break;
-            case ((( IcalInterface::VEVENT === $compType  ) ||
-                    ( IcalInterface::VTODO === $compType )) &&
-                ( false !== ( $d = $c->getDuration( null, true )))) :
-                $c->srtk[1] = $d->getTimestamp();
-                break;
-        } // end switch
-        switch( true ) { // sortkey 2 : created/dtstamp
-            case (( IcalInterface::VFREEBUSY !== $compType  ) &&
-                ( false !== ( $d = $c->getCreated()))) :
-                $c->srtk[2] = $d->getTimestamp();
-                break;
-            case ( false !== ( $d = $c->getDtstamp())) :
-                $c->srtk[2] = $d->getTimestamp();
-                break;
-        } // end switch
-        // sortkey 3 : uid
-        if( false === ( $c->srtk[3] = $c->getUid())) {
-            $c->srtk[3] = 0;
         }
+        if( Vcalendar::isMultiProp1( $sortArg )) { // all string
+            $propValues = [];
+            $c->getProperties( $sortArg, $propValues );
+            if( ! empty( $propValues )) {
+                $c->srtk[0] = key( array_slice( $propValues, 0, 1, true ));
+            }
+            if( IcalInterface::RELATED_TO === $sortArg ) {
+                $c->srtk[0] = $c->getUid();
+            }
+            return;
+        } // end if
+        $method = StringFactory::getGetMethodName( $sortArg );
+        if( method_exists( $c, $method ) && ( false !== ( $d = $c->{$method}()))) {
+            $c->srtk[0] = ( $d instanceof DateTime ) ? $d->getTimestamp() : $d;
+            if( IcalInterface::UID === $sortArg ) {
+                if( null === $GETRECURRIDMETHOD ) {
+                    $GETRECURRIDMETHOD = StringFactory::getGetMethodName( IcalInterface::RECURRENCE_ID );
+                    $GETSEQMETHOD      = StringFactory::getGetMethodName( IcalInterface::SEQUENCE );
+                }
+                if( method_exists( $c, $GETRECURRIDMETHOD ) && ( false !== ( $d = $c->getRecurrenceid()))) {
+                    $c->srtk[1] = $d->getTimestamp();
+                    if( method_exists( $c, $GETSEQMETHOD ) && ( false === ( $c->srtk[2] = $c->getSequence()))) {
+                        $c->srtk[2] = 0; // missing sequence equals sequence:0 in comb. with recurr.-id
+                    }
+                }
+                else {
+                    $c->srtk[1] = $c->srtk[2] = PHP_INT_MAX;
+                }
+            } // end if( Vcalendar::UID == $sortArg )
+        } // end if
     }
 
     /**
-     * Sort callback function for exdate
+     * Set default (date-related/uid) sort arguments/parameters in component
      *
-     * @param DateTime $a
-     * @param DateTime $b
-     * @return int
-     * @since 2.29.2 2019-06-23
+     * @param CalendarComponent $c valendar component
+     * @since 2.41.88 2024-01-17
      */
-    public static function sortExdate1( DateTime $a, DateTime $b ) : int
+    private static function setSortDefaultArgs( CalendarComponent $c ) : void
     {
-        return strcmp(
-            $a->format( DateTimeFactory::$YmdTHis ),
-            $b->format( DateTimeFactory::$YmdTHis )
-        );
-    }
-
-    /**
-     * Sort callback function for exdate
-     *
-     * @param array $a
-     * @param array $b
-     * @return int
-     * @since 2.29.2 2019-06-23
-     */
-    public static function sortExdate2( array $a, array $b ) : int
-    {
-        $a1 = reset( $a[Util::$LCvalue] );
-        $b1 = reset( $b[Util::$LCvalue] );
-        return strcmp(
-            $a1->format( DateTimeFactory::$YmdTHis ),
-            $b1->format( DateTimeFactory::$YmdTHis )
-        );
+        static $DTENDCOMPS = [ IcalInterface::VEVENT, IcalInterface::VFREEBUSY, IcalInterface::VAVAILABILITY ];
+        static $DURCOMPS   = [
+            IcalInterface::VAVAILABILITY,
+            IcalInterface::VEVENT,
+            IcalInterface::VFREEBUSY,
+            IcalInterface::VTODO
+        ];
+        $compType = $c->getCompType();
+        // sortkey 0 : dtstart
+        if( false !== ( $d = $c->getXprop( IcalInterface::X_CURRENT_DTSTART ))) {
+            $c->srtk[0] = $d[1];
+        }
+        elseif( false !== ( $d = $c->getDtstart())) {
+                $c->srtk[0] = $d->getTimestamp();
+        }
+        match( true ) { // sortkey 1 : dtend/due(/duration)
+            ( false !== ( $d = $c->getXprop( IcalInterface::X_CURRENT_DTEND ))) =>
+                $c->srtk[1] = $d[1],
+            ( in_array( $compType, $DTENDCOMPS, true ) ) && ( false !== ( $d = $c->getDtend())) =>
+                $c->srtk[1] = $d->getTimestamp(),
+            ( false !== ( $d = $c->getXprop( IcalInterface::X_CURRENT_DUE ))) =>
+                $c->srtk[1] = $d[1],
+            (( IcalInterface::VTODO === $compType  ) && ( false !== ( $d = $c->getDue()))) =>
+                $c->srtk[1] = $d->getTimestamp(),
+            ( in_array( $compType, $DURCOMPS, true ) && ( false !== ( $d = $c->getDuration( null, true )))) =>
+                $c->srtk[1] = $d->getTimestamp(),
+            default => null
+        }; // end match
+        // sortkey 2 : created/dtstamp
+        $c->srtk[2] = (( IcalInterface::VFREEBUSY !== $compType  ) &&
+            ( false !== ( $d = $c->getCreated())))
+            ? $d->getTimestamp()
+            : $c->getDtstamp()->getTimestamp();
+        // sortkey 3 : uid
+        $c->srtk[3] = $c->getUid();
     }
 
     /**
      * Sort callback function for freebusy and rdate, sort single property
      *
-     * @param array|DateTime $a
-     * @param array|DateTime $b
+     * @param DateTime|DateTime[] $a
+     * @param DateTime|DateTime[] $b
      * @return int
      * @since 2.29.2 2019-06-23
      */
@@ -232,13 +207,13 @@ class SortFactory
         if( $a instanceof DateTime ) {
             $as = $a->format( DateTimeFactory::$YmdTHis);
         }
-        elseif( is_array( $a ) && ( $a[0] instanceof DateTime )) {
+        elseif( $a[0] instanceof DateTime ) {
             $as = $a[0]->format( DateTimeFactory::$YmdTHis);
         }
         if( $b instanceof DateTime ) {
             $bs = $b->format( DateTimeFactory::$YmdTHis);
         }
-        elseif( is_array( $b ) && ( $b[0] instanceof DateTime )) {
+        elseif( $b[0] instanceof DateTime ) {
             $bs = $b[0]->format( DateTimeFactory::$YmdTHis);
         }
         return strcmp( $as, $bs );
@@ -247,37 +222,34 @@ class SortFactory
     /**
      * Sort callback function for rdate, sort multiple RDATEs in order (after 1st datetime/date/period)
      *
-     * @param array $a
-     * @param array $b
+     * @param Pc $a
+     * @param Pc $b
      * @return int
-     * @since 2.29.11 2019-08-29
+     * @since 2.41.88 - 2024-01-18
      */
-    public static function sortRdate2( array $a, array $b ) : int
+    public static function sortRdate2( Pc $a, Pc $b ) : int
     {
         return strcmp(
-            self::sortRdate2GetValue( $a[Util::$LCvalue] ),
-            self::sortRdate2GetValue( $b[Util::$LCvalue] )
+            self::sortRdate2GetValue( $a->getValue()),
+            self::sortRdate2GetValue( $b->getValue())
         );
     }
 
     /**
      * Return sortValue from RDATE value
      *
-     * @param array|DateTime $v
+     * @param DateTime|DateTime[] $v
      * @return string
-     * @since 2.29.2 2019-06-23
+     * @since 2.41.88 2024-01-20
      */
     private static function sortRdate2GetValue( array | DateTime $v ) : string
     {
-        if( $v instanceof DateTime ) {
-            return $v->format( DateTimeFactory::$YmdTHis);
-        }
-        if( is_array( $v ) && ( $v[0] instanceof DateTime )) {
-            return $v[0]->format( DateTimeFactory::$YmdTHis);
-        }
-        if( is_array( $v[0] ) && ( $v[0][0] instanceof DateTime )) {
-            return $v[0][0]->format( DateTimeFactory::$YmdTHis);
-        }
-        return Util::$SP0;
+        return match( true) {
+            ( $v instanceof DateTime )    => $v->format( DateTimeFactory::$YmdTHis ),
+            ( $v[0] instanceof DateTime ) => $v[0]->format( DateTimeFactory::$YmdTHis ),
+            ( is_array( $v[0] ) && ( $v[0][0] instanceof DateTime )) =>
+                $v[0][0]->format( DateTimeFactory::$YmdTHis ),
+            default                       => StringFactory::$SP0
+        };
     }
 }

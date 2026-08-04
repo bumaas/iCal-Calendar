@@ -5,7 +5,7 @@
  * This file is a part of iCalcreator.
  *
  * @author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @copyright 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * @copyright 2007-2023 Kjell-Inge Gustafsson, kigkonsult AB, All rights reserved
  * @link      https://kigkonsult.se
  * @license   Subject matter of licence is the software iCalcreator.
  *            The above copyright, link, package and version notices,
@@ -29,21 +29,20 @@
 declare( strict_types = 1 );
 namespace Kigkonsult\Icalcreator\Traits;
 
+use Kigkonsult\Icalcreator\Formatter\Property\CalMetProVer;
 use Kigkonsult\Icalcreator\Util\Util;
-
-use function sprintf;
 
 /**
  * METHOD property functions
  *
- * @since 2.29.14 2019-09-03
+ * @since 2.41.55 2022-08-13
  */
 trait METHODtrait
 {
     /**
      * @var null|string calendar property METHOD
      */
-    protected ?string $method = null;
+    protected ? string $method = null;
 
     /**
      * Return formatted output for calendar property method
@@ -52,9 +51,7 @@ trait METHODtrait
      */
     public function createMethod() : string
     {
-        return ( empty( $this->method ))
-            ? Util::$SP0
-            : sprintf( self::$FMTICAL, self::METHOD, $this->method );
+        return CalMetProVer::format( self::METHOD, $this->method );
     }
 
     /**
@@ -84,17 +81,28 @@ trait METHODtrait
     }
 
     /**
+     * Return bool true if set (and ignore empty property)
+     *
+     * @return bool
+     * @since 2.41.35 2022-03-28
+     */
+    public function isMethodSet() : bool
+    {
+        return ! empty( $this->method );
+    }
+
+    /**
      * Set calendar property method
      *
      * @param null|string $value
      * @return static
      * @since  2.29.14 - 2019-09-03
      */
-    public function setMethod( ? string $value = null ) : static
+    public function setMethod( null|string $value = null ) : static
     {
         if( empty( $value )) {
             $this->assertEmptyValue( $value, self::METHOD );
-            $value = Util::$SP0;
+            $value = self::$SP0;
         }
         Util::assertString( $value, self::METHOD );
         $this->method = (string) $value;

@@ -5,7 +5,7 @@
  * This file is a part of iCalcreator.
  *
  * @author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @copyright 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * @copyright 2007-2024 Kjell-Inge Gustafsson, kigkonsult AB, All rights reserved
  * @link      https://kigkonsult.se
  * @license   Subject matter of licence is the software iCalcreator.
  *            The above copyright, link, package and version notices,
@@ -30,60 +30,40 @@ declare( strict_types = 1 );
 namespace Kigkonsult\Icalcreator\Traits;
 
 use InvalidArgumentException;
-use Kigkonsult\Icalcreator\CalendarComponent;
-use Kigkonsult\Icalcreator\IcalInterface;
+use Kigkonsult\Icalcreator\Formatter\Property\MultiProps;
+use Kigkonsult\Icalcreator\Pc;
 use Kigkonsult\Icalcreator\Vcalendar;
-use Kigkonsult\Icalcreator\Util\ParameterFactory;
 use Kigkonsult\Icalcreator\Util\StringFactory;
 use Kigkonsult\Icalcreator\Util\Util;
 
 /**
  * DESCRIPTION property functions
  *
- * @since 2.29.14 2019-09-03
+ * DESCRIPTION may occur multiply times i Vcalendar and Vjournal, once otherwise
+ *
+ * @since 2.41.85 2024-01-18
  */
 trait DESCRIPTIONtrait
 {
     /**
-     * @var null|array component property DESCRIPTION value
+     * @var null|Pc[] component property DESCRIPTION value
      */
-    protected ?array $description = null;
-
-    /**
-     * @var string[]
-     */
-    private static array $MULTIDESCRCOMPS = [ Vcalendar::VCALENDAR, IcalInterface::VJOURNAL ];
+    protected ? array $description = null;
 
     /**
      * Return formatted output for calendar component property description
      *
      * @return string
-     * @since 2.27.3 2018-12-22
+     * @since 2.41.36 2022-04-03
      */
     public function createDescription() : string
     {
-        if( empty( $this->description )) {
-            return Util::$SP0;
-        }
-        $output = Util::$SP0;
-        $lang   = $this->getConfig( self::LANGUAGE );
-        foreach( $this->description as $description ) {
-            if( ! empty( $description[Util::$LCvalue] )) {
-                $output .= StringFactory::createElement(
-                    self::DESCRIPTION,
-                    ParameterFactory::createParams(
-                        $description[Util::$LCparams],
-                        self::$ALTRPLANGARR,
-                        $lang
-                    ),
-                    StringFactory::strrep( $description[Util::$LCvalue] )
-                );
-            }
-            elseif( $this->getConfig( self::ALLOWEMPTY )) {
-                $output .= StringFactory::createElement( self::DESCRIPTION );
-            }
-        }
-        return $output;
+        return MultiProps::format(
+            self::DESCRIPTION,
+            $this->description ?? [],
+            $this->getConfig( self::ALLOWEMPTY ),
+            $this->getConfig( self::LANGUAGE )
+        );
     }
 
     /**
@@ -91,7 +71,7 @@ trait DESCRIPTIONtrait
      *
      * @param null|int   $propDelIx   specific property in case of multiply occurrence
      * @return bool
-     * @since 2.29.5 2019-07-03
+     * @since 2.41.36 2022-04-11
      */
     public function deleteDescription( ? int $propDelIx = null ) : bool
     {
@@ -99,10 +79,10 @@ trait DESCRIPTIONtrait
             unset( $this->propDelIx[self::DESCRIPTION] );
             return false;
         }
-        if( ! Util::isCompInList( $this->getCompType(), self::$MULTIDESCRCOMPS )) {
-            $propDelIx = 1;
+        if( self::isDescriptionSingleProp( $this->getCompType())) {
+            $propDelIx = null;
         }
-        return CalendarComponent::deletePropertyM(
+        return self::deletePropertyM(
             $this->description,
             self::DESCRIPTION,
             $this,
@@ -115,58 +95,101 @@ trait DESCRIPTIONtrait
      *
      * @param null|bool|int  $propIx specific property in case of multiply occurrence
      * @param null|bool      $inclParam
-     * @return bool|string|array
-     * @since 2.29.5 2019-07-03
+     * @return bool|string|Pc
+     * @since 2.41.36 2022-04-11
      */
-    public function getDescription( null|bool|int $propIx = null, ? bool $inclParam = false ) : array | bool | string
+    public function getDescription( null|bool|int $propIx = null, ? bool $inclParam = false ) : bool | string | Pc
     {
         if( empty( $this->description )) {
             unset( $this->propIx[self::DESCRIPTION] );
             return false;
         }
-        if( ! Util::isCompInList( $this->getCompType(), self::$MULTIDESCRCOMPS )) {
+        $isSingleType = self::isDescriptionSingleProp( $this->getCompType());
+        if( $isSingleType ) {
             if( is_bool( $propIx )) {
                 $inclParam = $propIx;
             }
-            $propIx = 1;
+            $propIx = null;
         }
-        return  CalendarComponent::getPropertyM(
+        $result = self::getMvalProperty(
             $this->description,
             self::DESCRIPTION,
             $this,
             $propIx,
             $inclParam
         );
+        if( $isSingleType ) {
+            unset( $this->propIx[self::DESCRIPTION] );
+        }
+        return $result;
+    }
+
+    /**
+     * Return array, all calendar component property description
+     *
+     * @param null|bool   $inclParam
+     * @return Pc[]
+     * @since 2.41.58 2022-08-24
+     */
+    public function getAllDescription( ? bool $inclParam = false ) : array
+    {
+        return self::getMvalProperties( $this->description, $inclParam );
+    }
+
+    /**
+     * Return bool true if DESCRIPTION property may only occur once in component
+     *
+     * @param string $compName
+     * @return bool
+     * @since 2.41.36 2022-04-11
+     */
+    public static function isDescriptionSingleProp( string $compName ) : bool
+    {
+        static $MULTIDESCRCOMPS = [ Vcalendar::VCALENDAR,self::VJOURNAL ];
+        return ( ! in_array( $compName, $MULTIDESCRCOMPS, true ) );
+    }
+
+    /**
+     * Return bool true if set (and ignore empty property)
+     *
+     * @return bool
+     * @since 2.41.35 2022-03-28
+     */
+    public function isDescriptionSet() : bool
+    {
+        return self::isMvalSet( $this->description );
     }
 
     /**
      * Set calendar component property description
      *
-     * @param null|string  $value
-     * @param null|string[] $params
-     * @param null|integer $index
+     * @param null|string|Pc $value
+     * @param null|int|array $params
+     * @param null|int       $index
      * @return static
      * @throws InvalidArgumentException
-     * @since 2.29.14 2019-09-03
+     * @since 2.41.85 2024-01-18
      */
-    public function setDescription( ? string $value = null, ? array $params = [], ? int $index = null ) : static
+    public function setDescription(
+        null|string|Pc $value = null,
+        null|int|array $params = [],
+        ? int $index = null
+    ) : static
     {
-        if( empty( $value )) {
-            $this->assertEmptyValue( $value, self::DESCRIPTION );
-            $value  = Util::$SP0;
-            $params = [];
+        $pc      = self::marshallInputMval( $value, $params, $index );
+        $pcValue = $pc->getValue();
+        if( empty( $pcValue )) {
+            $this->assertEmptyValue( $pcValue, self::DESCRIPTION );
+            $pc->setEmpty();
         }
-        if( ! Util::isCompInList( $this->getCompType(), self::$MULTIDESCRCOMPS )) {
+        else{
+            $pcValue = Util::assertString( $pcValue, self::DESCRIPTION );
+            $pc->setValue( StringFactory::trimTrailNL( $pcValue ));
+        }
+        if( self::isDescriptionSingleProp( $this->getCompType())) {
             $index = 1;
         }
-        Util::assertString( $value, self::DESCRIPTION );
-        CalendarComponent::setMval(
-            $this->description,
-            (string) $value,
-            ( $params ?? [] ),
-            null,
-            $index
-        );
+        self::setMval( $this->description, $pc, $index );
         return $this;
     }
 }

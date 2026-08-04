@@ -5,7 +5,7 @@
  * This file is a part of iCalcreator.
  *
  * @author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @copyright 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * @copyright 2007-2024 Kjell-Inge Gustafsson, kigkonsult AB, All rights reserved
  * @link      https://kigkonsult.se
  * @license   Subject matter of licence is the software iCalcreator.
  *            The above copyright, link, package and version notices,
@@ -29,12 +29,12 @@
 declare( strict_types = 1 );
 namespace Kigkonsult\Icalcreator\Traits;
 
+use InvalidArgumentException;
+use Kigkonsult\Icalcreator\Formatter\Property\Requeststatus;
+use Kigkonsult\Icalcreator\Pc;
 use Kigkonsult\Icalcreator\Util\StringFactory;
 use Kigkonsult\Icalcreator\Util\Util;
-use Kigkonsult\Icalcreator\Util\ParameterFactory;
-use InvalidArgumentException;
 
-use function number_format;
 use function filter_var;
 use function sprintf;
 use function var_export;
@@ -42,54 +42,29 @@ use function var_export;
 /**
  * REQUEST-STATUS property functions
  *
- * @since 2.29.14 2019-09-03
+ * @since 2.41.85 2024-01-18
  */
 trait REQUEST_STATUStrait
 {
     /**
-     * @var null|array component property REQUEST-STATUS value
+     * @var null|Pc[] component property REQUEST-STATUS value
      */
-    protected ?array $requeststatus = null;
+    protected ? array $requeststatus = null;
 
     /**
      * Return formatted output for calendar component property request-status
      *
      * @return string
-     * @since 2.29.9 2019-08-05
+     * @since 2.41.55 - 2022-08-13
      */
     public function createRequeststatus() : string
     {
-        if( empty( $this->requeststatus )) {
-            return Util::$SP0;
-        }
-        $output = Util::$SP0;
-        $lang   = $this->getConfig( self::LANGUAGE );
-        foreach( $this->requeststatus as $rStat ) {
-            if( empty( $rStat[Util::$LCvalue][self::STATCODE] )) {
-                if( $this->getConfig( self::ALLOWEMPTY )) {
-                    $output .= StringFactory::createElement( self::REQUEST_STATUS );
-                }
-                continue;
-            }
-            $content =
-                $rStat[Util::$LCvalue][self::STATCODE] .
-                Util::$SEMIC .
-                StringFactory::strrep( $rStat[Util::$LCvalue][self::STATDESC] );
-            if( isset( $rStat[Util::$LCvalue][self::EXTDATA] )) {
-                $content .= Util::$SEMIC .
-                    StringFactory::strrep( $rStat[Util::$LCvalue][self::EXTDATA] );
-            }
-            $output .= StringFactory::createElement(
-                self::REQUEST_STATUS,
-                ParameterFactory::createParams(
-                    $rStat[Util::$LCparams],
-                    [ self::LANGUAGE ],
-                    $lang
-                ),
-                $content
-            );
-        } // end foreach
-        return $output;
+        return Requeststatus::format(
+            self::REQUEST_STATUS,
+            $this->requeststatus ?? [],
+            $this->getConfig( self::ALLOWEMPTY ),
+            $this->getConfig( self::LANGUAGE )
+        );
     }
 
     /**
@@ -105,7 +80,7 @@ trait REQUEST_STATUStrait
             unset( $this->propDelIx[self::REQUEST_STATUS] );
             return false;
         }
-        return  self::deletePropertyM(
+        return self::deletePropertyM(
             $this->requeststatus,
             self::REQUEST_STATUS,
             $this,
@@ -118,16 +93,16 @@ trait REQUEST_STATUStrait
      *
      * @param null|int    $propIx specific property in case of multiply occurrence
      * @param null|bool   $inclParam
-     * @return string|array|bool
-     * @since 2.29.9 2019-08-05
+     * @return bool|array|Pc
+     * @since 2.41.40 2022-04-15
      */
-    public function getRequeststatus( ?int $propIx = null, ?bool $inclParam = false ) : bool | string | array
+    public function getRequeststatus( ? int $propIx = null, ? bool $inclParam = false ) : bool | array | Pc
     {
         if( empty( $this->requeststatus )) {
             unset( $this->propIx[self::REQUEST_STATUS] );
             return false;
         }
-        return  self::getPropertyM(
+        return self::getMvalProperty(
             $this->requeststatus,
             self::REQUEST_STATUS,
             $this,
@@ -137,49 +112,111 @@ trait REQUEST_STATUStrait
     }
 
     /**
+     * Return array, all calendar component property requeststatus
+     *
+     * @param null|bool   $inclParam
+     * @return Pc[]
+     * @since 2.41.58 2022-08-24
+     */
+    public function getAllRequeststatus( ? bool $inclParam = false ) : array
+    {
+        return self::getMvalProperties( $this->requeststatus, $inclParam );
+    }
+
+    /**
+     * Return bool true if set (and ignore empty property)
+     *
+     * @return bool
+     * @since 2.41.35 2022-03-28
+     */
+    public function isRequeststatusSet() : bool
+    {
+        return self::isMvalSet( $this->requeststatus );
+    }
+
+    /**
+     * Return array ( <statCode>, <text> [, <extData> ] ) on valid input OR null-array
+     *
+     * @param string|array $input
+     * @return array|null[]
+     * @since 2.41.88 2024-01-21
+     */
+    public static function extractRequeststatus( string|array $input ) : array
+    {
+        static $nullArr = [ null, null, null ];
+        static $code  = 'code';
+        static $descr = 'description';
+        static $data  = 'data';
+        if( is_string( $input )) {
+            return match( true ) {
+                empty( $input ), ! str_contains( $input, StringFactory::$SEMIC )
+                        => $nullArr,
+                default => array_pad( explode( StringFactory::$SEMIC, $input, 3 ), 3, null ),
+            };
+        } // end if
+        $input = array_pad( $input, 3, null );
+        return match( true ) {
+            ( array_key_exists( 0, $input ) && ! empty( $input[1] )) =>
+                [ $input[0], $input[1], $input[2] ],
+            ( array_key_exists( self::STATCODE, $input ) && ! empty( $input[self::STATDESC] ) ) =>
+                [ $input[self::STATCODE], $input[self::STATDESC], $input[self::EXTDATA] ?? null ],
+            ( array_key_exists( $code, $input ) && ! empty( $input[$descr] ) ) =>
+                [ $input[$code], $input[$descr], $input[$data] ?? null ],
+            default => $nullArr
+        };
+    }
+
+    /**
      * Set calendar component property request-status
      *
-     * @param null|int|float|string $statCode 1*DIGIT 1*2("." 1*DIGIT)
-     * @param null|string      $text
-     * @param null|string      $extData
-     * @param null|string[]    $params
-     * @param null|integer     $index
+     * Empty statCode/test not allowed
+     *
+     * @param null|int|float|string|Pc $statCode 1*DIGIT 1*2("." 1*DIGIT)
+     * @param null|int|string    $text
+     * @param null|string    $extData
+     * @param null|mixed[] $params
+     * @param null|int       $index
      * @return static
      * @throws InvalidArgumentException
-     * @since 2.29.14 2019-09-03
+     * @since 2.41.88 2024-01-21
      */
     public function setRequeststatus(
-        null|int|float|string $statCode = null,
-        ? string $text = null,
+        null|int|float|string|Pc $statCode = null,
+        null|int|string $text = null,
         ? string $extData = null,
         ? array $params = [],
         ? int $index = null
     ) : static
     {
         static $ERR = 'Invalid %s status code value %s';
+        if( $statCode instanceof Pc ) {
+            $index    = ( null !== $text ) ? (int) $text : null;
+            $params   = (array) $statCode->getParams();
+            $pcValue  = $statCode->getValue();
+            $extData  = $pcValue[self::EXTDATA]  ?? self::$SP0;
+            $text     = $pcValue[self::STATDESC] ?? self::$SP0;
+            $statCode = $pcValue[self::STATCODE] ?? null;
+        }
         if( empty( $statCode ) || empty( $text )) {
-            $this->assertEmptyValue( Util::$SP0, self::REQUEST_STATUS );
-            $statCode = null;
-            $text     = Util::$SP0;
-            $params = [];
+            $this->assertEmptyValue( self::$SP0, self::REQUEST_STATUS );
+            self::setMval( $this->requeststatus, Pc::factory(), $index );
+            return $this;
         }
-        else {
-            if( false === filter_var( $statCode, FILTER_VALIDATE_FLOAT )) {
-                throw new InvalidArgumentException(
-                    sprintf( $ERR, self::REQUEST_STATUS, var_export( $statCode, true ) )
-                );
-            }
-            Util::assertString( $text, self::REQUEST_STATUS );
+        if( false === filter_var( $statCode, FILTER_VALIDATE_FLOAT )) {
+            throw new InvalidArgumentException(
+                sprintf( $ERR, self::REQUEST_STATUS, var_export( $statCode, true ) )
+            );
         }
+        Util::assertString( $text, self::REQUEST_STATUS );
         $input = [
-            self::STATCODE => number_format((float) $statCode, 2, Util::$DOT, null ),
+            self::STATCODE => StringFactory::numberFormat( $statCode ),
             self::STATDESC => StringFactory::trimTrailNL( $text ),
         ];
         if( ! empty( $extData )) {
             Util::assertString( $extData, self::REQUEST_STATUS );
             $input[self::EXTDATA] = StringFactory::trimTrailNL( $extData );
         }
-        self::setMval( $this->requeststatus, $input, ( $params ?? [] ), null, $index );
+        self::setMval( $this->requeststatus, Pc::factory( $input, $params ), $index );
         return $this;
     }
 }

@@ -5,7 +5,7 @@
  * This file is a part of iCalcreator.
  *
  * @author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @copyright 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * @copyright 2007-2024 Kjell-Inge Gustafsson, kigkonsult AB, All rights reserved
  * @link      https://kigkonsult.se
  * @license   Subject matter of licence is the software iCalcreator.
  *            The above copyright, link, package and version notices,
@@ -29,45 +29,34 @@
 declare( strict_types = 1 );
 namespace Kigkonsult\Icalcreator\Traits;
 
-use Kigkonsult\Icalcreator\Util\StringFactory;
+use Kigkonsult\Icalcreator\Formatter\Property\SingleProps;
+use Kigkonsult\Icalcreator\Pc;
 use Kigkonsult\Icalcreator\Util\Util;
-use Kigkonsult\Icalcreator\Util\ParameterFactory;
 
 /**
  * SUMMARY property functions
  *
- * @since 2.27.3 2018-12-22
+ * @since 2.41.85 2024-01-18
  */
 trait SUMMARYtrait
 {
     /**
-     * @var null|array component property SUMMARY value
+     * @var null|Pc component property SUMMARY value
      */
-    protected ?array $summary = null;
+    protected ? Pc $summary = null;
 
     /**
      * Return formatted output for calendar component property summary
      *
-     * @return null|string
+     * @return string
      */
-    public function createSummary() : ?string
+    public function createSummary() : string
     {
-        if( empty( $this->summary )) {
-            return null;
-        }
-        if( empty( $this->summary[Util::$LCvalue] )) {
-            return $this->getConfig( self::ALLOWEMPTY )
-                ? StringFactory::createElement( self::SUMMARY )
-                : null;
-        }
-        return StringFactory::createElement(
+        return SingleProps::format(
             self::SUMMARY,
-            ParameterFactory::createParams(
-                $this->summary[Util::$LCparams],
-                self::$ALTRPLANGARR,
-                $this->getConfig( self::LANGUAGE )
-            ),
-            StringFactory::strrep( $this->summary[Util::$LCvalue] )
+            $this->summary,
+            $this->getConfig( self::ALLOWEMPTY ),
+            $this->getConfig( self::LANGUAGE )
         );
     }
 
@@ -86,38 +75,49 @@ trait SUMMARYtrait
     /**
      * Get calendar component property summary
      *
-     * @param bool   $inclParam
-     * @return bool|string|array
-     * @since  2.27.1 - 2018-12-12
+     * @param null|bool   $inclParam
+     * @return bool|string|Pc
+     * @since 2.41.85 2024-01-18
      */
-    public function getSummary( bool $inclParam = false ) : array | bool | string
+    public function getSummary( ? bool $inclParam = false ) : bool | string | Pc
     {
         if( empty( $this->summary )) {
             return false;
         }
-        return ( $inclParam ) ? $this->summary : $this->summary[Util::$LCvalue];
+        return $inclParam ? clone $this->summary : $this->summary->getValue();
+    }
+
+    /**
+     * Return bool true if set (and ignore empty property)
+     *
+     * @return bool
+     * @since 2.41.88 2024-01-17
+     */
+    public function isSummarySet() : bool
+    {
+        return self::isPropSet( $this->summary );
     }
 
     /**
      * Set calendar component property summary
      *
-     * @param null|string $value
-     * @param null|string[] $params
+     * @param null|string|Pc   $value
+     * @param null|mixed[] $params
      * @return static
-     * @since 2.29.14 2019-09-03
+     * @since 2.41.85 2024-01-18
      */
-    public function setSummary( ? string $value = null, ? array $params = [] ) : static
+    public function setSummary( null|string|Pc $value = null, ? array $params = [] ) : static
     {
-        if( empty( $value )) {
-            $this->assertEmptyValue( $value, self::SUMMARY );
-            $value  = Util::$SP0;
-            $params = [];
+        $pc      = Pc::factory( $value, $params );
+        $pcValue = $pc->getValue();
+        if( empty( $pcValue )) {
+            $this->assertEmptyValue( $pcValue, self::SUMMARY );
+            $pc->setEmpty();
         }
-        Util::assertString( $value, self::SUMMARY );
-        $this->summary = [
-            Util::$LCvalue  => (string) $value,
-            Util::$LCparams => ParameterFactory::setParams( $params ?? [] ),
-        ];
+        else {
+            $pc->setValue( Util::assertString( $pcValue, self::SUMMARY ));
+        }
+        $this->summary = $pc;
         return $this;
     }
 }

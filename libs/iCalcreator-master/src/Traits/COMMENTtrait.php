@@ -5,7 +5,7 @@
  * This file is a part of iCalcreator.
  *
  * @author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @copyright 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * @copyright 2007-2024 Kjell-Inge Gustafsson, kigkonsult AB, All rights reserved
  * @link      https://kigkonsult.se
  * @license   Subject matter of licence is the software iCalcreator.
  *            The above copyright, link, package and version notices,
@@ -29,22 +29,23 @@
 declare( strict_types = 1 );
 namespace Kigkonsult\Icalcreator\Traits;
 
+use Kigkonsult\Icalcreator\Formatter\Property\MultiProps;
+use Kigkonsult\Icalcreator\Pc;
 use Kigkonsult\Icalcreator\Util\StringFactory;
 use Kigkonsult\Icalcreator\Util\Util;
-use Kigkonsult\Icalcreator\Util\ParameterFactory;
 use InvalidArgumentException;
 
 /**
  * COMMENT property functions
  *
- * @since 2.29.14 2019-09-03
+ * @since 2.41.91 2024-12-17
  */
 trait COMMENTtrait
 {
     /**
-     * @var null|array component property COMMENT value
+     * @var null|Pc[] component property COMMENT value
      */
-    protected ?array $comment = null;
+    protected ? array $comment = null;
 
     /**
      * Return formatted output for calendar component property comment
@@ -53,29 +54,12 @@ trait COMMENTtrait
      */
     public function createComment() : string
     {
-        if( empty( $this->comment )) {
-            return Util::$SP0;
-        }
-        $output = Util::$SP0;
-        $lang   = $this->getConfig( self::LANGUAGE );
-        foreach( $this->comment as $commentPart ) {
-            if( empty( $commentPart[Util::$LCvalue] )) {
-                if( $this->getConfig( self::ALLOWEMPTY )) {
-                    $output .= StringFactory::createElement( self::COMMENT );
-                }
-                continue;
-            }
-            $output .= StringFactory::createElement(
-                self::COMMENT,
-                ParameterFactory::createParams(
-                    $commentPart[Util::$LCparams],
-                    self::$ALTRPLANGARR,
-                    $lang
-                ),
-                StringFactory::strrep( $commentPart[Util::$LCvalue] )
-            );
-        } // end foreach
-        return $output;
+        return MultiProps::format(
+            self::COMMENT,
+            $this->comment ?? [],
+            $this->getConfig( self::ALLOWEMPTY ),
+            $this->getConfig( self::LANGUAGE )
+        );
     }
 
     /**
@@ -91,7 +75,7 @@ trait COMMENTtrait
             unset( $this->propDelIx[self::COMMENT] );
             return false;
         }
-        return  self::deletePropertyM(
+        return self::deletePropertyM(
             $this->comment,
             self::COMMENT,
             $this,
@@ -104,16 +88,16 @@ trait COMMENTtrait
      *
      * @param null|int $propIx specific property in case of multiply occurrence
      * @param bool $inclParam
-     * @return bool|string|array
-     * @since  2.27.1 - 2018-12-12
+     * @return bool|string|Pc
+     * @since 2.41.91 2024-12-17
      */
-    public function getComment( int $propIx = null, bool $inclParam = false ) : bool | array | string
+    public function getComment( ? int $propIx = null, ? bool $inclParam = false ) : bool | string | Pc
     {
         if( empty( $this->comment )) {
             unset( $this->propIx[self::COMMENT] );
             return false;
         }
-        return self::getPropertyM(
+        return self::getMvalProperty(
             $this->comment,
             self::COMMENT,
             $this,
@@ -123,25 +107,55 @@ trait COMMENTtrait
     }
 
     /**
+     * Return array, all calendar component property comment
+     *
+     * @param null|bool   $inclParam
+     * @return Pc[]
+     * @since 2.41.58 2022-08-24
+     */
+    public function getAllComment( ? bool $inclParam = false ) : array
+    {
+        return self::getMvalProperties( $this->comment, $inclParam );
+    }
+
+    /**
+     * Return bool true if set (and ignore empty property)
+     *
+     * @return bool
+     * @since 2.41.35 2022-03-28
+     */
+    public function isCommentSet() : bool
+    {
+        return self::isMvalSet( $this->comment );
+    }
+
+    /**
      * Set calendar component property comment
      *
-     * @param null|string   $value
-     * @param null|string[] $params
-     * @param null|int      $index
+     * @param null|string|Pc   $value
+     * @param null|int|array $params
+     * @param null|int         $index
      * @return static
      * @throws InvalidArgumentException
-     * @since 2.29.14 2019-09-03
+     * @since 2.41.85 2024-01-18
      */
-    public function setComment( ? string $value = null, ? array $params = [], ? int $index = null ) : static
+    public function setComment(
+        null|string|Pc $value = null,
+        null|int|array $params = [],
+        ? int $index = null
+    ) : static
     {
-        if( empty( $value )) {
-            $this->assertEmptyValue( $value, self::COMMENT );
-            $value  = Util::$SP0;
-            $params = [];
+        $pc      = self::marshallInputMval( $value, $params, $index );
+        $pcValue = $pc->getValue();
+        if( empty( $pcValue )) {
+            $this->assertEmptyValue( $pcValue, self::COMMENT );
+            $pc->setEmpty();
         }
-        $params = $params ?? [];
-        $value = Util::assertString( $value, self::COMMENT );
-        self::setMval( $this->comment, $value, $params, null, $index );
+        else {
+            $pcValue = Util::assertString( $pcValue, self::COMMENT );
+            $pc->setValue( StringFactory::trimTrailNL( $pcValue ));
+        }
+        self::setMval( $this->comment, $pc, $index );
         return $this;
     }
 }

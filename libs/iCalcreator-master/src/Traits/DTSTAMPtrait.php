@@ -5,7 +5,7 @@
  * This file is a part of iCalcreator.
  *
  * @author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @copyright 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * @copyright 2007-2024 Kjell-Inge Gustafsson, kigkonsult AB, All rights reserved
  * @link      https://kigkonsult.se
  * @license   Subject matter of licence is the software iCalcreator.
  *            The above copyright, link, package and version notices,
@@ -33,25 +33,21 @@ use DateTime;
 use DateTimeInterface;
 use Exception;
 use InvalidArgumentException;
-use Kigkonsult\Icalcreator\IcalInterface;
+use Kigkonsult\Icalcreator\Formatter\Property\DtxProperty;
+use Kigkonsult\Icalcreator\Pc;
 use Kigkonsult\Icalcreator\Util\DateTimeFactory;
-use Kigkonsult\Icalcreator\Util\ParameterFactory;
-use Kigkonsult\Icalcreator\Util\StringFactory;
-use Kigkonsult\Icalcreator\Util\Util;
-
-use function array_change_key_case;
 
 /**
  * DTSTAMP property functions
  *
- * @since 2.29.16 2020-01-24
+ * @since 2.41.85 2024-01-18
  */
 trait DTSTAMPtrait
 {
     /**
-     * @var null|array component property DTSTAMP value
+     * @var null|Pc component property DTSTAMP value
      */
-    protected ?array $dtstamp = null;
+    protected ? Pc $dtstamp = null;
 
     /**
      * Return formatted output for calendar component property dtstamp
@@ -59,80 +55,70 @@ trait DTSTAMPtrait
      * @return string
      * @throws InvalidArgumentException
      * @throws Exception
-     * @since 2.29.1 2019-06-22
+     * @since 2.41.55 - 2022-08-13
      */
     public function createDtstamp() : string
     {
-        if( empty( $this->dtstamp[Util::$LCvalue] )) {
-            $this->dtstamp = [
-                Util::$LCvalue  => DateTimeFactory::factory( null, self::UTC ),
-                Util::$LCparams => [],
-            ];
-        }
-        return StringFactory::createElement(
+        return  DtxProperty::format(
             self::DTSTAMP,
-            ParameterFactory::createParams( $this->dtstamp[Util::$LCparams] ),
-            DateTimeFactory::dateTime2Str( $this->dtstamp[Util::$LCvalue] )
+            $this->dtstamp,
+            $this->getConfig( self::ALLOWEMPTY )
         );
-    }
-
-    /**
-     * Delete calendar component property dtstamp
-     *
-     * @return bool
-     * @since  2.27.1 - 2018-12-15
-     */
-    public function deleteDtstamp() : bool
-    {
-        $this->dtstamp = null;
-        return true;
     }
 
     /**
      * Return calendar component property dtstamp
      *
      * @param bool   $inclParam
-     * @return bool|string|DateTime|array
+     * @return DateTime|Pc
      * @throws InvalidArgumentException
      * @throws Exception
-     * @since 2.29.1 2019-06-22
+     * @since 2.41.85 2024-01-18
      */
-    public function getDtstamp( ? bool $inclParam = false ) : DateTime | bool | string | array
+    public function getDtstamp( ? bool $inclParam = false ) : DateTime | Pc
     {
-        if( Util::isCompInList( $this->getCompType(), self::$SUBCOMPS )) {
-            return false;
-        }
-        if( empty( $this->dtstamp )) {
-            $this->dtstamp = [
-                Util::$LCvalue  => DateTimeFactory::factory( null, self::UTC ),
-                Util::$LCparams => [],
-            ];
-        }
-        return ( $inclParam ) ? $this->dtstamp : $this->dtstamp[Util::$LCvalue];
+        return $inclParam ? clone $this->dtstamp : $this->dtstamp->getValue();
+    }
+
+    /**
+     * Return bool true
+     *
+     * @return bool
+     * @since 2.41.35 2022-03-28
+     */
+    public function isDtstampSet() : bool
+    {
+        return true;
     }
 
     /**
      * Set calendar component property dtstamp
      *
-     * @param null|string|DateTimeInterface $value
-     * @param null|string[] $params
+     * @param null|string|Pc|DateTimeInterface $value
+     * @param null|mixed[] $params
      * @return static
      * @throws InvalidArgumentException
      * @throws Exception
-     * @since 2.29.16 2020-01-24
+     * @since 2.41.85 2024-01-18
      */
-    public function setDtstamp( null|string|DateTimeInterface $value  = null, ? array $params = [] ) : static
+    public function setDtstamp( null|string|DateTimeInterface|Pc $value = null, ? array $params = [] ) : static
     {
-        if( empty( $value )) {
-            $this->dtstamp = [
-                Util::$LCvalue  => DateTimeFactory::factory( null, self::UTC ),
-                Util::$LCparams => [],
-            ];
-            return $this;
-        }
-        $params = array_change_key_case( $params ?? [], CASE_UPPER );
-        $params[IcalInterface::VALUE] = IcalInterface::DATE_TIME;
-        $this->dtstamp = DateTimeFactory::setDate( $value, $params, true ); // $forceUTC
+        $pc = Pc::factory( $value, $params );
+        $pc->addParamValue( self::DATE_TIME ); // req
+
+        $this->dtstamp = empty( $pc->getValue())
+            ? $pc->setValue( self::getUtcDateTimePc()->getValue())
+                ->removeParam( self::VALUE )
+            : DateTimeFactory::setDate( $pc, true );
         return $this;
+    }
+
+    /**
+     * @return Pc
+     * @throws Exception
+     */
+    protected static function getUtcDateTimePc() : Pc
+    {
+        return Pc::factory( DateTimeFactory::factory( null, self::UTC ));
     }
 }

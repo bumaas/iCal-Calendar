@@ -5,7 +5,7 @@
  * This file is a part of iCalcreator.
  *
  * @author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
- * @copyright 2007-2021 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+ * @copyright 2007-2024 Kjell-Inge Gustafsson, kigkonsult AB, All rights reserved
  * @link      https://kigkonsult.se
  * @license   Subject matter of licence is the software iCalcreator.
  *            The above copyright, link, package and version notices,
@@ -29,24 +29,22 @@
 declare( strict_types = 1 );
 namespace Kigkonsult\Icalcreator\Traits;
 
+use Kigkonsult\Icalcreator\Formatter\Property\Geo;
+use Kigkonsult\Icalcreator\Pc;
 use Kigkonsult\Icalcreator\Util\StringFactory;
-use Kigkonsult\Icalcreator\Util\Util;
 use Kigkonsult\Icalcreator\Util\GeoFactory;
-use Kigkonsult\Icalcreator\Util\ParameterFactory;
-
-use function is_array;
 
 /**
  * GEO property functions
  *
- * @since 2.27.3 2018-12-22
+ * @since 2.41.85 2024-01-18
  */
 trait GEOtrait
 {
     /**
-     * @var null|array component property GEO value
+     * @var null|Pc component property GEO value
      */
-    protected ?array $geo = null;
+    protected ? Pc $geo = null;
 
     /**
      * Return formatted output for calendar component property geo
@@ -55,28 +53,10 @@ trait GEOtrait
      */
     public function createGeo() : string
     {
-        if( empty( $this->geo )) {
-            return Util::$SP0;
-        }
-        if( empty( $this->geo[Util::$LCvalue] )) {
-            return $this->getConfig( self::ALLOWEMPTY )
-                ? StringFactory::createElement( self::GEO )
-                : Util::$SP0;
-        }
-        return StringFactory::createElement(
+        return Geo::format(
             self::GEO,
-            ParameterFactory::createParams(
-                $this->geo[Util::$LCparams]
-            ),
-            GeoFactory::geo2str2(
-                $this->geo[Util::$LCvalue][self::LATITUDE],
-                GeoFactory::$geoLatFmt
-            ) .
-            Util::$SEMIC .
-            GeoFactory::geo2str2(
-                $this->geo[Util::$LCvalue][self::LONGITUDE],
-                GeoFactory::$geoLongFmt
-            )
+            $this->geo,
+            $this->getConfig( self::ALLOWEMPTY )
         );
     }
 
@@ -96,21 +76,32 @@ trait GEOtrait
      * Get calendar component property geo
      *
      * @param null|bool   $inclParam
-     * @return bool|string|array
-     * @since  2.27.1 - 2018-12-12
+     * @return bool|array|Pc
+     * @since 2.41.85 2024-01-18
      */
-    public function getGeo( ? bool $inclParam = false ) : bool | string | array
+    public function getGeo( ? bool $inclParam = false ) : bool | array | Pc
     {
         if( empty( $this->geo )) {
             return false;
         }
-        return ( $inclParam ) ? $this->geo : $this->geo[Util::$LCvalue];
+        return $inclParam ? clone $this->geo : $this->geo->getValue();
+    }
+
+    /**
+     * Return bool true if set (and ignore empty property)
+     *
+     * @return bool
+     * @since 2.41.88 2024-01-19
+     */
+    public function isGeoSet() : bool
+    {
+        return self::isPropSet( $this->geo );
     }
 
     /**
      * Get ISO6709 "Standard representation of geographic point location by coordinates"
      *
-     * Combining the LOCATION and GEO property values (only if GEO is set)
+     * Combining the (first) LOCATION and GEO property values (only if GEO is set)
      * @return bool|string
      * @since 2.27.14 2019-02-27
      */
@@ -119,44 +110,72 @@ trait GEOtrait
         if( false === ( $geo = $this->getGeo())) {
             return false;
         }
+        if( ! method_exists( $this, StringFactory::getGetMethodName( self::LOCATION ))) {
+            return false;
+        }
         $loc     = $this->getLocation();
-        $content = ( empty( $loc )) ? Util::$SP0 : $loc . Util::$SLASH;
+        $content = ( empty( $loc )) ? self::$SP0 : $loc . StringFactory::$SLASH;
         return $content .
             GeoFactory::geo2str2( $geo[self::LATITUDE], GeoFactory::$geoLatFmt ) .
             GeoFactory::geo2str2( $geo[self::LONGITUDE], GeoFactory::$geoLongFmt);
     }
 
     /**
+     * Return array ( <lat>, <long> ) on valid input OR null-array
+     *
+     * @param string|array $input
+     * @return array|null[]
+     * @since 2.41.88 2024-01-21
+     */
+    public static function extractGeoLatLong( string|array $input ) : array
+    {
+        static $nullArr = [ null, null ];
+        if( is_string( $input )) {
+            return match ( true ) {
+                empty( $input ), ! str_contains( $input, StringFactory::$SEMIC )
+                        => $nullArr,
+                default => explode( StringFactory::$SEMIC, $input, 2 ),
+            };
+        }
+        return match( true ) {
+            ( 2 !== count( $input )) => $nullArr,
+            ( ! empty( $input[0] ) && ! empty( $input[1] )) => $input,
+            ( ! empty( $input[self::LATITUDE] ) && ! empty( $input[self::LONGITUDE] )) =>
+            [ $input[self::LATITUDE], $input[self::LONGITUDE] ],
+            default => $nullArr
+        };
+    }
+
+    /**
      * Set calendar component property geo
      *
-     * @param null|int|float|string $latitude
+     * @param null|int|float|string|Pc $latitude
      * @param null|int|float|string $longitude
-     * @param null|string[] $params
+     * @param null|mixed[] $params
      * @return static
-     * @since 2.27.3 2018-12-22
+     * @since 2.41.85 2024-01-18
      */
     public function setGeo(
-        null|int|float|string $latitude = null,
+        null|int|float|string|Pc $latitude = null,
         null|int|float|string $longitude = null,
         ? array $params = []
     ) : static
     {
-        if( isset( $latitude, $longitude ) ) {
-            if( ! is_array( $this->geo )) {
-                $this->geo = [];
-            }
-            $this->geo[Util::$LCvalue][self::LATITUDE]  = (float) $latitude;
-            $this->geo[Util::$LCvalue][self::LONGITUDE] = (float) $longitude;
-            $this->geo[Util::$LCparams]                 =
-                ParameterFactory::setParams( $params ?? [] );
-        }
-        else {
-            $this->assertEmptyValue( $latitude, self::GEO );
-            $this->geo = [
-                Util::$LCvalue  => Util::$SP0,
-                Util::$LCparams => [],
-            ];
-        }
+        switch( true ) {
+            case ( null === $latitude ) :
+                $this->assertEmptyValue( $latitude, self::GEO );
+                $this->geo = Pc::factory();
+                return $this;
+            case ( $latitude instanceof Pc ) :
+                $pc = clone $latitude;
+                break;
+            default :
+                $pc = Pc::factory(
+                    [ self::LATITUDE  => (float) $latitude, self::LONGITUDE => (float) $longitude ],
+                    $params
+                );
+        } // end switch
+        $this->geo = $pc;
         return $this;
     }
 }
