@@ -1,0 +1,92 @@
+{
+    "Joachim 20201212.txt": {
+        "count": 1978,
+        "errors": 0,
+        "sha256": "29f38bb49651ef9eb265a04c5d1e3f3788499cbfe15ff9edb82d61c86d593d28"
+    },
+    "TestDaten.txt": {
+        "count": 835,
+        "errors": 0,
+        "sha256": "d91cf53f6c8be0c8ef19aa411503f27c007c8d0658f02bbcc8d51f5e32cf7b96"
+    },
+    "TestDaten_HarmonyFan_ohne_EndeDatum.txt": {
+        "count": 948,
+        "errors": 0,
+        "sha256": "55817b1ffaaabdf5233c9e491fce9e40a7d0ba97caf60b45c0977f95f2b491ad"
+    },
+    "TestDaten_Joachim_Email.txt": {
+        "count": 1,
+        "errors": 0,
+        "sha256": "c71470b66947310d2b846eb3956e938151daaffc7e2054a701d7d5d4f7ced1a0"
+    },
+    "TestDaten_Joachim_Exception.txt": {
+        "count": 6057,
+        "errors": 0,
+        "sha256": "1b1ed776218ef02d66b3a17977ea7e2bd7474b2b77a5c388f143a6789083366c"
+    },
+    "TestDaten_Joachim_Wiederholung.txt": {
+        "count": 12,
+        "errors": 0,
+        "sha256": "dd7585948cabe95b1b10eddab84e40938d10ce8663cca0589394cedf3290db43"
+    },
+    "TestDaten_Proxima_Zeitzone.txt": {
+        "count": 664,
+        "errors": 0,
+        "sha256": "8794dbcbec5211406bf239d099186197ec946e190f3fef2f6ebc10f56e74212d"
+    },
+    "TestDaten_hfichtinger.txt": {
+        "count": 214,
+        "errors": 0,
+        "sha256": "025aee165725e6ba36ae34fe31156234f58a2a865d9ad8c2b47139ce36c3de9d"
+    },
+    "TestDaten_sunnyww_Zeitzone.txt": {
+        "count": 191,
+        "errors": 1,
+        "sha256": "635dff99d1454e10a9c54ca01359f0417071c1a2b70fa1dae4f2cf6cf3d8f4c7"
+    },
+    "Testdaten Jahrestag.txt": {
+        "count": 196,
+        "errors": 0,
+        "sha256": "cec5caa18e62c0ae18973a46bcda1700a3936a1e8b4dd468e84e906a351740e9"
+    },
+    "Testdaten Tanzen.txt": {
+        "count": 844,
+        "errors": 0,
+        "sha256": "d13eb5f0e88922a340086e3f7849a13fcb607386fa93fd56c0ffb67b1a15d953"
+    },
+    "Testdaten2.txt": {
+        "count": 1,
+        "errors": 0,
+        "sha256": "a30035488f7c11c068f2880c35f56bb240eb884a9253d35207ecb3c110fbabfe"
+    },
+    "Testdaten_7weazel7.txt": {
+        "count": 2,
+        "errors": 0,
+        "sha256": "60d387c6038b94e0fbbda6fb704c966bfd3d69782ae8d3a69f66fa3ac9545477"
+    },
+    "Testdaten_Alexander_Münch(flamedoil).txt": {
+        "count": 1689,
+        "errors": 0,
+        "sha256": "0272ecc11b59e0de5a5c083666a340f122b8136d44ce34e62ac748c7d9fbc81c"
+    },
+    "Testdaten_Geburtstage.txt": {
+        "count": 331,
+        "errors": 0,
+        "sha256": "c06da4123040d7cd5bf9e2164498a22ced6d977f9182bfb3186637406f841285"
+    },
+    "Testdaten_hoep.txt": {
+        "count": 42,
+        "errors": 0,
+        "sha256": "15c9b887f8ce5664060fd56dfffa2b5137fd4da18a5a31cde91cc6d900a22bc9"
+    },
+    "iCloud.txt": {
+        "count": 1556,
+        "errors": 0,
+        "sha256": "dd0cdac26b8a49f8d4cc88c04a899dac1e8029836ac78340f0eac750c7b239b0"
+    },
+    "iCoud Sondezeichen in EXDATE.txt": {
+        "count": 3,
+        "errors": 0,
+        "sha256": "eb95e74ba9843573577c2192a0ba9388aa8862d743e8306c5c22bea7f8df3879"
+    }
+}

@@ -1,6 +1,9 @@
 iCal Calendar in IP Symcon lesen und verarbeiten
 ===
 
+[![Version](https://img.shields.io/badge/Symcon%20Version-7.0%20%3E-green.svg)](https://www.symcon.de/forum/threads/30857-IP-Symcon-5-1-%28Stable%29-Changelog)
+[![Checks](https://github.com/bumaas/iCal-Calendar/actions/workflows/check.yml/badge.svg)](https://github.com/bumaas/iCal-Calendar/actions/workflows/check.yml)
+
 Diese Bibliothek beinhaltet ein Modul zur Einspeisung von Kalenderinformationen im iCal-Format in IP Symcon:
 * **iCal Calendar Reader**
 

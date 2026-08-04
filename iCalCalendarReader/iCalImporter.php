@@ -105,6 +105,8 @@ class iCalImporter
 
     private        $Logger_Err;
 
+    private DateTime $ReferenceDate;
+
     /*
         convert the timezone RRULE to a datetime object in the given/current year
     */
@@ -178,7 +180,6 @@ class iCalImporter
     */
     private function iCalDateTimeArrayToDateTime(Pc|array $dtValue, bool $WholeDay): DateTime
     {
-        //logDebug(__FUNCTION__, sprintf('dtValue: %s, WholeDay: %s', print_r($dtValue, true), (int) $WholeDay));
 
         if (!($dtValue['value'] instanceof DateTime)) {
             throw new RuntimeException('Component is not of type DateTime');
@@ -230,14 +231,25 @@ class iCalImporter
 
     /*
         basic setup
+
+        $ReferenceDate: Bezugsdatum für das Cache-Fenster (Standard: heute);
+        von der Regressions-Testsuite genutzt, um deterministische Ergebnisse zu erhalten
     */
-    public function __construct(int $DaysToCacheBack, int $DaysToCacheAhead, callable $Logger_Dbg, callable $Logger_Err)
-    {
+    public function __construct(
+        int $DaysToCacheBack,
+        int $DaysToCacheAhead,
+        callable $Logger_Dbg,
+        callable $Logger_Err,
+        ?DateTimeInterface $ReferenceDate = null
+    ) {
         $this->Timezone         = date_default_timezone_get();
         $this->DaysToCacheAhead = $DaysToCacheAhead;
         $this->DaysToCacheBack  = $DaysToCacheBack;
         $this->Logger_Dbg       = $Logger_Dbg;
         $this->Logger_Err       = $Logger_Err;
+        $this->ReferenceDate    = $ReferenceDate !== null
+            ? DateTime::createFromInterface($ReferenceDate)->setTime(0, 0)
+            : new DateTime('today');
     }
 
     /*
@@ -400,7 +412,7 @@ class iCalImporter
         try {
             $vCalendar = new Kigkonsult\Icalcreator\Vcalendar();
             $vCalendar->parse($stringCalendarToParse);
-            //$vCalendar->parse($iCalData);
+
         } catch (Exception $e) {
             $this->logError('parse: ' . $e->getMessage());
             return [];
@@ -441,8 +453,8 @@ class iCalImporter
             if ($Standard->getRrule()) {
                 $ProvidedTZ['STANDARD_RRULE'] = $Standard->getRrule();
             }
-            $ProvidedTZ['TZOFFSETTO']   = $Standard->getTzoffsetto(); //todo
-            $ProvidedTZ['TZOFFSETFROM'] = $Standard->getTzoffsetfrom(); //todo
+            $ProvidedTZ['TZOFFSETTO']   = $Standard->getTzoffsetto();
+            $ProvidedTZ['TZOFFSETFROM'] = $Standard->getTzoffsetfrom();
 
             $this->logDebug(__FUNCTION__, 'ProvidedTZ: ' . print_r($ProvidedTZ, true));
             $this->CalendarTimezones[] = $ProvidedTZ;
@@ -453,8 +465,8 @@ class iCalImporter
         $vEvents_with_RRULE         = [];
         $vEvents_with_Recurrence_id = [];
 
-        $CacheDateTimeFrom  = (new DateTime('today'))->sub(new DateInterval('P' . $this->DaysToCacheBack . 'D')); //P='Period', D='Days'
-        $CacheDateTimeUntil = (new DateTime('today'))->add(new DateInterval('P' . ($this->DaysToCacheAhead + 1) . 'D'));
+        $CacheDateTimeFrom  = (clone $this->ReferenceDate)->sub(new DateInterval('P' . $this->DaysToCacheBack . 'D')); //P='Period', D='Days'
+        $CacheDateTimeUntil = (clone $this->ReferenceDate)->add(new DateInterval('P' . ($this->DaysToCacheAhead + 1) . 'D'));
         $this->logDebug(
             __FUNCTION__,
             sprintf(
@@ -478,7 +490,7 @@ class iCalImporter
                     sprintf(
                         'Event \'%s\': DTSTART can\'t be processed, ignoring',
                         $vEvent->getSummary()
-                    ) //todo
+                    )
                 );
                 continue;
             }
@@ -748,7 +760,7 @@ class iCalImporter
         $Event['Status']       = $vEvent->getStatus()      ?: '';
         $Event['Location']     = $vEvent->getLocation()    ?: '';
         $Event['Description']  = $vEvent->getDescription() ?: '';
-        $Event['Categories'] = $vEvent->getCategories();
+        $Event['Categories'] = $vEvent->getCategories() ?: '';
         $Event['From']       = $tsFrom;
         $Event['To']         = $tsTo;
         $Event['FromS']      = date(DATE_ATOM, $tsFrom);
@@ -757,7 +769,6 @@ class iCalImporter
         $Event['Alarms']     = [];
 
         while ($vAlarm = $vEvent->getComponent(IcalInterface::VALARM)) {
-            //$vAlarm = $vEvent->getComponent(IcalInterface::VALARM);
             if (!($vAlarm instanceof Kigkonsult\Icalcreator\Valarm)) {
                 throw new RuntimeException(sprintf('UID: %s, Component is not of type valarm', $Event['UID']));
             }
@@ -796,7 +807,7 @@ class iCalImporter
             if (isset($propDtstart['params']['VALUE']) && ($propDtstart['params']['VALUE'] === 'DATE')) {
                 return true;
             }
-            if ($propDtend && ($propDtend['value']->format('H:i:s') === '00:00:00') && ($propDtend['value']->format('H:i:s') === '00:00:00')) {
+            if ($propDtend && ($propDtstart['value']->format('H:i:s') === '00:00:00') && ($propDtend['value']->format('H:i:s') === '00:00:00')) {
                 return true;
             }
         }

@@ -50,7 +50,8 @@
       "Finished!": "Fertig!",
       "Error!": "Fehler!",
       "Debug information are written additionally to standard logfile": "Debug Informationen werden zusätzlich in das Standardlogfile geschrieben",
-      "invalid or missing variable": "ungültige oder fehlende Variable"
+      "invalid or missing variable": "ungültige oder fehlende Variable",
+      "Invalid regular expression": "Ungültiger regulärer Ausdruck"
     }
   }
 }
