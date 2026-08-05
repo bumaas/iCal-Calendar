@@ -27,7 +27,7 @@ $goldenFile = __DIR__ . '/import_regression.golden.json';
 $update     = in_array('--update', $argv, true);
 
 if (!is_dir($testDir)) {
-    echo "Testdaten-Verzeichnis nicht vorhanden (docs/Examples/Testdaten ist nicht committet) - Test uebersprungen.\n";
+    echo "Testdaten-Verzeichnis nicht vorhanden (docs/Examples/Testdaten ist nicht committet) - Test übersprungen.\n";
     exit(0);
 }
 
@@ -43,7 +43,7 @@ require_once $root . '/iCalCalendarReader/iCalImporter.php';
 $files = glob($testDir . '/*.txt');
 sort($files);
 if ($files === []) {
-    echo "keine Testdateien gefunden - Test uebersprungen.\n";
+    echo "keine Testdateien gefunden - Test übersprungen.\n";
     exit(0);
 }
 
@@ -138,4 +138,4 @@ if ($fail) {
     fwrite(STDERR, "Falls die Abweichung beabsichtigt ist: php tests/import_regression.php --update\n");
     exit(1);
 }
-echo 'OK: ' . count($results) . " Kalender unveraendert.\n";
+echo 'OK: ' . count($results) . " Kalender unverändert.\n";
