@@ -109,7 +109,7 @@ class iCalImporter
 
     /*
         convert the timezone RRULE to a datetime object in the given/current year
-    */
+     */
     private function TZRRuleToDateTime($RRule, $Year = ''): ?DateTime
     {
         // always yearly, once a year
@@ -139,7 +139,7 @@ class iCalImporter
 
     /*
         apply the time offset from a timezone provided by the loaded calendar
-    */
+     */
     private function ApplyCustomTimezoneOffset(DateTime $EventDateTime, string $CustomTimezoneName): DateTime
     {
         // is timezone in calendar provided timezone?
@@ -177,7 +177,7 @@ class iCalImporter
     /*
         convert iCal format to PHP DateTime respecting timezone information
         every information will be transformed into the current timezone!
-    */
+     */
     private function iCalDateTimeArrayToDateTime(Pc|array $dtValue, bool $WholeDay): DateTime
     {
 
@@ -234,7 +234,7 @@ class iCalImporter
 
         $ReferenceDate: Bezugsdatum für das Cache-Fenster (Standard: heute);
         von der Regressions-Testsuite genutzt, um deterministische Ergebnisse zu erhalten
-    */
+     */
     public function __construct(
         int $DaysToCacheBack,
         int $DaysToCacheAhead,
@@ -264,7 +264,7 @@ class iCalImporter
         - Offsets ohne Doppelpunkt-Norm ("+02", "GMT+0200")
         - unbekannte Namen ("Customized Time Zone"), sofern der Kalender eine
           VTIMEZONE-Definition mit TZOFFSETTO mitliefert (Offset-Ableitung)
-    */
+     */
     private function regulateTimezones(string $iCalData): string
     {
         // Zeilen entfalten (RFC-5545-Folding), damit TZID-Werte vollständig vorliegen;
@@ -311,7 +311,7 @@ class iCalImporter
     /*
         einen einzelnen TZID-Wert auf eine PHP-Zeitzone abbilden;
         null = keine Ersetzung nötig/möglich
-    */
+     */
     private function mapTzidToPhpTimezone(string $rawTzid, string $unfoldedIcal): ?string
     {
         // '\'-Escapes (z. B. "\," ) und umschließende '"' entfernen
@@ -373,7 +373,7 @@ class iCalImporter
 
     /*
         UTC-Offset (Standardzeit, "+HH:MM") auf eine PHP-Zeitzone abbilden
-    */
+     */
     private function offsetToPhpTimezone(string $offset): ?string
     {
         if ($offset === '' || $offset === '+00:00' || $offset === '-00:00') {
@@ -396,7 +396,7 @@ class iCalImporter
 
     /*
         main import method
-    */
+     */
     public function ImportCalendar(string $iCalData): array
     {
         // see Internet Calendaring and Scheduling Core Object Specification https://tools.ietf.org/html/rfc5545
@@ -468,8 +468,8 @@ class iCalImporter
         // sort by start date/time to make the check on changes work
         usort(
             $iCalCalendarArray, static function ($a, $b) {
-            return $a['From'] - $b['From'];
-        }
+                return $a['From'] - $b['From'];
+            }
         );
         return $iCalCalendarArray;
     }
@@ -477,7 +477,7 @@ class iCalImporter
     /*
         die im Kalender mitgelieferten VTIMEZONE-Definitionen einsammeln
         (Basis für den Fallback ApplyCustomTimezoneOffset bei unbekannten Zeitzonen)
-    */
+     */
     private function collectCalendarTimezones(Kigkonsult\Icalcreator\Vcalendar $vCalendar): void
     {
         while ($vTimezone = $vCalendar->getComponent(IcalInterface::VTIMEZONE)) {
@@ -525,7 +525,7 @@ class iCalImporter
     /*
         alle VEVENTs des Kalenders einsammeln und klassifizieren;
         liefert [Einzeltermine, Serientermine (RRULE), geänderte Serienelemente (RECURRENCE-ID)]
-    */
+     */
     private function classifyVevents(Kigkonsult\Icalcreator\Vcalendar $vCalendar, DateTime $CacheDateTimeUntil): array
     {
         $vEvents                    = [];
@@ -590,7 +590,7 @@ class iCalImporter
     /*
         DTSTART/DTEND/DURATION eines Events ermitteln
         $durationSpecform = true: getDuration liefert das bereits berechnete Enddatum
-    */
+     */
     private function getEventTimes(Kigkonsult\Icalcreator\Vevent $vEvent, bool $durationSpecform, string $logTag): array
     {
         $dtStartingTime = $this->getDateTime($vEvent->getDtstart(true));
@@ -617,7 +617,7 @@ class iCalImporter
 
     /*
         einen Einzeltermin in einen Event-Eintrag umsetzen
-    */
+     */
     private function processSingleEvent(Kigkonsult\Icalcreator\Vevent $vEvent): array
     {
         [$dtStartingTime, $dtEndingTime, $dtDuration] = $this->getEventTimes($vEvent, true, '#Event#');
@@ -638,7 +638,7 @@ class iCalImporter
     /*
         einen Serientermin (RRULE) in seine Vorkommen innerhalb des Cache-Fensters auflösen;
         EXDATEs werden ausgelassen, per RECURRENCE-ID geänderte Vorkommen ersetzt
-    */
+     */
     private function processRecurringEvent(
         Kigkonsult\Icalcreator\Vevent $vEvent,
         array $vEvents_with_Recurrence_id,
@@ -698,7 +698,7 @@ class iCalImporter
 
     /*
         die RRULE eines Events in ein RRule-Objekt umsetzen; null bei fehlender/ungültiger Regel
-    */
+     */
     private function buildRRule(Kigkonsult\Icalcreator\Vevent $vEvent, DateTime $dtStartingTime): ?RRule
     {
         $CalRRule = $vEvent->getRrule();
@@ -748,7 +748,7 @@ class iCalImporter
 
     /*
         die EXDATEs eines Events als DateTime-Liste ermitteln
-    */
+     */
     private function getExDates(Kigkonsult\Icalcreator\Vevent $vEvent): array
     {
         $dtExDates = [];
@@ -833,10 +833,10 @@ class iCalImporter
                 $trigger === false => 0,
 
                 default => throw new RuntimeException(sprintf(
-                                                          'UID: %s, Unknown trigger type: %s',
-                                                          $Event['UID'],
-                                                          get_debug_type($trigger)
-                                                      )),
+                    'UID: %s, Unknown trigger type: %s',
+                    $Event['UID'],
+                    get_debug_type($trigger)
+                )),
             };
         }
         $this->logDebug(

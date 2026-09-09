@@ -1,4 +1,6 @@
-<?php /** @noinspection AutoloadingIssuesInspection */
+<?php
+
+/** @noinspection AutoloadingIssuesInspection */
 
 /*
 Anmerkungen: aktuelle iCalcreator-Versionen gibt es unter https://github.com/iCalcreator/iCalcreator
@@ -26,7 +28,7 @@ Die bis v2.40.10 gepatchte RegulateTimezoneFactory (Umschreibung von Windows-/Ex
 Zeitzonen vor dem Parsen) ist mit 2.41.57 aus der Lib entfallen; ihre Aufgabe übernimmt
 jetzt iCalImporter::regulateTimezones() (dort auch die früheren TZID-Bereinigungen
 um '"' und '\' sowie das Mapping "(UTC+01:00) ..." -> PHP-Zeitzone).
-*/
+ */
 declare(strict_types=1);
 
 // Autoloader für iCalcreator laden
@@ -87,7 +89,7 @@ class iCalCalendarReader extends IPSModuleStrict
 
     /*
         basic setup
-    */
+     */
     public function __construct($InstanceID)
     {
         ini_set('memory_limit', '256M');
@@ -127,7 +129,7 @@ class iCalCalendarReader extends IPSModuleStrict
 
     /*
         react on the user configuration dialog
-    */
+     */
     public function ApplyChanges(): void
     {
         //Never delete this line!
@@ -598,7 +600,7 @@ class iCalCalendarReader extends IPSModuleStrict
 
     /*
     check if calendar Media Object is valid
-*/
+     */
     private function CheckCalendarMediaID(): bool
     {
         $this->Logger_Dbg(__FUNCTION__, sprintf('Entering %s()', __FUNCTION__));
@@ -612,12 +614,12 @@ class iCalCalendarReader extends IPSModuleStrict
 
         $objMedia = IPS_GetMedia($iCalMediaID);
 
-        return (($objMedia['MediaType'] === MEDIATYPE_DOCUMENT) && $objMedia['MediaIsAvailable']);
+        return ($objMedia['MediaType'] === MEDIATYPE_DOCUMENT) && $objMedia['MediaIsAvailable'];
     }
 
     /*
         check if calendar URL syntax is valid
-    */
+     */
     private function CheckCalendarURLSyntax(): bool
     {
         $this->Logger_Dbg(__FUNCTION__, sprintf('Entering %s()', __FUNCTION__));
@@ -653,7 +655,7 @@ class iCalCalendarReader extends IPSModuleStrict
 
     /*
         load calendar from URL into $this->curl_result, returns IPS status value
-    */
+     */
     public function LoadCalendarURL(string &$content): int
     {
         $instStatus = IS_ACTIVE;
@@ -718,7 +720,7 @@ class iCalCalendarReader extends IPSModuleStrict
     /*
         curl-Fehlernummer auf einen Instanzstatus abbilden
         (nur unterschieden nach ungültiger URL, Verbindung, SSL und Authentifizierung)
-    */
+     */
     private function MapCurlErrorToStatus(int $curlErrorNr): int
     {
         return match ($curlErrorNr) {
@@ -745,7 +747,7 @@ class iCalCalendarReader extends IPSModuleStrict
     /*
         eine Antwort ohne "BEGIN:VCALENDAR" untersuchen: bekannte Fehlerdokumente
         (ownCloud/SabreDAV-XML, Synology-Klartext) erkennen und Status ableiten
-    */
+     */
     private function AnalyzeUnexpectedResponse(string $content, string $url): int
     {
         // ownCloud/SabreDAV meldet Fehler als XML-Dokument
@@ -776,7 +778,7 @@ class iCalCalendarReader extends IPSModuleStrict
 
     /*
         load calendar, convert calendar, return event array of false
-    */
+     */
     private function ReadCalendar(): ?string
     {
         $content = '';
@@ -841,10 +843,10 @@ class iCalCalendarReader extends IPSModuleStrict
         $this->Logger_Dbg(__FUNCTION__, sprintf('Entering %s()', __FUNCTION__));
 
         if (!in_array($this->GetStatus(), [IS_ACTIVE,
-                                           self::STATUS_INST_OPERATION_TIMED_OUT,
-                                           self::STATUS_INST_CONNECTION_ERROR,
-                                           self::STATUS_INST_INVALID_MEDIA_CONTENT,
-                                           self::STATUS_INST_SSL_ERROR], true)) {
+            self::STATUS_INST_OPERATION_TIMED_OUT,
+            self::STATUS_INST_CONNECTION_ERROR,
+            self::STATUS_INST_INVALID_MEDIA_CONTENT,
+            self::STATUS_INST_SSL_ERROR], true)) {
             $this->Logger_Dbg(__FUNCTION__, 'Instance is not active');
             return null;
         }
@@ -869,8 +871,7 @@ class iCalCalendarReader extends IPSModuleStrict
 
     /*
         check if an event is triggering a presence notification
-    */
-
+     */
 
     private function CheckPresence(
         string $subject,
@@ -939,7 +940,7 @@ class iCalCalendarReader extends IPSModuleStrict
         the entry point for the periodic 1m notifications timer
         also used to trigger manual updates after configuration changes
         accessible for external scripts
-    */
+     */
     public function TriggerNotifications(): void
     {
         $this->Logger_Dbg(__FUNCTION__, 'Entering TriggerNotifications()');
@@ -998,7 +999,7 @@ class iCalCalendarReader extends IPSModuleStrict
 
     /*
         returns the internal calendar structure
-    */
+     */
     public function GetCachedCalendar(): string
     {
         if ($this->GetStatus() !== IS_ACTIVE) {
