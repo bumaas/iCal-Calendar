@@ -1,6 +1,6 @@
 # CLAUDE.md — iCal-Calendar
 
-IP-Symcon-Modulbibliothek: liest Kalender im iCal-Format (URL oder Medienobjekt) und
+Symcon-Modulbibliothek: liest Kalender im iCal-Format (URL oder Medienobjekt) und
 stellt Termine/Benachrichtigungen bereit. Ein Modul: `iCalCalendarReader` (Prefix `ICCR`,
 GUID `{5127CDDC-2859-4223-A870-4D26AC83622C}`).
 
@@ -47,10 +47,13 @@ Kalender ginge verloren) — deshalb muss regulateTimezones alle TZIDs auflösen
   `docs/Examples/Testdaten` (nicht committet, private Daten → in der CI übersprungen).
   Festes Referenzdatum, Vergleich gegen `tests/import_regression.golden.json` (committet).
   Nach beabsichtigten Verhaltensänderungen: `php tests/import_regression.php --update`.
-- CI: `.github/workflows/check.yml` (php -l, JSON-Validität, Locale-Check, Regressionstest).
+- CI: `.github/workflows/check.yml` (PHP 8.4, Checkout mit Submodulen): Code-Stil mit
+  php-cs-fixer gegen das Regelwerk im Submodul `.style` (`--dry-run`; die gebündelten Libs
+  `libs/iCalcreator-master` und `libs/php-rrule-master` sind per `.style-exclude`
+  ausgenommen), php -l, JSON-Validität, Locale-Check, Regressionstest.
 
 ## Konventionen
 
-- Version/Build/Datum in `library.json` pflegen; Commit-Subject: `<version> build <NN>: <Beschreibung>`.
-- `T:\modules` ist das produktive Symcon-modules-Verzeichnis — Änderungen wirken sofort auf
-  der Produktiv-Installation.
+- Version/Build und die Rolle von `T:\modules` als Produktivverzeichnis: siehe globale
+  `CLAUDE.md`, Abschnitte „Symcon: Build-/Versionspflege in Modul-Repos" und „Symcon:
+  Referenz-Checkliste für Modul-Repos".
