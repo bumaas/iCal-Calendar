@@ -30,10 +30,10 @@ Die Kalendereinträge sind in dieser Implementierung auf ID, Titel, Start-/Endze
 
 1. Kopiere die Dateien `calendar.html` und `feed.php` aus dem Verzeichnis `docs/Examples` (zu finden im Symcon-Programmverzeichnis unter `modules/.store/de.bumaas.ical`) in einen Unterordner deines User-Verzeichnisses (z. B. `/user/calendar`). Tipp: Das Programmverzeichnis lässt sich mit `echo IPS_GetKernelDir()` bestimmen.
 2. Öffne die Datei `calendar.html` in einem Texteditor und nimm folgende Anpassungen vor:
-  * **Instanz-IDs:** Suche im Array `eventSources` (ab Zeile 46) nach der Eigenschaft `InstanceID`. Ersetze den Platzhalter `12345` durch die ID deiner **iCalCalendarReader**-Instanz aus dem IP-Symcon Objektbaum.
+  * **Instanz-IDs:** Suche im Array `eventSources` (ab Zeile 46) nach der Eigenschaft `InstanceID`. Ersetze den Platzhalter `12345` durch die ID deiner **iCalCalendarReader**-Instanz aus dem Symcon Objektbaum.
   * **Weitere Quellen:** Du kannst das Objekt im Array beliebig oft duplizieren, um weitere Kalender (z. B. Abfallkalender, Feiertage) hinzuzufügen.
   * **Farben:** Pass die Eigenschaften `color` (Hintergrund) und `textColor` (Schriftfarbe) nach deinen Wünschen an (z. B. 'blue', '#FF0000').
-3. Öffne den WebFront-Konfigurator in der IP-Symcon Management-Konsole.
+3. Öffne den WebFront-Konfigurator in der Symcon Management-Konsole.
 4. Füge an beliebiger Stelle ein Element vom Typ **"Externe Seite"** hinzu.
 5. Gib als URL den Pfad zu deiner Datei an: `/user/calendar/calendar.html`.
 
