@@ -29,6 +29,12 @@ GUID `{5127CDDC-2859-4223-A870-4D26AC83622C}`).
   Debug-Puffer ist für alle Module gemeinsam (8.192 Zeilen) — vorher schrieb ein Abruf eines
   260-kB-Kalenders 1.729 Zeilen/722 kB. Zum Untersuchen eines einzelnen Kalenders den Importer
   lokal laufen lassen (`tests/lib/kalender_import.php`), nicht das Debug aufbohren.
+  **Notifier-Liste nur über `readNotifiers()` lesen** (prüft JSON-Liste, füllt Standardwerte,
+  `null` = ungültig ⇒ Status 208), nie direkt `json_decode` der Property — eine doppelt kodierte
+  Liste aus einem MCP-Aufruf endete sonst als TypeError in `ApplyChanges` (Blindtest 04.10.2026).
+  **`ApplyChanges` liest den Kalender selbst** (`refreshCalendar()` + `TriggerNotifications()`),
+  `determineStatus()` prüft nur die Konfiguration; die Timer werden vor dem Lesen gesetzt, damit
+  ein gescheiterter Abruf wiederholt wird (`tests/check-apply.php`).
   Bei 201/203/205 liest der Abruf-Timer bewusst nicht weiter (`UpdateCalendar` prüft den Status),
   erst `ApplyChanges` — kein Dauerversuch mit falschen Zugangsdaten.
 - `iCalCalendarReader/iCalImporter.php` — eigenständige Importklasse (auch ohne Symcon nutzbar,

@@ -57,6 +57,7 @@ class iCalCalendarReader extends IPSModuleStrict
     private const STATUS_INST_UNEXPECTED_RESPONSE   = 205;
     private const STATUS_INST_INVALID_MEDIA_CONTENT = 206;
     private const STATUS_INST_OPERATION_TIMED_OUT = 207;
+    private const STATUS_INST_INVALID_NOTIFIERS     = 208;
 
     private const ICCR_PROPERTY_ACTIVE                             = 'active';
     private const ICCR_PROPERTY_CALENDAR_URL                       = 'CalendarServerURL';
@@ -149,25 +150,63 @@ class iCalCalendarReader extends IPSModuleStrict
             return;
         }
 
+        // determineStatus prüft nur die Konfiguration; gelesen wird unten genau einmal
         $Status = $this->determineStatus();
-        $this->setInstanceStatus($Status);
 
         $this->updateSummary();
 
-        $propNotifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true, 512, JSON_THROW_ON_ERROR);
-        $this->ValidateNotifierPatterns($propNotifiers);
-        $this->syncNotifierVariables($propNotifiers);
+        // bei ungültiger Liste die vorhandenen Variablen nicht anfassen (nichts löschen)
+        $propNotifiers = $this->readNotifiers();
+        if ($propNotifiers !== null) {
+            $this->ValidateNotifierPatterns($propNotifiers);
+            $this->syncNotifierVariables($propNotifiers);
+        }
 
         $this->RegisterReferences();
 
         if ($Status !== IS_ACTIVE) {
+            $this->setInstanceStatus($Status);
+            $this->SetTimerInterval(self::TIMER_UPDATECALENDAR, 0);
             $this->SetTimerInterval(self::TIMER_TRIGGERNOTIFICATIONS, 0);
             return;
         }
 
+        // Timer vor dem Lesen setzen: scheitert der Abruf, findet der in der Log-Warnung
+        // angekündigte erneute Versuch trotzdem statt
         $this->SetTimerInterval(self::TIMER_UPDATECALENDAR, $this->ReadPropertyInteger(self::ICCR_PROPERTY_UPDATE_FREQUENCY) * 1000 * 60);
         $this->SetTimerInterval(self::TIMER_TRIGGERNOTIFICATIONS, 1000 * 60); //jede Minute werden die Notifications getriggert
 
+        // Kalender sofort lesen und die Meldevariablen nachziehen - sonst schalten sie bis zum
+        // nächsten Abruf (bis zu Stunden, bei Intervall 0 nie) nach dem alten oder leeren Cache
+        $this->refreshCalendar();
+        $this->TriggerNotifications();
+    }
+
+    /*
+        Notifier-Liste lesen und prüfen: null, wenn die Property keine JSON-Liste von Einträgen
+        ist (z. B. doppelt kodiert). Fehlende optionale Felder bekommen Standardwerte.
+     */
+    private function readNotifiers(): ?array
+    {
+        $list = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true);
+        if (!is_array($list) || !array_is_list($list)) {
+            return null;
+        }
+        $notifiers = [];
+        foreach ($list as $row) {
+            if (!is_array($row) || !isset($row[self::ICCR_PROPERTY_NOTIFIER_IDENT]) || !is_string($row[self::ICCR_PROPERTY_NOTIFIER_IDENT])) {
+                return null;
+            }
+            $notifiers[] = [
+                self::ICCR_PROPERTY_NOTIFIER_IDENT         => $row[self::ICCR_PROPERTY_NOTIFIER_IDENT],
+                self::ICCR_PROPERTY_NOTIFIER_NAME          => (string) ($row[self::ICCR_PROPERTY_NOTIFIER_NAME] ?? ''),
+                self::ICCR_PROPERTY_NOTIFIER_FIND          => (string) ($row[self::ICCR_PROPERTY_NOTIFIER_FIND] ?? ''),
+                self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION => (bool) ($row[self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION] ?? false),
+                self::ICCR_PROPERTY_NOTIFIER_PRENOTIFY     => (int) ($row[self::ICCR_PROPERTY_NOTIFIER_PRENOTIFY] ?? 0),
+                self::ICCR_PROPERTY_NOTIFIER_POSTNOTIFY    => (int) ($row[self::ICCR_PROPERTY_NOTIFIER_POSTNOTIFY] ?? 0),
+            ];
+        }
+        return $notifiers;
     }
 
     private function determineStatus(): int
@@ -177,15 +216,14 @@ class iCalCalendarReader extends IPSModuleStrict
         }
 
         if ($this->CheckCalendarMediaID()) {
-            return IS_ACTIVE;
+            return $this->readNotifiers() === null ? self::STATUS_INST_INVALID_NOTIFIERS : IS_ACTIVE;
         }
 
         if (!$this->CheckCalendarURLSyntax()) {
             return self::STATUS_INST_INVALID_URL;
         }
 
-        $unused = '';
-        return $this->LoadCalendarURL($unused);
+        return $this->readNotifiers() === null ? self::STATUS_INST_INVALID_NOTIFIERS : IS_ACTIVE;
     }
 
     private function updateSummary(): void
@@ -433,7 +471,7 @@ class iCalCalendarReader extends IPSModuleStrict
             [
                 'type'    => 'Label',
                 'visible' => false,
-                'caption' => 'Notifiers: each row of the list creates a boolean variable with the ident NOTIFIER<n>. It is true while a date matches, from "Prenotify" minutes before its start until "Postnotify" minutes after its end. "Find" is a case-sensitive part of the date title, or a PCRE pattern if "Regular Expression" is ticked (delimiters are added when missing); an empty "Find" matches every date. The notifiers are evaluated every minute against the cache; ICCR_TriggerNotifications($InstanceID) evaluates them now. ICCR_GetNotifierPresenceReason($InstanceID, "<ident, e.g. NOTIFIER1>") returns as JSON the date that made this notifier active at the last evaluation, or [] if it was inactive; an unknown ident is reported as error with the valid idents.'
+                'caption' => 'Notifiers: each row of the list creates a boolean variable with the ident NOTIFIER<n>. It is true while a date matches, from "Prenotify" minutes before its start until "Postnotify" minutes after its end. "Find" is a case-sensitive part of the date title, or a PCRE pattern if "Regular Expression" is ticked (delimiters are added when missing); an empty "Find" matches every date. The notifiers are evaluated every minute against the cache; ICCR_TriggerNotifications($InstanceID) evaluates them now. ICCR_GetNotifierPresenceReason($InstanceID, "<ident, e.g. NOTIFIER1>") returns as JSON the date that made this notifier active at the last evaluation, or [] if it was inactive; an unknown ident is reported as error with the valid idents. To set the list by script, pass the JSON text of the list once: IPS_SetProperty($InstanceID, "Notifiers", json_encode([["Ident" => "NOTIFIER1", "Find" => "Papiertonne", "RegExpression" => false, "Prenotify" => 360, "Postnotify" => 0]])), then IPS_ApplyChanges($InstanceID); missing fields default to false/0, the variable name is not part of the list. Applying the changes reads the calendar and evaluates the notifiers at once.'
             ],
             [
                 'type'    => 'Button',
@@ -566,7 +604,8 @@ class iCalCalendarReader extends IPSModuleStrict
             ['code' => self::STATUS_INST_CONNECTION_ERROR, 'icon' => 'error', 'caption' => 'Connection error, see log for details'],
             ['code' => self::STATUS_INST_UNEXPECTED_RESPONSE, 'icon' => 'error', 'caption' => 'Unexpected response from calendar server'],
             ['code' => self::STATUS_INST_INVALID_MEDIA_CONTENT, 'icon' => 'error', 'caption' => 'Media Document has invalid content'],
-            ['code' => self::STATUS_INST_OPERATION_TIMED_OUT, 'icon' => 'error', 'caption' => 'Operation timed out']
+            ['code' => self::STATUS_INST_OPERATION_TIMED_OUT, 'icon' => 'error', 'caption' => 'Operation timed out'],
+            ['code' => self::STATUS_INST_INVALID_NOTIFIERS, 'icon' => 'error', 'caption' => 'Notifier list is invalid, see log for details']
         ];
 
         return json_encode($form, JSON_THROW_ON_ERROR);
@@ -595,7 +634,7 @@ class iCalCalendarReader extends IPSModuleStrict
 
     private function getNotifierListValues():array
     {
-        $savedNotifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true, 512, JSON_THROW_ON_ERROR);
+        $savedNotifiers = $this->readNotifiers() ?? [];
         $listValues = [];
 
         foreach ($savedNotifiers as $notifier){
@@ -907,6 +946,10 @@ class iCalCalendarReader extends IPSModuleStrict
                 (string) $status,
                 sprintf('Calendar server %s did not return an iCal calendar%s - configuration error: use the export/subscription link of the calendar and apply the changes (reading is paused until the changes are applied)', $server, $detail)
             ],
+            self::STATUS_INST_INVALID_NOTIFIERS => [
+                (string) $status,
+                'Notifier list (property Notifiers) is not a JSON array of entries - configuration error: set it to a list such as [{"Ident":"NOTIFIER1","Find":"Paper","Prenotify":360}]; with IPS_SetProperty pass json_encode($list) once (not a twice encoded string) and apply the changes'
+            ],
             self::STATUS_INST_INVALID_MEDIA_CONTENT => [
                 (string) $status,
                 sprintf('Media object #%d contains no iCal data (BEGIN:VCALENDAR missing) - fill it with an .ics file', $mediaId)
@@ -1048,6 +1091,12 @@ class iCalCalendarReader extends IPSModuleStrict
             return null;
         }
 
+        return $this->refreshCalendar();
+    }
+
+    /* Kalender lesen und den Cache erneuern - ohne Statusprüfung, auch aus ApplyChanges */
+    private function refreshCalendar(): ?string
+    {
         $TheOldCalendar = $this->ReadAttributeString(self::ICCR_ATTRIBUTE_CALENDAR_BUFFER);
         $TheNewCalendar = $this->ReadCalendar();
         $this->Logger_Dbg(
@@ -1144,7 +1193,7 @@ class iCalCalendarReader extends IPSModuleStrict
     {
         $this->Logger_Dbg(__FUNCTION__, 'Entering TriggerNotifications()');
 
-        $Notifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true, 512, JSON_THROW_ON_ERROR);
+        $Notifiers = $this->readNotifiers();
         if (empty($Notifiers)) {
             return;
         }
@@ -1212,10 +1261,7 @@ class iCalCalendarReader extends IPSModuleStrict
     public function GetNotifierPresenceReason(string $ident): string
     {
 
-        $idents = array_column(
-            json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true, 512, JSON_THROW_ON_ERROR),
-            self::ICCR_PROPERTY_NOTIFIER_IDENT
-        );
+        $idents = array_column($this->readNotifiers() ?? [], self::ICCR_PROPERTY_NOTIFIER_IDENT);
         if (!in_array($ident, $idents, true)) {
             trigger_error(
                 sprintf(
@@ -1342,8 +1388,11 @@ class iCalCalendarReader extends IPSModuleStrict
         );
 
         // Notifier gegen den frisch gelesenen Kalender
-        $notifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true, 512, JSON_THROW_ON_ERROR);
-        if ($notifiers === []) {
+        $notifiers = $this->readNotifiers();
+        if ($notifiers === null) {
+            $add('error', 'Notifier list is not a JSON array of entries', 'Set the property Notifiers to a list, e.g. IPS_SetProperty($id, \'Notifiers\', json_encode([[\'Ident\' => \'NOTIFIER1\', \'Find\' => \'Paper\']])) - encode once, not twice - and apply the changes.');
+            $notifiers = [];
+        } elseif ($notifiers === []) {
             $add('info', 'No notifiers configured');
         }
         foreach ($notifiers as $notifier) {
@@ -1396,6 +1445,7 @@ class iCalCalendarReader extends IPSModuleStrict
             self::STATUS_INST_UNEXPECTED_RESPONSE   => 'unexpected response, not an iCal calendar',
             self::STATUS_INST_INVALID_MEDIA_CONTENT => 'media object without iCal data',
             self::STATUS_INST_OPERATION_TIMED_OUT   => 'timeout',
+            self::STATUS_INST_INVALID_NOTIFIERS     => 'invalid notifier list',
             default                                 => 'unknown status',
         };
     }

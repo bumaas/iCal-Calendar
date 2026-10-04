@@ -101,7 +101,9 @@ In der Outlook Web-App (OWA) in den Einstellungen > Kalender > Geteilte Kalender
 Für den Fall, dass eine vorliegende Kalenderdatei mit Terminen (z. B. eine iCal konforme Datei vom Abfallentsorger mit den Abholterminen) übernommen werden soll, so ist diese Datei zunächst in ein Medienobjekt vom Typ "Dokument" in Symcon zu übernehmen. Die Id der Medien Objekts ist dann in der Konfiguration anzugeben. 
 
 
-Sobald eine URL bzw. eine Media-ID angegeben und gespeichert wurde, beginnt die Synchronisierung. Bei jeder Änderung der Parameter wird eine sofortige Synchronisation und ein Update auf alle Meldevariablen gegeben.
+Sobald eine URL bzw. eine Media-ID angegeben und gespeichert wurde, beginnt die Synchronisierung. Bei jedem Übernehmen der Einstellungen wird der Kalender sofort gelesen und alle Meldevariablen werden aktualisiert – auch bei einem Aktualisierungsintervall von 0.
+
+Ist die Liste der Meldevariablen ungültig (z. B. per Skript als doppelt kodierter JSON-Text gesetzt), geht die Instanz in den Status 208 und meldet im Log, wie die Liste richtig aussieht; vorhandene Meldevariablen bleiben dabei erhalten.
 
 Fehler beim Zugriff auf den Kalender stehen im Systemlog (Tabreiter **Meldungen** in der Symcon Management Konsole), und zwar **einmal je Störung** als Warnung – mit der Art des Fehlers und dem nächsten Schritt, z. B. „Calendar server https://… not reachable (…) - temporary, reading is retried every 15 minutes“. Hält dieselbe Störung an, folgt bei den weiteren Abrufen kein neuer Eintrag; ist sie behoben, steht einmal „Calendar can be read again“ im Log. Von der URL erscheint dort nur der Server, nicht der Pfad (der bei iCloud & Co. das Zugriffstoken enthält).
 Ebenso werden Probleme beim Einlesen einzelner Termine (z. B. eine unbekannte Zeitzone oder eine nicht auswertbare Wiederholungsregel) einmal als Warnung mit ihrer Anzahl und dem ersten Problem gemeldet und erst wieder, wenn sie sich ändern; sind sie verschwunden, steht einmal „Calendar imported without problems again“ im Log. Alle Einzelheiten zeigt die Debug-Ausgabe der Instanz.

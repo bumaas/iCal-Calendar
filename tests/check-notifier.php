@@ -67,8 +67,15 @@ pruefe(
     'ungültiger Ausdruck wird einmal als Warnung gemeldet'
 );
 
+// Übernehmen liest den Kalender und wertet die Notifier sofort aus (Blindtest-Befund B)
+pruefe($m->werte()['NOTIFIER1'] === true, 'NOTIFIER1 schon nach dem Übernehmen aktiv');
+
+// noch nie ausgewertet: Instanz mit Notifier, aber ohne Kalenderquelle
+$ohneQuelle = neueInstanz();
+IPS_SetProperty($ohneQuelle->instanzId(), 'Notifiers', json_encode([notifier('NOTIFIER1', 'x')], JSON_THROW_ON_ERROR));
+IPS_ApplyChanges($ohneQuelle->instanzId());
 try {
-    $grund = $m->GetNotifierPresenceReason('NOTIFIER1');
+    $grund = $ohneQuelle->GetNotifierPresenceReason('NOTIFIER1');
 } catch (Throwable $t) {
     $grund = 'Ausnahme: ' . $t->getMessage();
 }
