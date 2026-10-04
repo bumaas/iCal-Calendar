@@ -13,6 +13,14 @@ GUID `{5127CDDC-2859-4223-A870-4D26AC83622C}`).
   schreiben** — `symcon-mcp-check` liest doppelt gequotete Strings nicht und meldet die Funktion
   sonst als unerwähnt. `check_locale.php` sieht das Code-Formular nicht: neue Captions von Hand in
   `locale.json` übersetzen.
+  **Status immer über `setInstanceStatus()` setzen, nie direkt `SetStatus()`:** Es meldet jeden
+  Wechsel in eine Störung einmal als Warnung (Text aus `problemMessage()`, Ursache aus
+  `$errorDetail`) und die Behebung als Meldung; was gemeldet ist, steht im Attribut
+  `LoggedProblem`. An der Fehlerstelle nicht selbst `LogMessage` rufen — sonst kommt bei jedem
+  Abruf wieder ein Eintrag. Von URLs nur `maskUrl()` (Server ohne Pfad/Token) ausgeben, fremden
+  Text nur über `quoteForeignText()` (gekürzt, in Anführungszeichen).
+  Bei 201/203/205 liest der Abruf-Timer bewusst nicht weiter (`UpdateCalendar` prüft den Status),
+  erst `ApplyChanges` — kein Dauerversuch mit falschen Zugangsdaten.
 - `iCalCalendarReader/iCalImporter.php` — eigenständige Importklasse (auch ohne Symcon nutzbar,
   Konstruktor nimmt Logger-Callables und optional ein Referenzdatum für das Cache-Fenster).
 - `libs/iCalcreator-master` — iCalcreator (Parser), `libs/php-rrule-master` — RRULE-Auswertung.
@@ -49,8 +57,13 @@ Kalender ginge verloren) — deshalb muss regulateTimezones alle TZIDs auflösen
 
 - **Modultests gegen den Kernel-Stub** (`symcon/SymconStubs`, Submodul `tests/stubs`, gepinnt
   auf `bf2950f`), gemeinsamer Aufbau in `tests/harness.php`:
-  - Netz-Naht: `LoadCalendarURL()` ist überschrieben und liefert `$urlAntwort` ([Status,
-    Inhalt]); ohne gesetzte Antwort wirft die Harness, statt echt ins Netz zu gehen.
+  - Netz-Naht: nur `fetchUrl()` (der curl-Aufruf) ist überschrieben und liefert `$urlAntwort`
+    ([Inhalt|false, curl-Nr., curl-Text], Helfer `antwortKalender`/`antwortInhalt`/
+    `antwortCurlFehler`, SabreDAV-Fehlerdokument `SABRE_NICHT_ANGEMELDET`). Auswertung,
+    Statuszuordnung und Log laufen im echten Modulcode; ohne gesetzte Antwort wirft die Harness.
+  - `php tests/check-status-log.php` — MCP-Regeln 3/4/16: jede Störung einmal als Warnung mit
+    Art und nächstem Schritt, kein Rauschen bei Wiederholung, Behebung einmal als Meldung, kein
+    URL-Pfad (Token) im Log, Selbsttest schreibt nichts ins Log.
   - Util Control (für `UC_FindReferences` beim Löschen von Notifier-Variablen) stellt die
     Harness als `UtilControlAttrappe` samt globaler Funktion; Referenzen setzt der Test.
   - Medienobjekte kann der Stub nicht (`IPS_GetMedia` liefert `[]`) — der Medien-Weg ist

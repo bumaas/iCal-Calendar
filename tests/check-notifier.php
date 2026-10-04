@@ -43,7 +43,7 @@ pruefe(variablenIdents($id) === [], 'keine Variablen ohne Notifier');
 
 // --- 2. URL und Notifier eintragen
 echo "\nURL und vier Notifier\n";
-$m->urlAntwort = [IS_ACTIVE, kalender()];
+$m->urlAntwort = antwortKalender(kalender());
 IPS_SetProperty($id, 'CalendarServerURL', 'https://kalender.example/test.ics');
 IPS_SetProperty($id, 'Notifiers', json_encode([
     notifier('NOTIFIER1', 'Restmüll'),
@@ -119,12 +119,12 @@ pruefe(in_array('NOTIFIER1', $rest, true), 'verbleibender Notifier behält seine
 
 // --- 5. Abruf scheitert
 echo "\nAbruf scheitert\n";
-$m->urlAntwort = [204, ''];
+$m->urlAntwort = antwortCurlFehler(7, 'Failed to connect to kalender.example port 443');
 pruefe($m->UpdateCalendar() === null, 'UpdateCalendar liefert null bei Verbindungsfehler');
 pruefe(IPS_GetInstance($id)['InstanceStatus'] === 204, 'Status 204 (Verbindungsfehler)');
 pruefe($m->GetCachedCalendar() === '[]', 'GetCachedCalendar liefert bei Störung eine leere Liste');
 
-$m->urlAntwort = [IS_ACTIVE, kalender()];
+$m->urlAntwort = antwortKalender(kalender());
 pruefe($m->UpdateCalendar() !== null && IPS_GetInstance($id)['InstanceStatus'] === IS_ACTIVE, 'nach Störung erholt sich die Instanz beim nächsten Abruf');
 
 // --- 6. Instanz deaktiviert

@@ -101,7 +101,10 @@ In der Outlook Web-App (OWA) in den Einstellungen > Kalender > Geteilte Kalender
 Für den Fall, dass eine vorliegende Kalenderdatei mit Terminen (z. B. eine iCal konforme Datei vom Abfallentsorger mit den Abholterminen) übernommen werden soll, so ist diese Datei zunächst in ein Medienobjekt vom Typ "Dokument" in Symcon zu übernehmen. Die Id der Medien Objekts ist dann in der Konfiguration anzugeben. 
 
 
-Sobald eine URL bzw. eine Media-ID angegeben und gespeichert wurde, beginnt die Synchronisierung. Fehler beim Zugriff auf den Kalender stehen im Systemlog (Tabreiter **Meldungen** bzw. **Statusprotokoll** in der Symcon Management Konsole). Bei jeder Änderung der Parameter wird eine sofortige Synchronisation und ein Update auf alle Meldevariablen gegeben.
+Sobald eine URL bzw. eine Media-ID angegeben und gespeichert wurde, beginnt die Synchronisierung. Bei jeder Änderung der Parameter wird eine sofortige Synchronisation und ein Update auf alle Meldevariablen gegeben.
+
+Fehler beim Zugriff auf den Kalender stehen im Systemlog (Tabreiter **Meldungen** in der Symcon Management Konsole), und zwar **einmal je Störung** als Warnung – mit der Art des Fehlers und dem nächsten Schritt, z. B. „Calendar server https://… not reachable (…) - temporary, reading is retried every 15 minutes“. Hält dieselbe Störung an, folgt bei den weiteren Abrufen kein neuer Eintrag; ist sie behoben, steht einmal „Calendar can be read again“ im Log. Von der URL erscheint dort nur der Server, nicht der Pfad (der bei iCloud & Co. das Zugriffstoken enthält).
+Bei abgelehnter Anmeldung, einer ungültigen URL oder einer Antwort ohne Kalenderdaten liest die Instanz erst wieder, wenn die korrigierten Einstellungen übernommen wurden – so wird ein Konto nicht durch wiederholte Fehlversuche gesperrt.
 
 
 #### Beispiel für Meldevariablen

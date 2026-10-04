@@ -31,22 +31,23 @@ final class iCalCalendarReaderHarness extends iCalCalendarReader
     public const MODULE_ID = '{5127CDDC-2859-4223-A870-4D26AC83622C}'; // iCalCalendarReader/module.json
 
     /**
-     * Netz-Naht: LoadCalendarURL() ist der einzige Netzzugriff (curl). Ist $urlAntwort
-     * gesetzt, liefert die Harness stattdessen [Status, Inhalt] - kein echter Abruf.
+     * Netz-Naht: fetchUrl() ist der einzige Netzzugriff (curl). Ist $urlAntwort gesetzt,
+     * liefert die Harness stattdessen [Inhalt oder false, curl-Fehlernummer, curl-Fehlertext]
+     * - kein echter Abruf. Auswertung, Statuszuordnung und Log laufen im echten Modulcode.
+     * Bequem setzen mit antwortKalender(), antwortInhalt(), antwortCurlFehler().
      *
-     * @var array{0: int, 1: string}|null
+     * @var array{0: string|false, 1: int, 2: string}|null
      */
     public ?array $urlAntwort = null;
     public int $urlAbrufe     = 0;
 
-    protected function LoadCalendarURL(string &$content): int
+    protected function fetchUrl(string $url, string $username, string $password, bool $disableSslVerification): array
     {
         if ($this->urlAntwort === null) {
             throw new RuntimeException('Test ohne $urlAntwort würde echt ins Netz gehen');
         }
         $this->urlAbrufe++;
-        [$status, $content] = $this->urlAntwort;
-        return $status;
+        return $this->urlAntwort;
     }
 
     /** @var list<array{0: string, 1: mixed}> jedes SetValue */
@@ -154,6 +155,34 @@ function neueUtilControl(): void
         'Class'      => UtilControlAttrappe::class,
     ]);
 }
+
+/* Antworten für die Netz-Naht ($m->urlAntwort = …) */
+function antwortKalender(string $ics): array
+{
+    return [$ics, 0, ''];
+}
+
+/** Serverantwort ohne Kalender, z. B. ein Fehlerdokument */
+function antwortInhalt(string $inhalt): array
+{
+    return [$inhalt, 0, ''];
+}
+
+/** curl scheitert, z. B. 6 = Host unbekannt, 7 = keine Verbindung, 28 = Zeitüberschreitung */
+function antwortCurlFehler(int $nummer, string $text): array
+{
+    return [false, $nummer, $text];
+}
+
+/**
+ * Fehlerdokument von SabreDAV (ownCloud/Nextcloud/Baikal) bei fehlender Anmeldung - im Format,
+ * das AnalyzeUnexpectedResponse() auswertet (d:error mit s:exception und s:message).
+ */
+const SABRE_NICHT_ANGEMELDET = '<?xml version="1.0" encoding="utf-8"?>' . "\n"
+    . '<d:error xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns">' . "\n"
+    . '  <s:exception>Sabre\DAV\Exception\NotAuthenticated</s:exception>' . "\n"
+    . '  <s:message>No basic authentication headers were found</s:message>' . "\n"
+    . '</d:error>';
 
 /* Testdaten für Modultests: Termine relativ zu jetzt (CheckPresence vergleicht mit time()). */
 

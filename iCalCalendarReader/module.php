@@ -79,9 +79,13 @@ class iCalCalendarReader extends IPSModuleStrict
 
     private const ICCR_ATTRIBUTE_CALENDAR_BUFFER = 'CalendarBuffer';
     private const ICCR_ATTRIBUTE_NOTIFICATIONS   = 'Notifications';
+    private const ICCR_ATTRIBUTE_LOGGED_PROBLEM  = 'LoggedProblem'; // zuletzt im Log gemeldete Störung, '' = keine
 
     private const TIMER_TRIGGERNOTIFICATIONS = 'TriggerCalendarNotifications';
     private const TIMER_UPDATECALENDAR       = 'UpdateCalendar';
+
+    /** Ursache der letzten gescheiterten Quelle (curl-Meldung, Serverantwort) für die Log-Meldung */
+    protected string $errorDetail = '';
 
     /***********************************************************************
      * standard module methods
@@ -118,6 +122,7 @@ class iCalCalendarReader extends IPSModuleStrict
         // create Attributes
         $this->RegisterAttributeString(self::ICCR_ATTRIBUTE_CALENDAR_BUFFER, json_encode([], JSON_THROW_ON_ERROR));
         $this->RegisterAttributeString(self::ICCR_ATTRIBUTE_NOTIFICATIONS, json_encode([], JSON_THROW_ON_ERROR));
+        $this->RegisterAttributeString(self::ICCR_ATTRIBUTE_LOGGED_PROBLEM, '');
 
         // create timer
         $this->RegisterTimer(self::TIMER_UPDATECALENDAR, 0, 'ICCR_UpdateCalendar($_IPS["TARGET"] );'); // timer to fetch the calendar data
@@ -140,7 +145,7 @@ class iCalCalendarReader extends IPSModuleStrict
         }
 
         $Status = $this->determineStatus();
-        $this->SetStatus($Status);
+        $this->setInstanceStatus($Status);
 
         $this->updateSummary();
 
@@ -678,17 +683,47 @@ class iCalCalendarReader extends IPSModuleStrict
      */
     protected function LoadCalendarURL(string &$content): int
     {
-        $instStatus = IS_ACTIVE;
-        $url        = $this->ReadPropertyString(self::ICCR_PROPERTY_CALENDAR_URL);
-        $username   = $this->ReadPropertyString(self::ICCR_PROPERTY_USERNAME);
-        $password   = $this->ReadPropertyString(self::ICCR_PROPERTY_PASSWORD);
+        $instStatus        = IS_ACTIVE;
+        $url               = $this->ReadPropertyString(self::ICCR_PROPERTY_CALENDAR_URL);
+        $this->errorDetail = '';
 
         $this->Logger_Dbg(__FUNCTION__, sprintf('Entering %s(\'%s\')', __FUNCTION__, $url));
 
+        [$result, $curl_error_nr, $curl_error_str] = $this->fetchUrl(
+            $url,
+            $this->ReadPropertyString(self::ICCR_PROPERTY_USERNAME),
+            $this->ReadPropertyString(self::ICCR_PROPERTY_PASSWORD),
+            $this->ReadPropertyBoolean(self::ICCR_PROPERTY_DISABLE_SSL_VERIFYPEER)
+        );
+        $content = is_string($result) ? $result : '';
+
+        // Fehler nicht hier protokollieren: setInstanceStatus() meldet sie einmal je Störung
+        if ($curl_error_nr) {
+            $this->errorDetail = sprintf('curl error %d: %s', $curl_error_nr, $curl_error_str);
+            $instStatus        = $this->MapCurlErrorToStatus($curl_error_nr);
+        } elseif (!str_contains($content, 'BEGIN:VCALENDAR')) {
+            $instStatus = $this->AnalyzeUnexpectedResponse($content);
+        }
+
+        if ($instStatus === IS_ACTIVE) {
+            $this->Logger_Dbg(__FUNCTION__, 'curl_result: ' . $content);
+            $this->Logger_Dbg(__FUNCTION__, 'Successfully loaded');
+        } else {
+            $this->Logger_Dbg(__FUNCTION__, sprintf('Error: %s, curl_result: %s', $this->errorDetail, $content === '' ? 'empty' : $content));
+        }
+        return $instStatus;
+    }
+
+    /*
+        der eigentliche Netzzugriff - einzige Naht für Tests
+        liefert [Inhalt oder false, curl-Fehlernummer, curl-Fehlertext]
+     */
+    protected function fetchUrl(string $url, string $username, string $password, bool $disableSslVerification): array
+    {
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $url);
         if (stripos($url, 'https:') === 0) {
-            if ($this->ReadPropertyBoolean(self::ICCR_PROPERTY_DISABLE_SSL_VERIFYPEER)) {
+            if ($disableSslVerification) {
                 /** @noinspection CurlSslServerSpoofingInspection */
                 curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
                 /** @noinspection CurlSslServerSpoofingInspection */
@@ -719,22 +754,7 @@ class iCalCalendarReader extends IPSModuleStrict
         $curl_error_str = curl_error($curl);
         curl_close($curl);
 
-        if ($curl_error_nr) {
-            $this->Logger_Err(sprintf('Error (%s) on connect - %s for %s', $curl_error_nr, $curl_error_str, $url));
-            $instStatus = $this->MapCurlErrorToStatus($curl_error_nr);
-        } elseif (!str_contains($content, 'BEGIN:VCALENDAR')) {
-            $instStatus = $this->AnalyzeUnexpectedResponse($content, $url);
-        }
-
-        if ($instStatus === IS_ACTIVE) {
-            $this->Logger_Dbg(__FUNCTION__, 'curl_result: ' . $content);
-            $this->Logger_Dbg(__FUNCTION__, 'Successfully loaded');
-        } elseif (!empty($content)) {
-            $this->Logger_Dbg(__FUNCTION__, 'Error, curl_result: ' . $content);
-        } else {
-            $this->Logger_Dbg(__FUNCTION__, 'Error, curl_result: empty');
-        }
-        return $instStatus;
+        return [$content, $curl_error_nr, $curl_error_str];
     }
 
     /*
@@ -768,32 +788,131 @@ class iCalCalendarReader extends IPSModuleStrict
         eine Antwort ohne "BEGIN:VCALENDAR" untersuchen: bekannte Fehlerdokumente
         (ownCloud/SabreDAV-XML, Synology-Klartext) erkennen und Status ableiten
      */
-    private function AnalyzeUnexpectedResponse(string $content, string $url): int
+    private function AnalyzeUnexpectedResponse(string $content): int
     {
         // ownCloud/SabreDAV meldet Fehler als XML-Dokument
         libxml_use_internal_errors(true);
-        $XML = simplexml_load_string($content);
+        $XML = $content === '' ? false : simplexml_load_string($content);
 
         if ($XML !== false) {
             $XML->registerXPathNamespace('d', 'DAV:');
             if (count($XML->xpath('//d:error')) > 0) {
-                $children = $XML->children('http://sabredav.org/ns');
-                if (isset($children)) {
-                    $this->Logger_Err(sprintf('Error: %s - Message: %s', $children->exception, $children->message));
-                }
+                $children          = $XML->children('http://sabredav.org/ns');
+                $this->errorDetail = $this->quoteForeignText(sprintf('%s: %s', $children->exception ?? '', $children->message ?? ''));
                 return self::STATUS_INST_INVALID_USER_PASSWORD;
             }
+            $this->errorDetail = 'XML response without calendar: ' . $this->quoteForeignText($content);
             return self::STATUS_INST_UNEXPECTED_RESPONSE;
         }
 
         // Synology meldet Fehler als Klartext
         if (str_starts_with($content, 'Please log in')) {
-            $this->Logger_Err('Error logging on - invalid user/password combination for ' . $url);
+            $this->errorDetail = 'server asks to log in';
             return self::STATUS_INST_INVALID_USER_PASSWORD;
         }
 
-        $this->Logger_Err(sprintf('Error on connect - this is not a valid response (URL: %s, response: %s', $url, $content));
+        $this->errorDetail = $content === '' ? 'empty response' : 'response starts with ' . $this->quoteForeignText($content);
         return self::STATUS_INST_UNEXPECTED_RESPONSE;
+    }
+
+    /* fremder Text (Serverantwort) gekürzt und als Zitat gekennzeichnet - MCP-Regel 17 */
+    private function quoteForeignText(string $text): string
+    {
+        $text = trim((string) preg_replace('/\s+/', ' ', $text));
+        return '"' . (mb_strlen($text) > 100 ? mb_substr($text, 0, 100) . '…' : $text) . '"';
+    }
+
+    /*
+        Status setzen und Störungen protokollieren (MCP-Regeln 3, 4, 16): jeder Wechsel in eine
+        Störung einmal als Warnung mit Art und nächstem Schritt, die Behebung einmal als Meldung.
+        Dieselbe Störung bei jedem Abruf bleibt still. Was gemeldet ist, steht im Attribut und
+        überlebt so auch einen Neustart.
+     */
+    private function setInstanceStatus(int $status): void
+    {
+        $this->SetStatus($status);
+
+        $logged = $this->ReadAttributeString(self::ICCR_ATTRIBUTE_LOGGED_PROBLEM);
+        if ($status < IS_EBASE) {
+            if ($logged !== '' && $status === IS_ACTIVE) {
+                $this->LogMessage(sprintf('Calendar can be read again (problem was: %s)', $this->statusText((int) $logged)), KL_MESSAGE);
+            }
+            $this->WriteAttributeString(self::ICCR_ATTRIBUTE_LOGGED_PROBLEM, '');
+            return;
+        }
+
+        [$key, $message] = $this->problemMessage($status);
+        if ($key !== $logged) {
+            $this->LogMessage($message, KL_WARNING);
+            $this->WriteAttributeString(self::ICCR_ATTRIBUTE_LOGGED_PROBLEM, $key);
+        } else {
+            $this->Logger_Dbg(__FUNCTION__, 'still: ' . $message);
+        }
+    }
+
+    /* Schlüssel (Status, bei 201 mit Unterart) und Log-Text einer Störung */
+    private function problemMessage(int $status): array
+    {
+        $url     = $this->ReadPropertyString(self::ICCR_PROPERTY_CALENDAR_URL);
+        $mediaId = $this->ReadPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID);
+        $server  = $this->maskUrl($url);
+        $detail  = $this->errorDetail === '' ? '' : ' (' . $this->errorDetail . ')';
+        $minutes = $this->ReadPropertyInteger(self::ICCR_PROPERTY_UPDATE_FREQUENCY);
+        $retry   = $minutes > 0
+            ? sprintf('temporary, reading is retried every %d minutes', $minutes)
+            : 'reading is not repeated automatically (update interval 0), call ICCR_UpdateCalendar';
+
+        return match ($status) {
+            self::STATUS_INST_INVALID_URL => match (true) {
+                $url === '' && $mediaId !== 0 => [
+                    '201-media',
+                    sprintf('Media object #%d is not a usable document and no calendar URL is configured - configuration error: select a media object of type document or enter the iCal URL', $mediaId)
+                ],
+                $url === '' => [
+                    '201-missing',
+                    'No calendar URL and no media object configured - configuration error: enter the iCal URL of the calendar or select a media object'
+                ],
+                default => [
+                    '201-invalid',
+                    sprintf('Calendar URL %s is not a valid URL%s - configuration error: correct the URL (http/https)', $server, $detail)
+                ],
+            },
+            self::STATUS_INST_SSL_ERROR => [
+                (string) $status,
+                sprintf('SSL error reading the calendar from %s%s - check the server certificate or tick "Disable Verification of SSL Certificate"', $server, $detail)
+            ],
+            self::STATUS_INST_INVALID_USER_PASSWORD => [
+                (string) $status,
+                sprintf('Calendar server %s rejected user name or password%s - configuration error: correct user name and password and apply the changes (reading is paused until the changes are applied)', $server, $detail)
+            ],
+            self::STATUS_INST_CONNECTION_ERROR => [
+                (string) $status,
+                sprintf('Calendar server %s not reachable%s - %s', $server, $detail, $retry)
+            ],
+            self::STATUS_INST_OPERATION_TIMED_OUT => [
+                (string) $status,
+                sprintf('Timeout reading the calendar from %s%s - %s', $server, $detail, $retry)
+            ],
+            self::STATUS_INST_UNEXPECTED_RESPONSE => [
+                (string) $status,
+                sprintf('Calendar server %s did not return an iCal calendar%s - configuration error: use the export/subscription link of the calendar and apply the changes (reading is paused until the changes are applied)', $server, $detail)
+            ],
+            self::STATUS_INST_INVALID_MEDIA_CONTENT => [
+                (string) $status,
+                sprintf('Media object #%d contains no iCal data (BEGIN:VCALENDAR missing) - fill it with an .ics file', $mediaId)
+            ],
+            default => [(string) $status, sprintf('Instance status %d', $status)],
+        };
+    }
+
+    /* Server einer URL ohne Pfad und Zugangsdaten - der Pfad trägt bei iCloud & Co. das Zugriffstoken */
+    private function maskUrl(string $url): string
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts) || !isset($parts['host'])) {
+            return $this->quoteForeignText($url);
+        }
+        return sprintf('%s://%s%s/…', $parts['scheme'] ?? 'http', $parts['host'], isset($parts['port']) ? ':' . $parts['port'] : '');
     }
 
     /*
@@ -809,7 +928,7 @@ class iCalCalendarReader extends IPSModuleStrict
             $result      = $this->LoadCalendarURL($content);
         }
 
-        $this->SetStatus($result);
+        $this->setInstanceStatus($result);
 
         if ($result !== IS_ACTIVE) {
             return null;

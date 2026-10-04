@@ -47,7 +47,7 @@ pruefe($m->urlAbrufe === 0, 'ohne URL kein Abruf');
 
 // --- 2. funktionierender Kalender mit Notifiern
 echo "\nKalender lesbar, drei Notifier\n";
-$m->urlAntwort = [IS_ACTIVE, kalender()];
+$m->urlAntwort = antwortKalender(kalender());
 $id = $m->instanzId();
 IPS_SetProperty($id, 'CalendarServerURL', 'https://kalender.example/test.ics');
 IPS_SetProperty($id, 'Notifiers', json_encode([
@@ -85,14 +85,14 @@ IPS_ApplyChanges($id);
 
 // --- 3. Server lehnt Zugang ab
 echo "\nZugang abgelehnt\n";
-$m->urlAntwort = [203, ''];
+$m->urlAntwort = antwortInhalt(SABRE_NICHT_ANGEMELDET);
 $vorher = zustand($m);
 $text   = $m->RunSelfTest();
 pruefe(str_contains($text, '✗ Calendar URL could not be read: invalid user or password (status 203)'), 'Art des Fehlers mit Statuscode');
 pruefe(str_contains($text, '→ Configuration: correct user name and password.'), 'nächster Schritt: Zugangsdaten');
 pruefe(zustand($m) === $vorher, 'Status bleibt trotz Fehlschlag unverändert');
 
-$m->urlAntwort = [204, ''];
+$m->urlAntwort = antwortCurlFehler(7, 'Failed to connect to kalender.example port 443');
 pruefe(str_contains($m->RunSelfTest(), '→ Server not reachable: try again later'), 'Verbindungsfehler: später erneut versuchen');
 
 // --- 4. abgeschaltete Instanz
