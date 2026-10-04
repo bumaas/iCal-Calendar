@@ -162,4 +162,9 @@ Diese Funktion wird intern regelmäßig, wie in "Update-freq. (minutes)" konfigu
 Gibt ein Array mit den zwischengespeicherten und in die lokale Zeitzone übertragenen Kalenderdaten als JSON-kodierten String aus. 
  
 `json_string ICCR_GetNotifierPresenceReason(integer $InstanceID, string $ident);`   
-Gibt ein Array der den Status bedingenden Ereignisse als JSON-kodierten String aus. 
+Gibt den Termin, der die Meldevariable mit dem Ident `$ident` (z. B. `NOTIFIER1`) bei der letzten Auswertung aktiv gemacht hat, als JSON-kodierten String aus; war sie inaktiv oder noch nicht ausgewertet, `[]`.
+Ein unbekannter Ident wird als Warnung gemeldet, die die gültigen Idents nennt.
+
+`string ICCR_RunSelfTest(integer $InstanceID);`   
+Prüft die Instanz und gibt das Ergebnis als Text aus, eine Zeile je Prüfung (Quelle, Import, Cache, Meldevariablen) samt nächstem Schritt bei Fehlern; die letzte Zeile lautet `N errors, M warnings`.
+Der Kalender wird dabei gelesen, verändert wird nichts (kein Status, keine Variablen, kein Cache). Der Text ist englisch; im Formular steht dafür der Knopf „Selbsttest ausführen“.

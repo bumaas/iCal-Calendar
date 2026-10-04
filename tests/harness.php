@@ -39,7 +39,7 @@ final class iCalCalendarReaderHarness extends iCalCalendarReader
     public ?array $urlAntwort = null;
     public int $urlAbrufe     = 0;
 
-    public function LoadCalendarURL(string &$content): int
+    protected function LoadCalendarURL(string &$content): int
     {
         if ($this->urlAntwort === null) {
             throw new RuntimeException('Test ohne $urlAntwort würde echt ins Netz gehen');
@@ -153,6 +153,42 @@ function neueUtilControl(): void
         'ModuleType' => 0,
         'Class'      => UtilControlAttrappe::class,
     ]);
+}
+
+/* Testdaten für Modultests: Termine relativ zu jetzt (CheckPresence vergleicht mit time()). */
+
+/** Kalender mit zwei Terminen: einer läuft gerade, einer beginnt morgen. */
+function kalender(): string
+{
+    $utc   = static fn (int $ts): string => gmdate('Ymd\THis\Z', $ts);
+    $jetzt = time();
+    $morgen = $jetzt + 86400;
+    return implode("\r\n", [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//test//check-notifier//DE',
+        'BEGIN:VEVENT',
+        'UID:laeuft@test',
+        'DTSTAMP:' . $utc($jetzt),
+        'DTSTART:' . $utc($jetzt - 600),
+        'DTEND:' . $utc($jetzt + 3000),
+        'SUMMARY:Müllabfuhr Restmüll',
+        'END:VEVENT',
+        'BEGIN:VEVENT',
+        'UID:morgen@test',
+        'DTSTAMP:' . $utc($jetzt),
+        'DTSTART:' . $utc($morgen),
+        'DTEND:' . $utc($morgen + 3600),
+        'SUMMARY:Arzttermin',
+        'END:VEVENT',
+        'END:VCALENDAR',
+        '',
+    ]);
+}
+
+function notifier(string $ident, string $find, bool $regex = false, int $vorlaufMin = 0): array
+{
+    return ['Ident' => $ident, 'Name' => '', 'Find' => $find, 'RegExpression' => $regex, 'Prenotify' => $vorlaufMin, 'Postnotify' => 0];
 }
 
 $pruefungen = 0;

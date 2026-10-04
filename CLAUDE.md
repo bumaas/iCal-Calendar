@@ -8,6 +8,11 @@ GUID `{5127CDDC-2859-4223-A870-4D26AC83622C}`).
 
 - `iCalCalendarReader/module.php` — Symcon-Modulklasse (`IPSModuleStrict`), Konfigurationsformular
   wird dynamisch erzeugt (keine form.json). HTTP-Abruf unterstützt Basic- und Digest-Auth.
+  MCP-Tauglichkeit: `ICCR_RunSelfTest` (Text, ohne Wirkung) und unsichtbare Hinweise am Anfang
+  der Formular-Aktionen, je öffentliche Funktion. **Hinweis-Captions in einfachen Anführungszeichen
+  schreiben** — `symcon-mcp-check` liest doppelt gequotete Strings nicht und meldet die Funktion
+  sonst als unerwähnt. `check_locale.php` sieht das Code-Formular nicht: neue Captions von Hand in
+  `locale.json` übersetzen.
 - `iCalCalendarReader/iCalImporter.php` — eigenständige Importklasse (auch ohne Symcon nutzbar,
   Konstruktor nimmt Logger-Callables und optional ein Referenzdatum für das Cache-Fenster).
 - `libs/iCalcreator-master` — iCalcreator (Parser), `libs/php-rrule-master` — RRULE-Auswertung.
@@ -53,6 +58,8 @@ Kalender ginge verloren) — deshalb muss regulateTimezones alle TZIDs auflösen
   - `php tests/check-notifier.php` — Status, Timer, Kalenderabruf, Notifier (Text, Regex,
     ungültiger Ausdruck, Vorlauf), Entfernen samt Referenzschutz, Störung und Erholung,
     deaktivierte Instanz. Termine liegen relativ zu jetzt.
+  - `php tests/check-selftest.php` — `ICCR_RunSelfTest`: jede Störung mit Art und nächstem
+    Schritt, Schlusszeile, und vor allem **keine Nebenwirkung** (Status, Variablen, Cache, Timer).
   - `php tests/check-variable-registration.php` — Idents, Typen, Positionen der Notifier-Variablen.
 - `php tests/check_presentations.php` — Darstellungen gegen bekannte Presentation-GUIDs.
 - `php tests/check_locale.php` — Übersetzungs-Vollständigkeit (Translate-Texte vs. locale.json).

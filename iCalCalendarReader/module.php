@@ -407,6 +407,26 @@ class iCalCalendarReader extends IPSModuleStrict
         $form['actions'] = [
             [
                 'type'    => 'Button',
+                'caption' => 'Run self test (changes nothing)',
+                'onClick' => 'echo ICCR_RunSelfTest($id);'
+            ],
+            [
+                'type'    => 'Label',
+                'visible' => false,
+                'caption' => 'For scripts: ICCR_RunSelfTest($InstanceID) returns a self test as text (source, import, cache, notifiers; one line per check, last line \'N errors, M warnings\'). It reads the calendar but changes nothing: no status, no variables, no cache.'
+            ],
+            [
+                'type'    => 'Label',
+                'visible' => false,
+                'caption' => 'ICCR_UpdateCalendar($InstanceID) reads the calendar now, stores it as cache and returns all dates of the cache window as a JSON list (Name, Location, Description, Categories, From/To as Unix time, FromS/ToS as text, allDay, Status, UID, Alarms in seconds relative to From), or null if reading failed (the instance status says why). ICCR_GetCachedCalendar($InstanceID) returns the same list from the last read without contacting the server; it is empty while the instance is not active.'
+            ],
+            [
+                'type'    => 'Label',
+                'visible' => false,
+                'caption' => 'Notifiers: each row of the list creates a boolean variable with the ident NOTIFIER<n>. It is true while a date matches, from \'Prenotify\' minutes before its start until \'Postnotify\' minutes after its end. \'Find\' is a case-sensitive part of the date title, or a PCRE pattern if \'Regular Expression\' is ticked (delimiters are added when missing); an empty \'Find\' matches every date. The notifiers are evaluated every minute against the cache; ICCR_TriggerNotifications($InstanceID) evaluates them now. ICCR_GetNotifierPresenceReason($InstanceID, \'<ident, e.g. NOTIFIER1>\') returns as JSON the date that made this notifier active at the last evaluation, or [] if it was inactive; an unknown ident is reported as error with the valid idents.'
+            ],
+            [
+                'type'    => 'Button',
                 'caption' => 'Load calendar',
                 'onClick' => '
                      $module = new IPSModule($id);
@@ -629,7 +649,7 @@ class iCalCalendarReader extends IPSModuleStrict
         return ($calendarServerURL !== '') && filter_var($calendarServerURL, FILTER_VALIDATE_URL);
     }
 
-    public function LoadCalendarFile(string &$content): int
+    protected function LoadCalendarFile(string &$content): int
     {
         $iCalMediaId = $this->ReadPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID);
 
@@ -656,7 +676,7 @@ class iCalCalendarReader extends IPSModuleStrict
     /*
         load calendar from URL into $this->curl_result, returns IPS status value
      */
-    public function LoadCalendarURL(string &$content): int
+    protected function LoadCalendarURL(string &$content): int
     {
         $instStatus = IS_ACTIVE;
         $url        = $this->ReadPropertyString(self::ICCR_PROPERTY_CALENDAR_URL);
@@ -1014,7 +1034,198 @@ class iCalCalendarReader extends IPSModuleStrict
     {
         $this->Logger_Dbg(__FUNCTION__, sprintf('Notifications: %s', $this->ReadAttributeString(self::ICCR_ATTRIBUTE_NOTIFICATIONS)));
 
-        $notifications = json_decode($this->ReadAttributeString(self::ICCR_ATTRIBUTE_NOTIFICATIONS), true, 512, JSON_THROW_ON_ERROR)[$ident];
-        return json_encode($notifications, JSON_THROW_ON_ERROR);
+        $idents = array_column(
+            json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true, 512, JSON_THROW_ON_ERROR),
+            self::ICCR_PROPERTY_NOTIFIER_IDENT
+        );
+        if (!in_array($ident, $idents, true)) {
+            trigger_error(
+                sprintf(
+                    "Unknown notifier ident '%s' - valid idents: %s",
+                    $ident,
+                    $idents === [] ? '(no notifiers configured)' : implode(', ', $idents)
+                ),
+                E_USER_WARNING
+            );
+            return json_encode(null, JSON_THROW_ON_ERROR);
+        }
+
+        // noch nicht ausgewertet (z. B. direkt nach dem Anlegen) ist gleichbedeutend mit inaktiv
+        $notifications = json_decode($this->ReadAttributeString(self::ICCR_ATTRIBUTE_NOTIFICATIONS), true, 512, JSON_THROW_ON_ERROR);
+        return json_encode($notifications[$ident] ?? [], JSON_THROW_ON_ERROR);
+    }
+
+    /*
+        Selbsttest für Skripte und KI-Assistenten: liest den Kalender, verändert aber nichts
+        (kein Status, keine Variablen, kein Cache). Text, eine Zeile je Prüfung, letzte Zeile
+        "N errors, M warnings".
+     */
+    public function RunSelfTest(): string
+    {
+        $lines    = [];
+        $errors   = 0;
+        $warnings = 0;
+        $add      = static function (string $level, string $label, string $hint = '') use (&$lines, &$errors, &$warnings): void {
+            $lines[] = match ($level) {
+                'ok'    => '✓',
+                'warn'  => '⚠',
+                'error' => '✗',
+                default => '•',
+            } . ' ' . $label;
+            if ($hint !== '') {
+                $lines[] = '   → ' . $hint;
+            }
+            $errors += $level === 'error' ? 1 : 0;
+            $warnings += $level === 'warn' ? 1 : 0;
+        };
+        $summary = static function () use (&$lines, &$errors, &$warnings): string {
+            $lines[] = sprintf('%d errors, %d warnings', $errors, $warnings);
+            return implode("\n", $lines);
+        };
+
+        if (!$this->ReadPropertyBoolean(self::ICCR_PROPERTY_ACTIVE)) {
+            $add('warn', 'Instance is switched off (property active = false), the calendar is not read', 'Switch it on and apply the changes.');
+            return $summary();
+        }
+
+        // Quelle lesen - wie beim regulären Abruf, aber ohne Status und Cache zu setzen
+        $content = '';
+        $mediaId = $this->ReadPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID);
+        if ($mediaId !== 0) {
+            if (!IPS_MediaExists($mediaId) || IPS_GetMedia($mediaId)['MediaType'] !== MEDIATYPE_DOCUMENT) {
+                $add('error', sprintf('Media object #%d does not exist or is not a document', $mediaId), 'Select a media object of type document, or clear the field to use the URL.');
+                return $summary();
+            }
+            if ($this->LoadCalendarFile($content) !== IS_ACTIVE) {
+                $add('error', sprintf('Media object #%d contains no iCal data (BEGIN:VCALENDAR missing)', $mediaId), 'Fill the media object with an .ics file.');
+                return $summary();
+            }
+            $add('ok', sprintf('Source: media object #%d, %d bytes', $mediaId, strlen($content)));
+        } else {
+            if (!$this->CheckCalendarURLSyntax()) {
+                $add('error', 'No valid calendar URL configured and no media object selected', 'Enter the iCal URL of the calendar (http/https) or select a media object, then apply the changes.');
+                return $summary();
+            }
+            $status = $this->LoadCalendarURL($content);
+            if ($status !== IS_ACTIVE) {
+                $add('error', sprintf('Calendar URL could not be read: %s (status %d)', $this->statusText($status), $status), $this->statusHint($status));
+                return $summary();
+            }
+            $add('ok', sprintf('Source: URL readable, %d bytes', strlen($content)));
+        }
+
+        // Import ins Cache-Fenster, Probleme sammeln statt protokollieren
+        $importProblems = [];
+        $daysBack       = $this->ReadPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHEBACK);
+        $daysAhead      = $this->ReadPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHE);
+        try {
+            $importer = new iCalImporter(
+                $daysBack,
+                $daysAhead,
+                static function (string $message, string $data): void {
+                },
+                static function (string $message) use (&$importProblems): void {
+                    $importProblems[] = $message;
+                }
+            );
+            $events = $importer->ImportCalendar($content);
+        } catch (Throwable $t) {
+            $add('error', 'Import failed: ' . mb_substr($t->getMessage(), 0, 200), 'The calendar data cannot be read; the debug output of "Load calendar" shows details.');
+            return $summary();
+        }
+        $add('ok', sprintf('Import: %d dates between %d days back and %d days ahead', count($events), $daysBack, $daysAhead));
+        if ($importProblems !== []) {
+            $add('warn', sprintf('%d import problem(s), first: %s', count($importProblems), mb_substr($importProblems[0], 0, 200)), 'The affected dates may be missing.');
+        }
+        $next = null;
+        foreach ($events as $event) {
+            if ($event['From'] > time() && ($next === null || $event['From'] < $next)) {
+                $next = $event['From'];
+            }
+        }
+        $add('info', $next === null ? 'No future date in the cache window' : 'Next date starts ' . date('Y-m-d H:i', $next));
+
+        // Instanzstatus und Cache
+        $instanceStatus = $this->GetStatus();
+        if ($instanceStatus !== IS_ACTIVE) {
+            $add('warn', sprintf('Instance status is %d (%s), the cache is not updated', $instanceStatus, $this->statusText($instanceStatus)), 'Apply the changes or call ICCR_UpdateCalendar to read the calendar again.');
+        }
+        $cached = json_decode($this->ReadAttributeString(self::ICCR_ATTRIBUTE_CALENDAR_BUFFER), true, 512, JSON_THROW_ON_ERROR);
+        $interval = $this->ReadPropertyInteger(self::ICCR_PROPERTY_UPDATE_FREQUENCY);
+        $add(
+            count($cached) === count($events) ? 'ok' : 'info',
+            sprintf('Cache: %d dates, read every %d minutes%s', count($cached), $interval, count($cached) === count($events) ? '' : ' (differs from the current read; ICCR_UpdateCalendar refreshes it now)')
+        );
+
+        // Notifier gegen den frisch gelesenen Kalender
+        $notifiers = json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true, 512, JSON_THROW_ON_ERROR);
+        if ($notifiers === []) {
+            $add('info', 'No notifiers configured');
+        }
+        foreach ($notifiers as $notifier) {
+            $ident = (string) $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT];
+            $find  = (string) $notifier[self::ICCR_PROPERTY_NOTIFIER_FIND];
+            $regex = (bool) $notifier[self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION];
+            $label = sprintf('%s (%s "%s")', $ident, $regex ? 'pattern' : 'text', mb_substr($find, 0, 60));
+            if (@$this->GetIDForIdent($ident) === false) {
+                $add('warn', $label . ': variable missing', 'Apply the changes to create it.');
+                continue;
+            }
+            if ($regex && $find !== '' && @preg_match($this->NormalizeRegexPattern($find), '') === false) {
+                $add('error', $label . ': invalid regular expression, never matches', 'Correct the pattern in the notifier list.');
+                continue;
+            }
+            $matches = 0;
+            $activeNow = false;
+            foreach ($events as $event) {
+                $matches += ($find === '' || ($regex ? @preg_match($this->NormalizeRegexPattern($find), $event['Name']) > 0 : str_contains($event['Name'], $find))) ? 1 : 0;
+                $activeNow = $activeNow || $this->CheckPresence(
+                    $event['Name'],
+                    $event['From'],
+                    $event['To'],
+                    $find,
+                    $regex,
+                    $notifier[self::ICCR_PROPERTY_NOTIFIER_PRENOTIFY] * 60,
+                    $notifier[self::ICCR_PROPERTY_NOTIFIER_POSTNOTIFY] * 60
+                );
+            }
+            $variable = $this->GetValue($ident);
+            $add(
+                $matches === 0 ? 'warn' : 'ok',
+                sprintf('%s: %d matching date(s) in the cache window, active now: %s, variable: %s', $label, $matches, $activeNow ? 'yes' : 'no', $variable ? 'true' : 'false'),
+                $matches === 0 ? 'No date title contains this search text; check spelling and case.' : ''
+            );
+        }
+
+        return $summary();
+    }
+
+    private function statusText(int $status): string
+    {
+        return match ($status) {
+            IS_ACTIVE                               => 'active',
+            IS_INACTIVE                             => 'inactive',
+            self::STATUS_INST_INVALID_URL           => 'invalid URL',
+            self::STATUS_INST_SSL_ERROR             => 'SSL error',
+            self::STATUS_INST_INVALID_USER_PASSWORD => 'invalid user or password',
+            self::STATUS_INST_CONNECTION_ERROR      => 'connection error',
+            self::STATUS_INST_UNEXPECTED_RESPONSE   => 'unexpected response, not an iCal calendar',
+            self::STATUS_INST_INVALID_MEDIA_CONTENT => 'media object without iCal data',
+            self::STATUS_INST_OPERATION_TIMED_OUT   => 'timeout',
+            default                                 => 'unknown status',
+        };
+    }
+
+    private function statusHint(int $status): string
+    {
+        return match ($status) {
+            self::STATUS_INST_INVALID_URL           => 'Configuration: correct the URL.',
+            self::STATUS_INST_SSL_ERROR             => 'Configuration: check the server certificate, or tick "Disable Verification of SSL Certificate".',
+            self::STATUS_INST_INVALID_USER_PASSWORD => 'Configuration: correct user name and password.',
+            self::STATUS_INST_CONNECTION_ERROR,
+            self::STATUS_INST_OPERATION_TIMED_OUT   => 'Server not reachable: try again later; if it persists, check the address.',
+            self::STATUS_INST_UNEXPECTED_RESPONSE   => 'Configuration: the URL does not return an iCal calendar; use the export/subscription link of the calendar.',
+            default                                 => '',
+        };
     }
 }

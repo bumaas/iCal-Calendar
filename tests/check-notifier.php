@@ -19,40 +19,6 @@ date_default_timezone_set('Europe/Berlin');
 
 neueUtilControl();
 
-/** Kalender mit zwei Terminen: einer läuft gerade, einer beginnt morgen. */
-function kalender(): string
-{
-    $utc   = static fn (int $ts): string => gmdate('Ymd\THis\Z', $ts);
-    $jetzt = time();
-    $morgen = $jetzt + 86400;
-    return implode("\r\n", [
-        'BEGIN:VCALENDAR',
-        'VERSION:2.0',
-        'PRODID:-//test//check-notifier//DE',
-        'BEGIN:VEVENT',
-        'UID:laeuft@test',
-        'DTSTAMP:' . $utc($jetzt),
-        'DTSTART:' . $utc($jetzt - 600),
-        'DTEND:' . $utc($jetzt + 3000),
-        'SUMMARY:Müllabfuhr Restmüll',
-        'END:VEVENT',
-        'BEGIN:VEVENT',
-        'UID:morgen@test',
-        'DTSTAMP:' . $utc($jetzt),
-        'DTSTART:' . $utc($morgen),
-        'DTEND:' . $utc($morgen + 3600),
-        'SUMMARY:Arzttermin',
-        'END:VEVENT',
-        'END:VCALENDAR',
-        '',
-    ]);
-}
-
-function notifier(string $ident, string $find, bool $regex = false, int $vorlaufMin = 0): array
-{
-    return ['Ident' => $ident, 'Name' => '', 'Find' => $find, 'RegExpression' => $regex, 'Prenotify' => $vorlaufMin, 'Postnotify' => 0];
-}
-
 function variablenIdents(int $instanz): array
 {
     $idents = [];
@@ -101,6 +67,13 @@ pruefe(
     'ungültiger Ausdruck wird einmal als Warnung gemeldet'
 );
 
+try {
+    $grund = $m->GetNotifierPresenceReason('NOTIFIER1');
+} catch (Throwable $t) {
+    $grund = 'Ausnahme: ' . $t->getMessage();
+}
+pruefe($grund === '[]', "GetNotifierPresenceReason vor der ersten Auswertung: leer statt PHP-Warnung ($grund)");
+
 // --- 3. Kalender laden und Benachrichtigungen auslösen
 echo "\nKalender laden, Benachrichtigungen auslösen\n";
 $json = $m->UpdateCalendar();
@@ -120,6 +93,17 @@ pruefe(($grund['Name'] ?? '') === 'Müllabfuhr Restmüll', 'GetNotifierPresenceR
 pruefe(
     json_decode($m->GetNotifierPresenceReason('NOTIFIER2'), true, 512, JSON_THROW_ON_ERROR) === [],
     'GetNotifierPresenceReason für inaktiven Notifier ist leer'
+);
+
+$meldung = '';
+try {
+    $m->GetNotifierPresenceReason('NOTIFIER9');
+} catch (Throwable $t) {
+    $meldung = $t->getMessage();
+}
+pruefe(
+    str_contains($meldung, 'NOTIFIER9') && str_contains($meldung, 'NOTIFIER1, NOTIFIER2, NOTIFIER3, NOTIFIER4'),
+    'GetNotifierPresenceReason mit unbekanntem Ident: Fehler nennt die gültigen Idents'
 );
 
 // --- 4. Notifier entfernen: unbenutzte Variable wird gelöscht, referenzierte bleibt
