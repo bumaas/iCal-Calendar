@@ -238,25 +238,26 @@ class iCalCalendarReader extends IPSModuleStrict
 
     private function ValidateNotifierPatterns(array $propNotifiers): void
     {
-        foreach ($propNotifiers as $notifier) {
-            if (empty($notifier[self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION])) {
-                continue;
-            }
+        foreach ($this->invalidPatterns($propNotifiers) as $ident => $find) {
+            $this->LogMessage(
+                sprintf("Notifier '%s': invalid regular expression in Find '%s'", $ident, $find),
+                KL_WARNING
+            );
+        }
+    }
 
-            $find = $notifier[self::ICCR_PROPERTY_NOTIFIER_FIND] ?? '';
-            if ($find === '') {
-                continue;
-            }
-
-            $normalized = $this->NormalizeRegexPattern($find);
-            if (@preg_match($normalized, '') === false) {
-                $ident = $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT] ?? '';
-                $this->LogMessage(
-                    sprintf("Notifier '%s': invalid regular expression in Find '%s'", $ident, $find),
-                    KL_WARNING
-                );
+    /* Ident => Suchmuster aller Notifier, deren regulärer Ausdruck ungültig ist (schalten nie) */
+    private function invalidPatterns(array $notifiers): array
+    {
+        $invalid = [];
+        foreach ($notifiers as $notifier) {
+            $find = (string) ($notifier[self::ICCR_PROPERTY_NOTIFIER_FIND] ?? '');
+            if (!empty($notifier[self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION]) && $find !== ''
+                && @preg_match($this->NormalizeRegexPattern($find), '') === false) {
+                $invalid[(string) ($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT] ?? '')] = $find;
             }
         }
+        return $invalid;
     }
 
     private function syncNotifierVariables(array $propNotifiers): void
@@ -432,6 +433,24 @@ class iCalCalendarReader extends IPSModuleStrict
             ],
             'values' => $this->getNotifierListValues()
         ];
+
+        // ungültige reguläre Ausdrücke sichtbar machen - Log und Selbsttest sieht im Formular niemand
+        $invalidPatterns = $this->invalidPatterns($this->readNotifiers() ?? []);
+        if ($invalidPatterns !== []) {
+            $form['elements'][] = [
+                'type'    => 'Label',
+                'name'    => 'InvalidPatternHint',
+                'caption' => implode("\n", array_map(
+                    fn (string $ident, string $find): string => sprintf(
+                        $this->Translate('%s: invalid regular expression %s - this notifier never switches on, correct it in the list'),
+                        $ident,
+                        $this->quoteForeignText($find)
+                    ),
+                    array_keys($invalidPatterns),
+                    $invalidPatterns
+                )),
+            ];
+        }
 
         $form['elements'][] = [
             'type'    => 'ExpansionPanel',
@@ -635,7 +654,8 @@ class iCalCalendarReader extends IPSModuleStrict
     private function getNotifierListValues():array
     {
         $savedNotifiers = $this->readNotifiers() ?? [];
-        $listValues = [];
+        $invalid        = $this->invalidPatterns($savedNotifiers);
+        $listValues     = [];
 
         foreach ($savedNotifiers as $notifier){
             $row = $notifier;
@@ -648,6 +668,9 @@ class iCalCalendarReader extends IPSModuleStrict
             } else {
                 $row[self::ICCR_PROPERTY_NOTIFIER_IDENT] = ''; // Markieren als ungültig für die UI
                 $row[self::ICCR_PROPERTY_NOTIFIER_NAME] = $this->Translate('invalid or missing variable');
+            }
+            if (isset($invalid[$ident])) {
+                $row['rowColor'] = '#FFC0C0'; // ungültiger regulärer Ausdruck, schaltet nie
             }
             $listValues[] = $row;
         }

@@ -35,6 +35,10 @@ GUID `{5127CDDC-2859-4223-A870-4D26AC83622C}`).
   **`ApplyChanges` liest den Kalender selbst** (`refreshCalendar()` + `TriggerNotifications()`),
   `determineStatus()` prüft nur die Konfiguration; die Timer werden vor dem Lesen gesetzt, damit
   ein gescheiterter Abruf wiederholt wird (`tests/check-apply.php`).
+  Ungültige reguläre Ausdrücke beurteilt allein `invalidPatterns()` (Log-Warnung, rote Zeile,
+  Label `InvalidPatternHint` unter der Liste; `tests/check-form.php`). **Bewusst kein eigener
+  Fehlerstatus:** In jedem Fehlerstatus liest `UpdateCalendar` nicht mehr und `GetCachedCalendar`
+  liefert `[]` — ein Tippfehler in einem Notifier legte sonst alle übrigen und jedes Skript lahm.
   Bei 201/203/205 liest der Abruf-Timer bewusst nicht weiter (`UpdateCalendar` prüft den Status),
   erst `ApplyChanges` — kein Dauerversuch mit falschen Zugangsdaten.
 - `iCalCalendarReader/iCalImporter.php` — eigenständige Importklasse (auch ohne Symcon nutzbar,

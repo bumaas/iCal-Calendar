@@ -124,6 +124,7 @@ Nun wird für jede zu erstellende Statusvariable ein Eintrag unter "Meldevariabl
 ![image](docs/Instanz_Meldevariable_definieren.png)
 
 Als Suchbegriff kann auch ein "Regulärer Ausdruck" verwendet werden. Zum Testen des Ausdrucks gibt es eine Testfunktion.
+Ist ein regulärer Ausdruck ungültig, schaltet diese Meldevariable nie; die Zeile wird in der Liste farbig markiert, und unter der Liste steht, welcher Ausdruck betroffen ist (zusätzlich eine Warnung im Log). Die übrigen Meldevariablen und das Lesen des Kalenders laufen dabei weiter.
 ![image](docs/Testfunktion_RegExpr.png)
 Es gibt aber auch im Web verschiedene Seiten (z. B. [regular expressions 101](https://regex101.com/)), die beim Ausformulieren von Suchmustern helfen.
 
