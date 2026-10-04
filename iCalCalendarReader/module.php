@@ -413,7 +413,7 @@ class iCalCalendarReader extends IPSModuleStrict
             [
                 'type'    => 'Label',
                 'visible' => false,
-                'caption' => 'For scripts: ICCR_RunSelfTest($InstanceID) returns a self test as text (source, import, cache, notifiers; one line per check, last line \'N errors, M warnings\'). It reads the calendar but changes nothing: no status, no variables, no cache.'
+                'caption' => 'For scripts: ICCR_RunSelfTest($InstanceID) returns a self test as text (source, import, cache, notifiers; one line per check, last line "N errors, M warnings"). It reads the calendar but changes nothing: no status, no variables, no cache.'
             ],
             [
                 'type'    => 'Label',
@@ -423,7 +423,7 @@ class iCalCalendarReader extends IPSModuleStrict
             [
                 'type'    => 'Label',
                 'visible' => false,
-                'caption' => 'Notifiers: each row of the list creates a boolean variable with the ident NOTIFIER<n>. It is true while a date matches, from \'Prenotify\' minutes before its start until \'Postnotify\' minutes after its end. \'Find\' is a case-sensitive part of the date title, or a PCRE pattern if \'Regular Expression\' is ticked (delimiters are added when missing); an empty \'Find\' matches every date. The notifiers are evaluated every minute against the cache; ICCR_TriggerNotifications($InstanceID) evaluates them now. ICCR_GetNotifierPresenceReason($InstanceID, \'<ident, e.g. NOTIFIER1>\') returns as JSON the date that made this notifier active at the last evaluation, or [] if it was inactive; an unknown ident is reported as error with the valid idents.'
+                'caption' => 'Notifiers: each row of the list creates a boolean variable with the ident NOTIFIER<n>. It is true while a date matches, from "Prenotify" minutes before its start until "Postnotify" minutes after its end. "Find" is a case-sensitive part of the date title, or a PCRE pattern if "Regular Expression" is ticked (delimiters are added when missing); an empty "Find" matches every date. The notifiers are evaluated every minute against the cache; ICCR_TriggerNotifications($InstanceID) evaluates them now. ICCR_GetNotifierPresenceReason($InstanceID, "<ident, e.g. NOTIFIER1>") returns as JSON the date that made this notifier active at the last evaluation, or [] if it was inactive; an unknown ident is reported as error with the valid idents.'
             ],
             [
                 'type'    => 'Button',
@@ -1154,7 +1154,12 @@ class iCalCalendarReader extends IPSModuleStrict
         $interval = $this->ReadPropertyInteger(self::ICCR_PROPERTY_UPDATE_FREQUENCY);
         $add(
             count($cached) === count($events) ? 'ok' : 'info',
-            sprintf('Cache: %d dates, read every %d minutes%s', count($cached), $interval, count($cached) === count($events) ? '' : ' (differs from the current read; ICCR_UpdateCalendar refreshes it now)')
+            sprintf(
+                'Cache: %d dates, %s%s',
+                count($cached),
+                $interval > 0 ? sprintf('read every %d minutes', $interval) : 'not read automatically (update interval 0)',
+                count($cached) === count($events) ? '' : ' (differs from the current read; ICCR_UpdateCalendar refreshes it now)'
+            )
         );
 
         // Notifier gegen den frisch gelesenen Kalender

@@ -72,6 +72,17 @@ pruefe(str_contains($text, '⚠ NOTIFIER2 (text "Zahnarzt"): 0 matching'), 'NOTI
 pruefe(str_contains($text, '✗ NOTIFIER3 (pattern "(["): invalid regular expression'), 'ungültiger Ausdruck als Fehler');
 pruefe(schlusszeile($text) === '1 errors, 1 warnings', 'Schlusszeile 1 errors, 1 warnings');
 
+// Intervall 0 heißt: nie automatisch lesen (am nuc bei fünf Instanzen, Cache dort veraltet)
+IPS_SetProperty($id, 'UpdateFrequency', 0);
+IPS_ApplyChanges($id);
+$text = $m->RunSelfTest();
+pruefe(
+    str_contains($text, 'Cache: 2 dates, not read automatically (update interval 0)'),
+    'Intervall 0: „not read automatically" statt „read every 0 minutes"'
+);
+IPS_SetProperty($id, 'UpdateFrequency', 15);
+IPS_ApplyChanges($id);
+
 // --- 3. Server lehnt Zugang ab
 echo "\nZugang abgelehnt\n";
 $m->urlAntwort = [203, ''];
