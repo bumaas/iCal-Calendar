@@ -832,7 +832,13 @@ class iCalCalendarReader extends IPSModuleStrict
     {
         $this->SetStatus($status);
 
+        // Reload-Fenster: Code schon neu, Attribut noch nicht registriert - dann liefert der Kernel
+        // false statt eines Strings (am nuc 04.10.2026: falsche Behebungsmeldung, leerer ERROR).
+        // Dann nur den Status setzen und nichts protokollieren.
         $logged = $this->ReadAttributeString(self::ICCR_ATTRIBUTE_LOGGED_PROBLEM);
+        if (!is_string($logged)) {
+            return;
+        }
         if ($status < IS_EBASE) {
             if ($logged !== '' && $status === IS_ACTIVE) {
                 $this->LogMessage(sprintf('Calendar can be read again (problem was: %s)', $this->statusText((int) $logged)), KL_MESSAGE);
