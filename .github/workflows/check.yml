@@ -27,5 +27,5 @@ jobs:
         uses: bumaas/symcon-mcp-check@v1
         with:
           language: de
-      - name: Tests (alle tests/*.php)
-        run: for t in tests/*.php; do echo "== $t"; php "$t" || exit 1; done
+      - name: Tests (alle tests/check*.php)
+        run: for t in tests/check*.php; do echo "== $t"; php "$t" || exit 1; done

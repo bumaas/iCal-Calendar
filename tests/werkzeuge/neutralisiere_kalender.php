@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * Erzeugt aus den privaten Testkalendern (Mitschnitte von Anwendern, nicht
- * committet) neutralisierte Fixtures für tests/import_regression.php.
+ * committet) neutralisierte Fixtures für tests/check-import-regression.php.
  *
  * Neutralisiert werden alle Freitexte und Adressen (SUMMARY, DESCRIPTION,
  * LOCATION, ORGANIZER, ATTENDEE, UID, URL, CN=, EMAIL= …) — formgetreu:

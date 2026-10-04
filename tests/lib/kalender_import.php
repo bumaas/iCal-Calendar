@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Gemeinsamer Import-Aufruf für tests/import_regression.php und
+ * Gemeinsamer Import-Aufruf für tests/check-import-regression.php und
  * tests/werkzeuge/neutralisiere_kalender.php: lädt Libs und iCalImporter und
  * importiert einen Kalender mit festem Referenzdatum.
  */

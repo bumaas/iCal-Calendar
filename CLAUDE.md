@@ -42,13 +42,26 @@ Kalender ginge verloren) — deshalb muss regulateTimezones alle TZIDs auflösen
 
 ## Tests
 
+- **Modultests gegen den Kernel-Stub** (`symcon/SymconStubs`, Submodul `tests/stubs`, gepinnt
+  auf `bf2950f`), gemeinsamer Aufbau in `tests/harness.php`:
+  - Netz-Naht: `LoadCalendarURL()` ist überschrieben und liefert `$urlAntwort` ([Status,
+    Inhalt]); ohne gesetzte Antwort wirft die Harness, statt echt ins Netz zu gehen.
+  - Util Control (für `UC_FindReferences` beim Löschen von Notifier-Variablen) stellt die
+    Harness als `UtilControlAttrappe` samt globaler Funktion; Referenzen setzt der Test.
+  - Medienobjekte kann der Stub nicht (`IPS_GetMedia` liefert `[]`) — der Medien-Weg ist
+    deshalb nicht abgedeckt.
+  - `php tests/check-notifier.php` — Status, Timer, Kalenderabruf, Notifier (Text, Regex,
+    ungültiger Ausdruck, Vorlauf), Entfernen samt Referenzschutz, Störung und Erholung,
+    deaktivierte Instanz. Termine liegen relativ zu jetzt.
+  - `php tests/check-variable-registration.php` — Idents, Typen, Positionen der Notifier-Variablen.
+- `php tests/check_presentations.php` — Darstellungen gegen bekannte Presentation-GUIDs.
 - `php tests/check_locale.php` — Übersetzungs-Vollständigkeit (Translate-Texte vs. locale.json).
 - `php tests/check-readme.php` — Doku-Sperrklinke (README de/en gegen Modul, bekannte Lücken
   in `tests/readme-bekannt.json`).
-- `php tests/import_regression.php` — Import-Regressionstest über 18 Testkalender in
+- `php tests/check-import-regression.php` — Import-Regressionstest über 18 Testkalender in
   `tests/fixtures/kalender/*.ics.gz` (committet). Festes Referenzdatum, Vergleich von Anzahl,
-  Fehlerzahl und Prüfsumme gegen `tests/import_regression.golden.json`; ohne Fixtures rot.
-  Nach beabsichtigten Verhaltensänderungen: `php tests/import_regression.php --update`.
+  Fehlerzahl und Prüfsumme gegen `tests/check-import-regression.golden.json`; ohne Fixtures rot.
+  Nach beabsichtigten Verhaltensänderungen: `php tests/check-import-regression.php --update`.
 - **Fixtures sind neutralisierte Anwender-Mitschnitte.** Die Originale liegen privat in
   `docs/Examples/Testdaten` (per `.gitignore` ausgeschlossen, nie committen).
   `php tests/werkzeuge/neutralisiere_kalender.php` ersetzt alle Freitexte und Adressen

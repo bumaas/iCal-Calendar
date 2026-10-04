@@ -10,8 +10,8 @@ declare(strict_types=1);
  * mit einem festen Referenzdatum und vergleicht Event-Anzahl, Fehlerzahl und
  * Prüfsumme der kanonisch sortierten Ergebnisse gegen die Golden-Datei.
  *
- * Aufruf:  php tests/import_regression.php            Prüfen (Exit-Code 1 bei Abweichung)
- *          php tests/import_regression.php --update   Golden-Datei neu erzeugen
+ * Aufruf:  php tests/check-import-regression.php            Prüfen (Exit-Code 1 bei Abweichung)
+ *          php tests/check-import-regression.php --update   Golden-Datei neu erzeugen
  */
 
 error_reporting(E_ALL & ~E_DEPRECATED);
@@ -20,7 +20,7 @@ date_default_timezone_set('Europe/Berlin');
 require_once __DIR__ . '/lib/kalender_import.php';
 
 $fixtureDir = __DIR__ . '/fixtures/kalender';
-$goldenFile = __DIR__ . '/import_regression.golden.json';
+$goldenFile = __DIR__ . '/check-import-regression.golden.json';
 $update     = in_array('--update', $argv, true);
 
 $files = glob($fixtureDir . '/*.ics.gz') ?: [];
@@ -93,7 +93,7 @@ foreach (array_keys($golden) as $name) {
 }
 
 if ($failures > 0) {
-    echo "\nFalls die Abweichung beabsichtigt ist: php tests/import_regression.php --update\n";
+    echo "\nFalls die Abweichung beabsichtigt ist: php tests/check-import-regression.php --update\n";
 }
 echo "$checks Prüfungen, $failures Fehler\n";
 exit($failures === 0 ? 0 : 1);
