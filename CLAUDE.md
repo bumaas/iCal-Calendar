@@ -43,14 +43,26 @@ Kalender ginge verloren) — deshalb muss regulateTimezones alle TZIDs auflösen
 ## Tests
 
 - `php tests/check_locale.php` — Übersetzungs-Vollständigkeit (Translate-Texte vs. locale.json).
-- `php tests/import_regression.php` — Import-Regressionstest über die Testkalender in
-  `docs/Examples/Testdaten` (nicht committet, private Daten → in der CI übersprungen).
-  Festes Referenzdatum, Vergleich gegen `tests/import_regression.golden.json` (committet).
+- `php tests/check-readme.php` — Doku-Sperrklinke (README de/en gegen Modul, bekannte Lücken
+  in `tests/readme-bekannt.json`).
+- `php tests/import_regression.php` — Import-Regressionstest über 18 Testkalender in
+  `tests/fixtures/kalender/*.ics.gz` (committet). Festes Referenzdatum, Vergleich von Anzahl,
+  Fehlerzahl und Prüfsumme gegen `tests/import_regression.golden.json`; ohne Fixtures rot.
   Nach beabsichtigten Verhaltensänderungen: `php tests/import_regression.php --update`.
+- **Fixtures sind neutralisierte Anwender-Mitschnitte.** Die Originale liegen privat in
+  `docs/Examples/Testdaten` (per `.gitignore` ausgeschlossen, nie committen).
+  `php tests/werkzeuge/neutralisiere_kalender.php` ersetzt alle Freitexte und Adressen
+  formgetreu (Buchstabe bleibt Buchstabe, Ziffer bleibt Ziffer, gleiche Texte gleich), lässt
+  Zeiten, Regeln und Zeitzonen stehen und belegt danach je Kalender, dass der Import vorher und
+  nachher dieselben Termine liefert (Exit 1 sonst). Neuer Mitschnitt: Datei dort ablegen,
+  neutralen Namen in `ZUORDNUNG` eintragen, Werkzeug laufen lassen, Golden mit `--update`.
+  Vor dem Commit die entpackten Fixtures auf Namen, Adressen und Orte durchsehen.
+- `tests/lib/kalender_import.php` — gemeinsamer Import-Aufruf für Test und Werkzeug.
 - CI: `.github/workflows/check.yml` (PHP 8.4, Checkout mit Submodulen): Code-Stil mit
   php-cs-fixer gegen das Regelwerk im Submodul `.style` (`--dry-run`; die gebündelten Libs
   `libs/iCalcreator-master` und `libs/php-rrule-master` sind per `.style-exclude`
-  ausgenommen), php -l, JSON-Validität, Locale-Check, Regressionstest.
+  ausgenommen), php -l, JSON-Validität, MCP-Prüfung, danach **alle `tests/*.php`** per Glob
+  (ein neuer Test läuft ohne Workflow-Änderung mit).
 
 ## Konventionen
 

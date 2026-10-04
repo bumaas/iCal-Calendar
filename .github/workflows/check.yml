@@ -18,23 +18,14 @@ jobs:
           PHP_CS_FIXER_IGNORE_ENV=1 php php-cs-fixer-v3.phar fix --config=.style/.php-cs-fixer.php --dry-run --diff --using-cache=no --allow-risky=yes
 
       - name: PHP-Syntax
-        run: |
-          php -l iCalCalendarReader/module.php
-          php -l iCalCalendarReader/iCalImporter.php
-          php -l tests/check_locale.php
-          php -l tests/import_regression.php
+        run: find iCalCalendarReader tests -name '*.php' -not -path 'tests/stubs/*' -print0 | xargs -0 -n1 php -l
       - name: JSON-Validität
         run: |
           find . -name '*.json' -not -path './.git/*' -print0 |
             xargs -0 -n1 php -r 'json_decode(file_get_contents($argv[1]), false, 512, JSON_THROW_ON_ERROR); echo $argv[1], " ok\n";' --
-      - name: Übersetzungen
-        run: php tests/check_locale.php
-      - name: Import-Regression
-        run: php tests/import_regression.php
-
       - name: MCP-Tauglichkeit (statische Regeln, bumaas/symcon-mcp-check)
         uses: bumaas/symcon-mcp-check@v1
         with:
           language: de
-      - name: Modultests
-        run: for t in tests/check-readme.php; do echo "== $t"; php "$t" || exit 1; done
+      - name: Tests (alle tests/*.php)
+        run: for t in tests/*.php; do echo "== $t"; php "$t" || exit 1; done
