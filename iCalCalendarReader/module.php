@@ -82,6 +82,9 @@ class iCalCalendarReader extends IPSModuleStrict
     private const ICCR_ATTRIBUTE_LOGGED_PROBLEM  = 'LoggedProblem'; // zuletzt im Log gemeldete Störung, '' = keine
     private const ICCR_ATTRIBUTE_LOGGED_IMPORT   = 'LoggedImportProblems'; // Prüfsumme der gemeldeten Importprobleme, '' = keine
 
+    private const DEBUG_MAX_BYTES    = 300; // längere Debug-Daten werden gekürzt
+    private const IMPORT_DEBUG_LINES = 20;  // Debug-Zeilen des Importers je Abruf
+
     private const TIMER_TRIGGERNOTIFICATIONS = 'TriggerCalendarNotifications';
     private const TIMER_UPDATECALENDAR       = 'UpdateCalendar';
 
@@ -661,7 +664,7 @@ class iCalCalendarReader extends IPSModuleStrict
         $iCalMediaId = $this->ReadPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID);
 
         $content = base64_decode(@IPS_GetMediaContent($iCalMediaId));
-        $this->Logger_Dbg(__FUNCTION__, sprintf('Media Document Content: %s', json_encode($content, JSON_THROW_ON_ERROR)));
+        $this->Logger_Dbg(__FUNCTION__, sprintf('media object #%d: %d bytes, %d VEVENT', $iCalMediaId, strlen($content), substr_count($content, 'BEGIN:VEVENT')));
 
         if ($content && (str_contains($content, 'BEGIN:VCALENDAR'))){
             return IS_ACTIVE;
@@ -708,10 +711,9 @@ class iCalCalendarReader extends IPSModuleStrict
         }
 
         if ($instStatus === IS_ACTIVE) {
-            $this->Logger_Dbg(__FUNCTION__, 'curl_result: ' . $content);
-            $this->Logger_Dbg(__FUNCTION__, 'Successfully loaded');
+            $this->Logger_Dbg(__FUNCTION__, sprintf('loaded: %d bytes, %d VEVENT', strlen($content), substr_count($content, 'BEGIN:VEVENT')));
         } else {
-            $this->Logger_Dbg(__FUNCTION__, sprintf('Error: %s, curl_result: %s', $this->errorDetail, $content === '' ? 'empty' : $content));
+            $this->Logger_Dbg(__FUNCTION__, sprintf('Error: %s, response: %s', $this->errorDetail, $content === '' ? 'empty' : $this->quoteForeignText($content)));
         }
         return $instStatus;
     }
@@ -954,20 +956,36 @@ class iCalCalendarReader extends IPSModuleStrict
             )
         );
 
+        // Der Importer meldet je Termin und je Vorkommen eine Zeile; der Debug-Puffer der Anlage
+        // ist aber für alle Module gemeinsam. Deshalb nur die ersten Zeilen, dann das Ergebnis.
         $importProblems = [];
+        $debugLines     = 0;
         $MyImporter     = new iCalImporter(
             $this->ReadPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHEBACK),
             $this->ReadPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHE),
-            function (string $message, string $data) {
-                $this->Logger_Dbg($message, $data);
+            function (string $message, string $data) use (&$debugLines) {
+                if (++$debugLines <= self::IMPORT_DEBUG_LINES) {
+                    $this->Logger_Dbg($message, $data);
+                }
             },
             function (string $message) use (&$importProblems) {
-                $this->SendDebug('IMPORT_PROBLEM', $message, 0);
+                if (count($importProblems) < self::IMPORT_DEBUG_LINES) {
+                    $this->Logger_Dbg('IMPORT_PROBLEM', $message);
+                }
                 $importProblems[] = $message;
             }
         );
 
         $iCalCalendarArray = $MyImporter->ImportCalendar($content);
+        $this->Logger_Dbg(
+            __FUNCTION__,
+            sprintf(
+                '%d dates imported, %d import problem(s)%s',
+                count($iCalCalendarArray),
+                count($importProblems),
+                $debugLines > self::IMPORT_DEBUG_LINES ? sprintf(', %d further importer debug lines suppressed', $debugLines - self::IMPORT_DEBUG_LINES) : ''
+            )
+        );
         $this->reportImportProblems($importProblems);
 
         return json_encode($iCalCalendarArray, JSON_THROW_ON_ERROR + JSON_INVALID_UTF8_SUBSTITUTE);
@@ -1007,6 +1025,9 @@ class iCalCalendarReader extends IPSModuleStrict
 
     private function Logger_Dbg(string $message, string $data): void
     {
+        if (strlen($data) > self::DEBUG_MAX_BYTES) {
+            $data = mb_strcut($data, 0, self::DEBUG_MAX_BYTES) . sprintf('… (%d bytes)', strlen($data));
+        }
         $this->SendDebug($message, $data, 0);
 
         if ($this->ReadPropertyBoolean(self::ICCR_PROPERTY_WRITE_DEBUG_INFORMATION_TO_LOGFILE)) {
@@ -1029,8 +1050,14 @@ class iCalCalendarReader extends IPSModuleStrict
 
         $TheOldCalendar = $this->ReadAttributeString(self::ICCR_ATTRIBUTE_CALENDAR_BUFFER);
         $TheNewCalendar = $this->ReadCalendar();
-        $this->Logger_Dbg(__FUNCTION__, sprintf('Buffered Calendar: %s', $TheOldCalendar));
-        $this->Logger_Dbg(__FUNCTION__, sprintf('New Calendar: %s', $TheNewCalendar));
+        $this->Logger_Dbg(
+            __FUNCTION__,
+            sprintf(
+                'cache: %d dates before, %s now',
+                count(json_decode($TheOldCalendar, true, 512, JSON_THROW_ON_ERROR)),
+                $TheNewCalendar === null ? '-' : count(json_decode($TheNewCalendar, true, 512, JSON_THROW_ON_ERROR))
+            )
+        );
 
         if ($TheNewCalendar === null) {
             $this->Logger_Dbg(__FUNCTION__, 'Failed to load calendar');
@@ -1065,8 +1092,6 @@ class iCalCalendarReader extends IPSModuleStrict
             return false;
         }
 
-        $this->Logger_Dbg(__FUNCTION__, sprintf('find: \'%s\', subject: \'%s\'', $searchPattern, $subject));
-
         if ($subject === '' || $searchPattern === '') {
             return $searchPattern === '';
         }
@@ -1083,8 +1108,6 @@ class iCalCalendarReader extends IPSModuleStrict
             }
             return $result > 0;
         }
-
-        $this->Logger_Dbg(__FUNCTION__, sprintf('str_contains: checking if \'%s\' contains \'%s\'', $subject, $searchPattern));
 
         return str_contains($subject, $searchPattern);
     }
@@ -1131,7 +1154,6 @@ class iCalCalendarReader extends IPSModuleStrict
         $calendarData = json_decode($this->ReadAttributeString(self::ICCR_ATTRIBUTE_CALENDAR_BUFFER), true, 512, JSON_THROW_ON_ERROR);
 
         foreach ($Notifiers as $notifier) {
-            $this->Logger_Dbg(__FUNCTION__, 'Process notifier: ' . json_encode($notifier, JSON_THROW_ON_ERROR));
             $active                                                        = false;
             $notifications[$notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]] = [];
             foreach ($calendarData as $iCalItem) {
@@ -1149,21 +1171,13 @@ class iCalCalendarReader extends IPSModuleStrict
                     break;
                 }
             }
-            if ($idNotifier = @$this->GetIDForIdent($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT])) {
-                if ($this->GetValue($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT]) !== $active){
-                    $this->Logger_Dbg(
-                        __FUNCTION__,
-                        sprintf(
-                            'Ident \'%s\' (#%s) auf %s gesetzt',
-                            $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT],
-                            $idNotifier,
-                            (int)$active
-                        )
-                    );
-                }
-
-                $this->SetValue($notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT], $active);
+            $ident   = $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT];
+            $changed = false;
+            if (@$this->GetIDForIdent($ident)) {
+                $changed = $this->GetValue($ident) !== $active;
+                $this->SetValue($ident, $active);
             }
+            $this->Logger_Dbg(__FUNCTION__, sprintf('%s: %s%s', $ident, $this->describeReason($notifications[$ident]), $changed ? ', variable changed' : ''));
         }
 
         $this->WriteAttributeString(self::ICCR_ATTRIBUTE_NOTIFICATIONS, json_encode($notifications, JSON_THROW_ON_ERROR));
@@ -1182,13 +1196,21 @@ class iCalCalendarReader extends IPSModuleStrict
             return json_encode([], JSON_THROW_ON_ERROR);
         }
         $CalendarBuffer = $this->ReadAttributeString(self::ICCR_ATTRIBUTE_CALENDAR_BUFFER);
-        $this->Logger_Dbg(__FUNCTION__, $CalendarBuffer);
+        $this->Logger_Dbg(__FUNCTION__, sprintf('%d dates', count(json_decode($CalendarBuffer, true, 512, JSON_THROW_ON_ERROR))));
         return $CalendarBuffer;
+    }
+
+    /* ein Notifier-Ergebnis für das Debug: Titel nur gekürzt in Anführungszeichen (MCP-Regel 17) */
+    private function describeReason(array $event): string
+    {
+        if ($event === []) {
+            return 'inactive';
+        }
+        return sprintf('active by %s (%s - %s)', $this->quoteForeignText((string) $event['Name']), date('Y-m-d H:i', $event['From']), date('Y-m-d H:i', $event['To']));
     }
 
     public function GetNotifierPresenceReason(string $ident): string
     {
-        $this->Logger_Dbg(__FUNCTION__, sprintf('Notifications: %s', $this->ReadAttributeString(self::ICCR_ATTRIBUTE_NOTIFICATIONS)));
 
         $idents = array_column(
             json_decode($this->ReadPropertyString(self::ICCR_PROPERTY_NOTIFIERS), true, 512, JSON_THROW_ON_ERROR),
@@ -1208,6 +1230,7 @@ class iCalCalendarReader extends IPSModuleStrict
 
         // noch nicht ausgewertet (z. B. direkt nach dem Anlegen) ist gleichbedeutend mit inaktiv
         $notifications = json_decode($this->ReadAttributeString(self::ICCR_ATTRIBUTE_NOTIFICATIONS), true, 512, JSON_THROW_ON_ERROR);
+        $this->Logger_Dbg(__FUNCTION__, sprintf('%s: %s', $ident, $this->describeReason($notifications[$ident] ?? [])));
         return json_encode($notifications[$ident] ?? [], JSON_THROW_ON_ERROR);
     }
 

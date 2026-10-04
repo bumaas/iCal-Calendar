@@ -22,6 +22,13 @@ GUID `{5127CDDC-2859-4223-A870-4D26AC83622C}`).
   Importprobleme (Meldungen des `iCalImporter`) genauso: gesammelt, über `reportImportProblems()`
   einmal je Änderung als Warnung (Prüfsumme im Attribut `LoggedImportProblems`), einzeln nur im
   Debug (`IMPORT_PROBLEM`); `tests/check-import-log.php`.
+  **Debug nennt Ergebnisse, keine Rohdaten** (MCP-Regeln 10/17, `tests/check-debug.php`): keine
+  Kalenderinhalte, Cache-Dumps oder Event-JSONs; `Logger_Dbg` kürzt jede Zeile auf
+  `DEBUG_MAX_BYTES`, vom Importer kommen je Abruf nur `IMPORT_DEBUG_LINES` Zeilen plus die
+  Zusammenfassung „N dates imported …“; Termintitel nur über `quoteForeignText()`. Grund: Der
+  Debug-Puffer ist für alle Module gemeinsam (8.192 Zeilen) — vorher schrieb ein Abruf eines
+  260-kB-Kalenders 1.729 Zeilen/722 kB. Zum Untersuchen eines einzelnen Kalenders den Importer
+  lokal laufen lassen (`tests/lib/kalender_import.php`), nicht das Debug aufbohren.
   Bei 201/203/205 liest der Abruf-Timer bewusst nicht weiter (`UpdateCalendar` prüft den Status),
   erst `ApplyChanges` — kein Dauerversuch mit falschen Zugangsdaten.
 - `iCalCalendarReader/iCalImporter.php` — eigenständige Importklasse (auch ohne Symcon nutzbar,
