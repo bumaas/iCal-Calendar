@@ -104,6 +104,7 @@ Für den Fall, dass eine vorliegende Kalenderdatei mit Terminen (z. B. eine iCa
 Sobald eine URL bzw. eine Media-ID angegeben und gespeichert wurde, beginnt die Synchronisierung. Bei jeder Änderung der Parameter wird eine sofortige Synchronisation und ein Update auf alle Meldevariablen gegeben.
 
 Fehler beim Zugriff auf den Kalender stehen im Systemlog (Tabreiter **Meldungen** in der Symcon Management Konsole), und zwar **einmal je Störung** als Warnung – mit der Art des Fehlers und dem nächsten Schritt, z. B. „Calendar server https://… not reachable (…) - temporary, reading is retried every 15 minutes“. Hält dieselbe Störung an, folgt bei den weiteren Abrufen kein neuer Eintrag; ist sie behoben, steht einmal „Calendar can be read again“ im Log. Von der URL erscheint dort nur der Server, nicht der Pfad (der bei iCloud & Co. das Zugriffstoken enthält).
+Ebenso werden Probleme beim Einlesen einzelner Termine (z. B. eine unbekannte Zeitzone oder eine nicht auswertbare Wiederholungsregel) einmal als Warnung mit ihrer Anzahl und dem ersten Problem gemeldet und erst wieder, wenn sie sich ändern; sind sie verschwunden, steht einmal „Calendar imported without problems again“ im Log. Alle Einzelheiten zeigt die Debug-Ausgabe der Instanz.
 Bei abgelehnter Anmeldung, einer ungültigen URL oder einer Antwort ohne Kalenderdaten liest die Instanz erst wieder, wenn die korrigierten Einstellungen übernommen wurden – so wird ein Konto nicht durch wiederholte Fehlversuche gesperrt.
 
 

@@ -19,6 +19,9 @@ GUID `{5127CDDC-2859-4223-A870-4D26AC83622C}`).
   `LoggedProblem`. An der Fehlerstelle nicht selbst `LogMessage` rufen — sonst kommt bei jedem
   Abruf wieder ein Eintrag. Von URLs nur `maskUrl()` (Server ohne Pfad/Token) ausgeben, fremden
   Text nur über `quoteForeignText()` (gekürzt, in Anführungszeichen).
+  Importprobleme (Meldungen des `iCalImporter`) genauso: gesammelt, über `reportImportProblems()`
+  einmal je Änderung als Warnung (Prüfsumme im Attribut `LoggedImportProblems`), einzeln nur im
+  Debug (`IMPORT_PROBLEM`); `tests/check-import-log.php`.
   Bei 201/203/205 liest der Abruf-Timer bewusst nicht weiter (`UpdateCalendar` prüft den Status),
   erst `ApplyChanges` — kein Dauerversuch mit falschen Zugangsdaten.
 - `iCalCalendarReader/iCalImporter.php` — eigenständige Importklasse (auch ohne Symcon nutzbar,

@@ -80,6 +80,7 @@ class iCalCalendarReader extends IPSModuleStrict
     private const ICCR_ATTRIBUTE_CALENDAR_BUFFER = 'CalendarBuffer';
     private const ICCR_ATTRIBUTE_NOTIFICATIONS   = 'Notifications';
     private const ICCR_ATTRIBUTE_LOGGED_PROBLEM  = 'LoggedProblem'; // zuletzt im Log gemeldete Störung, '' = keine
+    private const ICCR_ATTRIBUTE_LOGGED_IMPORT   = 'LoggedImportProblems'; // Prüfsumme der gemeldeten Importprobleme, '' = keine
 
     private const TIMER_TRIGGERNOTIFICATIONS = 'TriggerCalendarNotifications';
     private const TIMER_UPDATECALENDAR       = 'UpdateCalendar';
@@ -123,6 +124,7 @@ class iCalCalendarReader extends IPSModuleStrict
         $this->RegisterAttributeString(self::ICCR_ATTRIBUTE_CALENDAR_BUFFER, json_encode([], JSON_THROW_ON_ERROR));
         $this->RegisterAttributeString(self::ICCR_ATTRIBUTE_NOTIFICATIONS, json_encode([], JSON_THROW_ON_ERROR));
         $this->RegisterAttributeString(self::ICCR_ATTRIBUTE_LOGGED_PROBLEM, '');
+        $this->RegisterAttributeString(self::ICCR_ATTRIBUTE_LOGGED_IMPORT, '');
 
         // create timer
         $this->RegisterTimer(self::TIMER_UPDATECALENDAR, 0, 'ICCR_UpdateCalendar($_IPS["TARGET"] );'); // timer to fetch the calendar data
@@ -952,26 +954,55 @@ class iCalCalendarReader extends IPSModuleStrict
             )
         );
 
-        $MyImporter = new iCalImporter(
+        $importProblems = [];
+        $MyImporter     = new iCalImporter(
             $this->ReadPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHEBACK),
             $this->ReadPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHE),
             function (string $message, string $data) {
                 $this->Logger_Dbg($message, $data);
             },
-            function (string $message) {
-                $this->Logger_Err($message);
+            function (string $message) use (&$importProblems) {
+                $this->SendDebug('IMPORT_PROBLEM', $message, 0);
+                $importProblems[] = $message;
             }
         );
 
         $iCalCalendarArray = $MyImporter->ImportCalendar($content);
+        $this->reportImportProblems($importProblems);
 
         return json_encode($iCalCalendarArray, JSON_THROW_ON_ERROR + JSON_INVALID_UTF8_SUBSTITUTE);
     }
 
-    private function Logger_Err(string $message): void
+    /*
+        Importprobleme (unbekannte Zeitzone, unlesbare Wiederholungsregel …) wie Störungen
+        behandeln: einmal als Warnung, solange sie sich nicht ändern; ihr Verschwinden einmal
+        als Meldung. Die Texte stammen aus dem Kalender (Titel, TZID) - nur gekürzt ins Log.
+     */
+    private function reportImportProblems(array $problems): void
     {
-        $this->SendDebug('LOG_ERR', $message, 0);
-        $this->LogMessage($message, KL_ERROR);
+        $logged = $this->ReadAttributeString(self::ICCR_ATTRIBUTE_LOGGED_IMPORT);
+        if (!is_string($logged)) {
+            return; // Reload-Fenster, siehe setInstanceStatus()
+        }
+        $problems = array_values(array_unique($problems));
+        $key      = $problems === [] ? '' : md5(implode("\n", $problems));
+        if ($key === $logged) {
+            return;
+        }
+        $this->WriteAttributeString(self::ICCR_ATTRIBUTE_LOGGED_IMPORT, $key);
+
+        if ($key === '') {
+            $this->LogMessage('Calendar imported without problems again', KL_MESSAGE);
+            return;
+        }
+        $this->LogMessage(
+            sprintf(
+                'Calendar import: %d problem(s), affected dates may be missing or shifted - check the calendar at its source; first: %s (all problems in the debug output, the first also in ICCR_RunSelfTest)',
+                count($problems),
+                $this->quoteForeignText($problems[0])
+            ),
+            KL_WARNING
+        );
     }
 
     private function Logger_Dbg(string $message, string $data): void
