@@ -173,5 +173,5 @@ Gibt den Termin, der die Meldevariable mit dem Ident `$ident` (z. B. `NOTIFIER1`
 Ein unbekannter Ident wird als Warnung gemeldet, die die gültigen Idents nennt.
 
 `string ICCR_RunSelfTest(integer $InstanceID);`   
-Prüft die Instanz und gibt das Ergebnis als Text aus, eine Zeile je Prüfung (Quelle, Import, Cache, Meldevariablen) samt nächstem Schritt bei Fehlern; die letzte Zeile lautet `N errors, M warnings`.
+Prüft die Instanz und gibt das Ergebnis als Text aus, eine Zeile je Prüfung (Quelle, Import, Cache, Meldevariablen) samt nächstem Schritt bei Fehlern; die letzte Zeile lautet `N Fehler, M Warnungen`. Die Texte erscheinen in der Sprache der Symcon-Installation.
 Der Kalender wird dabei gelesen, verändert wird nichts (kein Status, keine Variablen, kein Cache). Der Text ist englisch; im Formular steht dafür der Knopf „Selbsttest ausführen“.

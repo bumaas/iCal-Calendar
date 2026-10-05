@@ -104,4 +104,48 @@ $text   = $m->RunSelfTest();
 pruefe(str_contains($text, '⚠ Instance is switched off'), 'abgeschaltet als Warnung');
 pruefe($m->urlAbrufe === $abrufe, 'abgeschaltet: kein Abruf');
 
+// --- 5. Ausgabe in der Sprache der Anlage (Burkhard, 05.10.2026: „die Ausgaben im Dialog sollten lokalisiert sein“)
+// Derselbe Zustand einmal mit den Schlüsseln, einmal mit locale.json: keine Zeile darf gleich bleiben.
+echo "\nAusgabe deutsch\n";
+function nurDeutsch(iCalCalendarReaderHarness $m, string $fall): void
+{
+    $texte = [];
+    foreach ([null, 'de'] as $sprache) {
+        iCalCalendarReaderHarness::$sprache = $sprache;
+        $texte[]                            = explode("\n", $m->RunSelfTest());
+        iCalCalendarReaderHarness::$sprache = null;
+    }
+    $gleich = array_intersect_assoc($texte[0], $texte[1]);
+    pruefe(
+        count($texte[0]) === count($texte[1]) && $gleich === [],
+        "deutsch ($fall): jede Zeile übersetzt" . ($gleich === [] ? '' : ' — unverändert: ' . implode(' | ', $gleich))
+    );
+}
+
+nurDeutsch(neueInstanz(), 'ohne Kalenderquelle');
+nurDeutsch($m, 'abgeschaltet');
+IPS_SetProperty($id, 'active', true);
+IPS_ApplyChanges($id);
+
+$m->urlAntwort = antwortKalender(kalender());
+nurDeutsch($m, 'Kalender lesbar, Notifier mit Treffer, ohne Treffer und ungültigem Ausdruck');
+IPS_SetProperty($id, 'UpdateFrequency', 0);
+IPS_ApplyChanges($id);
+nurDeutsch($m, 'Intervall 0');
+IPS_SetProperty($id, 'UpdateFrequency', 15);
+IPS_ApplyChanges($id);
+$ohne             = neueInstanz();
+$ohne->urlAntwort = antwortKalender(kalender());
+IPS_SetProperty($ohne->instanzId(), 'CalendarServerURL', 'https://kalender.example/test.ics');
+IPS_ApplyChanges($ohne->instanzId());
+nurDeutsch($ohne, 'ohne Notifier');
+
+$m->urlAntwort = antwortInhalt(SABRE_NICHT_ANGEMELDET);
+nurDeutsch($m, 'Zugang abgelehnt');
+$m->UpdateCalendar();
+$m->urlAntwort = antwortCurlFehler(7, 'Failed to connect to kalender.example port 443');
+nurDeutsch($m, 'Server nicht erreichbar');
+$m->urlAntwort = antwortKalender(kalender());
+nurDeutsch($m, 'Instanzstatus 203, Cache weicht ab');
+
 ergebnis();

@@ -93,6 +93,11 @@ Kalender ginge verloren) — deshalb muss regulateTimezones alle TZIDs auflösen
     deaktivierte Instanz. Termine liegen relativ zu jetzt.
   - `php tests/check-selftest.php` — `ICCR_RunSelfTest`: jede Störung mit Art und nächstem
     Schritt, Schlusszeile, und vor allem **keine Nebenwirkung** (Status, Variablen, Cache, Timer).
+    Seit build 140 läuft die Ausgabe über `Translate()`; `statusText()` bleibt englisch (das Log ist
+    durchweg englisch), der Selbsttest übersetzt dessen Werte selbst. Der Stub übersetzt nicht:
+    `iCalCalendarReaderHarness::$sprache = 'de'` lädt `locale.json`, und der Test verlangt für acht
+    Fälle, dass keine Zeile englisch bleibt. Neue `statusText()`-Werte brauchen deshalb einen
+    `locale.json`-Eintrag, den `check_locale.php` nicht verlangt.
   - `php tests/check-variable-registration.php` — Idents, Typen, Positionen der Notifier-Variablen.
 - `php tests/check_presentations.php` — Darstellungen gegen bekannte Presentation-GUIDs.
 - `php tests/check_locale.php` — Übersetzungs-Vollständigkeit (Translate-Texte vs. locale.json).

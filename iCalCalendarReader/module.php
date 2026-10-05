@@ -1326,13 +1326,18 @@ class iCalCalendarReader extends IPSModuleStrict
             $errors += $level === 'error' ? 1 : 0;
             $warnings += $level === 'warn' ? 1 : 0;
         };
-        $summary = static function () use (&$lines, &$errors, &$warnings): string {
-            $lines[] = sprintf('%d errors, %d warnings', $errors, $warnings);
+        $summaryFormat = $this->Translate('%d errors, %d warnings');
+        $summary       = static function () use (&$lines, &$errors, &$warnings, $summaryFormat): string {
+            $lines[] = sprintf($summaryFormat, $errors, $warnings);
             return implode("\n", $lines);
         };
 
         if (!$this->ReadPropertyBoolean(self::ICCR_PROPERTY_ACTIVE)) {
-            $add('warn', 'Instance is switched off (property active = false), the calendar is not read', 'Switch it on and apply the changes.');
+            $add(
+                'warn',
+                $this->Translate('Instance is switched off (property active = false), the calendar is not read'),
+                $this->Translate('Switch it on and apply the changes.')
+            );
             return $summary();
         }
 
@@ -1341,25 +1346,41 @@ class iCalCalendarReader extends IPSModuleStrict
         $mediaId = $this->ReadPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID);
         if ($mediaId !== 0) {
             if (!IPS_MediaExists($mediaId) || IPS_GetMedia($mediaId)['MediaType'] !== MEDIATYPE_DOCUMENT) {
-                $add('error', sprintf('Media object #%d does not exist or is not a document', $mediaId), 'Select a media object of type document, or clear the field to use the URL.');
+                $add(
+                    'error',
+                    sprintf($this->Translate('Media object #%d does not exist or is not a document'), $mediaId),
+                    $this->Translate('Select a media object of type document, or clear the field to use the URL.')
+                );
                 return $summary();
             }
             if ($this->LoadCalendarFile($content) !== IS_ACTIVE) {
-                $add('error', sprintf('Media object #%d contains no iCal data (BEGIN:VCALENDAR missing)', $mediaId), 'Fill the media object with an .ics file.');
+                $add(
+                    'error',
+                    sprintf($this->Translate('Media object #%d contains no iCal data (BEGIN:VCALENDAR missing)'), $mediaId),
+                    $this->Translate('Fill the media object with an .ics file.')
+                );
                 return $summary();
             }
-            $add('ok', sprintf('Source: media object #%d, %d bytes', $mediaId, strlen($content)));
+            $add('ok', sprintf($this->Translate('Source: media object #%d, %d bytes'), $mediaId, strlen($content)));
         } else {
             if (!$this->CheckCalendarURLSyntax()) {
-                $add('error', 'No valid calendar URL configured and no media object selected', 'Enter the iCal URL of the calendar (http/https) or select a media object, then apply the changes.');
+                $add(
+                    'error',
+                    $this->Translate('No valid calendar URL configured and no media object selected'),
+                    $this->Translate('Enter the iCal URL of the calendar (http/https) or select a media object, then apply the changes.')
+                );
                 return $summary();
             }
             $status = $this->LoadCalendarURL($content);
             if ($status !== IS_ACTIVE) {
-                $add('error', sprintf('Calendar URL could not be read: %s (status %d)', $this->statusText($status), $status), $this->statusHint($status));
+                $add(
+                    'error',
+                    sprintf($this->Translate('Calendar URL could not be read: %s (status %d)'), $this->Translate($this->statusText($status)), $status),
+                    $this->statusHint($status)
+                );
                 return $summary();
             }
-            $add('ok', sprintf('Source: URL readable, %d bytes', strlen($content)));
+            $add('ok', sprintf($this->Translate('Source: URL readable, %d bytes'), strlen($content)));
         }
 
         // Import ins Cache-Fenster, Probleme sammeln statt protokollieren
@@ -1378,12 +1399,20 @@ class iCalCalendarReader extends IPSModuleStrict
             );
             $events = $importer->ImportCalendar($content);
         } catch (Throwable $t) {
-            $add('error', 'Import failed: ' . mb_substr($t->getMessage(), 0, 200), 'The calendar data cannot be read; the debug output of "Load calendar" shows details.');
+            $add(
+                'error',
+                sprintf($this->Translate('Import failed: %s'), mb_substr($t->getMessage(), 0, 200)),
+                $this->Translate('The calendar data cannot be read; the debug output of "Load calendar" shows details.')
+            );
             return $summary();
         }
-        $add('ok', sprintf('Import: %d dates between %d days back and %d days ahead', count($events), $daysBack, $daysAhead));
+        $add('ok', sprintf($this->Translate('Import: %d dates between %d days back and %d days ahead'), count($events), $daysBack, $daysAhead));
         if ($importProblems !== []) {
-            $add('warn', sprintf('%d import problem(s), first: %s', count($importProblems), mb_substr($importProblems[0], 0, 200)), 'The affected dates may be missing.');
+            $add(
+                'warn',
+                sprintf($this->Translate('%d import problem(s), first: %s'), count($importProblems), mb_substr($importProblems[0], 0, 200)),
+                $this->Translate('The affected dates may be missing.')
+            );
         }
         $next = null;
         foreach ($events as $event) {
@@ -1391,44 +1420,56 @@ class iCalCalendarReader extends IPSModuleStrict
                 $next = $event['From'];
             }
         }
-        $add('info', $next === null ? 'No future date in the cache window' : 'Next date starts ' . date('Y-m-d H:i', $next));
+        $add('info', $next === null ? $this->Translate('No future date in the cache window') : sprintf($this->Translate('Next date starts %s'), date('Y-m-d H:i', $next)));
 
         // Instanzstatus und Cache
         $instanceStatus = $this->GetStatus();
         if ($instanceStatus !== IS_ACTIVE) {
-            $add('warn', sprintf('Instance status is %d (%s), the cache is not updated', $instanceStatus, $this->statusText($instanceStatus)), 'Apply the changes or call ICCR_UpdateCalendar to read the calendar again.');
+            $add(
+                'warn',
+                sprintf($this->Translate('Instance status is %d (%s), the cache is not updated'), $instanceStatus, $this->Translate($this->statusText($instanceStatus))),
+                $this->Translate('Apply the changes or call ICCR_UpdateCalendar to read the calendar again.')
+            );
         }
         $cached = json_decode($this->ReadAttributeString(self::ICCR_ATTRIBUTE_CALENDAR_BUFFER), true, 512, JSON_THROW_ON_ERROR);
         $interval = $this->ReadPropertyInteger(self::ICCR_PROPERTY_UPDATE_FREQUENCY);
         $add(
             count($cached) === count($events) ? 'ok' : 'info',
             sprintf(
-                'Cache: %d dates, %s%s',
+                $this->Translate('Cache: %d dates, %s%s'),
                 count($cached),
-                $interval > 0 ? sprintf('read every %d minutes', $interval) : 'not read automatically (update interval 0)',
-                count($cached) === count($events) ? '' : ' (differs from the current read; ICCR_UpdateCalendar refreshes it now)'
+                $interval > 0 ? sprintf($this->Translate('read every %d minutes'), $interval) : $this->Translate('not read automatically (update interval 0)'),
+                count($cached) === count($events) ? '' : $this->Translate(' (differs from the current read; ICCR_UpdateCalendar refreshes it now)')
             )
         );
 
         // Notifier gegen den frisch gelesenen Kalender
         $notifiers = $this->readNotifiers();
         if ($notifiers === null) {
-            $add('error', 'Notifier list is not a JSON array of entries', 'Set the property Notifiers to a list, e.g. IPS_SetProperty($id, \'Notifiers\', json_encode([[\'Ident\' => \'NOTIFIER1\', \'Find\' => \'Paper\']])) - encode once, not twice - and apply the changes.');
+            $add(
+                'error',
+                $this->Translate('Notifier list is not a JSON array of entries'),
+                $this->Translate('Set the property Notifiers to a list, e.g. IPS_SetProperty($id, \'Notifiers\', json_encode([[\'Ident\' => \'NOTIFIER1\', \'Find\' => \'Paper\']])) - encode once, not twice - and apply the changes.')
+            );
             $notifiers = [];
         } elseif ($notifiers === []) {
-            $add('info', 'No notifiers configured');
+            $add('info', $this->Translate('No notifiers configured'));
         }
         foreach ($notifiers as $notifier) {
             $ident = (string) $notifier[self::ICCR_PROPERTY_NOTIFIER_IDENT];
             $find  = (string) $notifier[self::ICCR_PROPERTY_NOTIFIER_FIND];
             $regex = (bool) $notifier[self::ICCR_PROPERTY_NOTIFIER_REGEXPRESSION];
-            $label = sprintf('%s (%s "%s")', $ident, $regex ? 'pattern' : 'text', mb_substr($find, 0, 60));
+            $label = sprintf('%s (%s "%s")', $ident, $regex ? $this->Translate('pattern') : $this->Translate('text'), mb_substr($find, 0, 60));
             if (@$this->GetIDForIdent($ident) === false) {
-                $add('warn', $label . ': variable missing', 'Apply the changes to create it.');
+                $add('warn', sprintf($this->Translate('%s: variable missing'), $label), $this->Translate('Apply the changes to create it.'));
                 continue;
             }
             if ($regex && $find !== '' && @preg_match($this->NormalizeRegexPattern($find), '') === false) {
-                $add('error', $label . ': invalid regular expression, never matches', 'Correct the pattern in the notifier list.');
+                $add(
+                    'error',
+                    sprintf($this->Translate('%s: invalid regular expression, never matches'), $label),
+                    $this->Translate('Correct the pattern in the notifier list.')
+                );
                 continue;
             }
             $matches = 0;
@@ -1448,8 +1489,14 @@ class iCalCalendarReader extends IPSModuleStrict
             $variable = $this->GetValue($ident);
             $add(
                 $matches === 0 ? 'warn' : 'ok',
-                sprintf('%s: %d matching date(s) in the cache window, active now: %s, variable: %s', $label, $matches, $activeNow ? 'yes' : 'no', $variable ? 'true' : 'false'),
-                $matches === 0 ? 'No date title contains this search text; check spelling and case.' : ''
+                sprintf(
+                    $this->Translate('%s: %d matching date(s) in the cache window, active now: %s, variable: %s'),
+                    $label,
+                    $matches,
+                    $activeNow ? $this->Translate('yes') : $this->Translate('no'),
+                    $variable ? 'true' : 'false'
+                ),
+                $matches === 0 ? $this->Translate('No date title contains this search text; check spelling and case.') : ''
             );
         }
 
@@ -1476,12 +1523,12 @@ class iCalCalendarReader extends IPSModuleStrict
     private function statusHint(int $status): string
     {
         return match ($status) {
-            self::STATUS_INST_INVALID_URL           => 'Configuration: correct the URL.',
-            self::STATUS_INST_SSL_ERROR             => 'Configuration: check the server certificate, or tick "Disable Verification of SSL Certificate".',
-            self::STATUS_INST_INVALID_USER_PASSWORD => 'Configuration: correct user name and password.',
+            self::STATUS_INST_INVALID_URL           => $this->Translate('Configuration: correct the URL.'),
+            self::STATUS_INST_SSL_ERROR             => $this->Translate('Configuration: check the server certificate, or tick "Disable Verification of SSL Certificate".'),
+            self::STATUS_INST_INVALID_USER_PASSWORD => $this->Translate('Configuration: correct user name and password.'),
             self::STATUS_INST_CONNECTION_ERROR,
-            self::STATUS_INST_OPERATION_TIMED_OUT   => 'Server not reachable: try again later; if it persists, check the address.',
-            self::STATUS_INST_UNEXPECTED_RESPONSE   => 'Configuration: the URL does not return an iCal calendar; use the export/subscription link of the calendar.',
+            self::STATUS_INST_OPERATION_TIMED_OUT   => $this->Translate('Server not reachable: try again later; if it persists, check the address.'),
+            self::STATUS_INST_UNEXPECTED_RESPONSE   => $this->Translate('Configuration: the URL does not return an iCal calendar; use the export/subscription link of the calendar.'),
             default                                 => '',
         };
     }
