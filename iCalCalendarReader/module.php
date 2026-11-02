@@ -229,7 +229,7 @@ class iCalCalendarReader extends IPSModuleStrict
     private function updateSummary(): void
     {
         $iCalMediaID = $this->ReadPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID);
-        if ($iCalMediaID >= 10000) {
+        if ($iCalMediaID >= 10000 && IPS_MediaExists($iCalMediaID)) {
             $this->SetSummary(IPS_GetName($iCalMediaID));
         } else {
             $this->SetSummary($this->ReadPropertyString(self::ICCR_PROPERTY_CALENDAR_URL));
@@ -700,7 +700,8 @@ class iCalCalendarReader extends IPSModuleStrict
         // validate saved properties
         $iCalMediaID = $this->ReadPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID);
 
-        if ($iCalMediaID < 10000){
+        // gelöscht oder nie vorhanden: IPS_GetMedia würde mit einem Kernelfehler abbrechen
+        if ($iCalMediaID < 10000 || !IPS_MediaExists($iCalMediaID)) {
             return false;
         }
 
@@ -725,7 +726,15 @@ class iCalCalendarReader extends IPSModuleStrict
     {
         $iCalMediaId = $this->ReadPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID);
 
-        $content = base64_decode(@IPS_GetMediaContent($iCalMediaId));
+        // leeres Dokument (keine Datei hinterlegt): IPS_GetMediaContent liefert dann false,
+        // und base64_decode(false) wirft unter strict_types einen TypeError
+        if (!IPS_MediaExists($iCalMediaId) || !IPS_GetMedia($iCalMediaId)['MediaIsAvailable']) {
+            $content = '';
+            $this->Logger_Dbg(__FUNCTION__, sprintf('media object #%d does not exist or is empty', $iCalMediaId));
+            return self::STATUS_INST_INVALID_MEDIA_CONTENT;
+        }
+
+        $content = base64_decode((string) @IPS_GetMediaContent($iCalMediaId));
         $this->Logger_Dbg(__FUNCTION__, sprintf('media object #%d: %d bytes, %d VEVENT', $iCalMediaId, strlen($content), substr_count($content, 'BEGIN:VEVENT')));
 
         if ($content && (str_contains($content, 'BEGIN:VCALENDAR'))){
@@ -938,7 +947,7 @@ class iCalCalendarReader extends IPSModuleStrict
             self::STATUS_INST_INVALID_URL => match (true) {
                 $url === '' && $mediaId !== 0 => [
                     '201-media',
-                    sprintf('Media object #%d is not a usable document and no calendar URL is configured - configuration error: select a media object of type document or enter the iCal URL', $mediaId)
+                    sprintf('Media object #%d does not exist or is not a usable document and no calendar URL is configured - configuration error: select a media object of type document or enter the iCal URL', $mediaId)
                 ],
                 $url === '' => [
                     '201-missing',
@@ -998,10 +1007,15 @@ class iCalCalendarReader extends IPSModuleStrict
     {
         $content = '';
 
-        if ($this->ReadPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID) !== 0){
-            $result      = $this->LoadCalendarFile($content);
+        // Quelle wie determineStatus wählen: ein brauchbares Medienobjekt geht vor, sonst die URL.
+        // Wird das Medienobjekt zur Laufzeit gelöscht, ohne dass eine URL eingetragen ist, ist
+        // das derselbe Konfigurationsfehler wie beim Übernehmen.
+        if ($this->CheckCalendarMediaID()) {
+            $result = $this->LoadCalendarFile($content);
+        } elseif ($this->CheckCalendarURLSyntax()) {
+            $result = $this->LoadCalendarURL($content);
         } else {
-            $result      = $this->LoadCalendarURL($content);
+            $result = self::STATUS_INST_INVALID_URL;
         }
 
         $this->setInstanceStatus($result);

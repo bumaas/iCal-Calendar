@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * Gemeinsamer Testrahmen: bindet iCalCalendarReader an den offiziellen Kernel-Stub
- * (symcon/SymconStubs, Submodul tests/stubs, gepinnt auf bf2950f).
+ * (symcon/SymconStubs, Submodul tests/stubs, gepinnt auf 31f2e04).
  * Von testsuite.php anlegen erzeugt - Netz-Naht und modulspezifische Helfer sind ein
  * TODO-Grundgerüst, kein fertiger Testrahmen. Siehe stub-und-vorlagen.md.
  *

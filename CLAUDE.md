@@ -76,7 +76,7 @@ Kalender ginge verloren) — deshalb muss regulateTimezones alle TZIDs auflösen
 ## Tests
 
 - **Modultests gegen den Kernel-Stub** (`symcon/SymconStubs`, Submodul `tests/stubs`, gepinnt
-  auf `bf2950f`), gemeinsamer Aufbau in `tests/harness.php`:
+  auf `31f2e04`), gemeinsamer Aufbau in `tests/harness.php`:
   - Netz-Naht: nur `fetchUrl()` (der curl-Aufruf) ist überschrieben und liefert `$urlAntwort`
     ([Inhalt|false, curl-Nr., curl-Text], Helfer `antwortKalender`/`antwortInhalt`/
     `antwortCurlFehler`, SabreDAV-Fehlerdokument `SABRE_NICHT_ANGEMELDET`). Auswertung,
@@ -86,8 +86,12 @@ Kalender ginge verloren) — deshalb muss regulateTimezones alle TZIDs auflösen
     URL-Pfad (Token) im Log, Selbsttest schreibt nichts ins Log.
   - Util Control (für `UC_FindReferences` beim Löschen von Notifier-Variablen) stellt die
     Harness als `UtilControlAttrappe` samt globaler Funktion; Referenzen setzt der Test.
-  - Medienobjekte kann der Stub nicht (`IPS_GetMedia` liefert `[]`) — der Medien-Weg ist
-    deshalb nicht abgedeckt.
+  - Medienobjekte legt der Test selbst an (`IPS_CreateMedia`, `IPS_SetMediaContent`; der
+    Stub kann sie seit `31f2e04`). `php tests/check-media.php` — Kalender aus einem Dokument,
+    gelöschtes und leeres Medienobjekt bei ApplyChanges, Abruf-Timer und Selbsttest (kein
+    Abbruch, ohne URL Status 201, mit URL gilt die URL). **Medienobjekte nur nach
+    `IPS_MediaExists` lesen**, die Quelle wählt `CheckCalendarMediaID()` für Status und Abruf
+    gleich.
   - `php tests/check-notifier.php` — Status, Timer, Kalenderabruf, Notifier (Text, Regex,
     ungültiger Ausdruck, Vorlauf), Entfernen samt Referenzschutz, Störung und Erholung,
     deaktivierte Instanz. Termine liegen relativ zu jetzt.
