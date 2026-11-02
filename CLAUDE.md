@@ -62,6 +62,11 @@ Dokumentation im Kommentarkopf von `iCalCalendarReader/module.php`:
 
 Bei einem Lib-Update müssen diese Patches neu angewendet werden. php-rrule ist ungepatcht.
 
+Ausgeliefert wird nur, was das Modul lädt, plus Lizenz, README, `composer.json` und Änderungslog.
+Bei einem Lib-Update deshalb wieder weglassen: `iCalcreator-master/test`, `docs`, `phpunit.xml`,
+`.github` und `php-rrule-master/bin` (dort lädt `import_windows_timezones.php` per URL und
+schreibt Dateien, das würde im Store-Review unter Punkt 1 auffallen).
+
 Die bis iCalcreator 2.40.x genutzte `RegulateTimezoneFactory` (Umschreiben von Windows-/
 Exchange-Zeitzonen vor dem Parsen) ist seit 2.41.57 aus der Lib entfallen; ihre Aufgabe
 übernimmt `iCalImporter::regulateTimezones()`:
