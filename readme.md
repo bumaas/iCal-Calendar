@@ -1,10 +1,10 @@
-iCal Calendar in IP Symcon lesen und verarbeiten
+iCal Calendar in Symcon lesen und verarbeiten
 ===
 
-[![Version](https://img.shields.io/badge/Symcon%20Version-8.0%20%3E-green.svg)](https://www.symcon.de/forum/threads/30857-IP-Symcon-5-1-%28Stable%29-Changelog)
+[![Version](https://img.shields.io/badge/Symcon%20Version-8.0%20%3E-green.svg)](https://www.symcon.de/de/service/dokumentation/)
 [![Checks](https://github.com/bumaas/iCal-Calendar/actions/workflows/check.yml/badge.svg)](https://github.com/bumaas/iCal-Calendar/actions/workflows/check.yml)
 
-Diese Bibliothek beinhaltet ein Modul zur Einspeisung von Kalenderinformationen im iCal-Format in IP Symcon:
+Diese Bibliothek beinhaltet ein Modul zur Einspeisung von Kalenderinformationen im iCal-Format in Symcon:
 * **iCal Calendar Reader**
 
 **Inhaltverzeichnis**
@@ -13,7 +13,7 @@ Diese Bibliothek beinhaltet ein Modul zur Einspeisung von Kalenderinformationen 
 2. [Voraussetzungen](#2-voraussetzungen)
 3. [Software-Installation](#3-software-installation)
 4. [Einrichten der Instanzen in Symcon](#4-einrichten-der-instanzen-in-symcon)
-5. [Statusvariablen und Profile](#5-statusvariablen-und-profile)
+5. [Statusvariablen und Darstellungen](#5-statusvariablen-und-darstellungen)
 6. [WebFront](#6-webfront)
 7. [PHP-Befehlsreferenz](#7-php-befehlsreferenz)
 
@@ -22,7 +22,7 @@ Diese Bibliothek beinhaltet ein Modul zur Einspeisung von Kalenderinformationen 
 Das Modul dient dem Einlesen von Kalenderdaten in Symcon (getestet mit Google Calendar, ownCloud Calendar, Synology Calendar, iCloud und Office 365). Zum einen können die eingebundenen Kalender auf einfache Weise im Webfront angezeigt werden, zum anderen können eingetragene Termine zum Setzen von Statusvariablen ausgewertet werden.
 Die eingelesenen Daten müssen [rfc5545](https://tools.ietf.org/html/rfc5545 "Internet Calendaring and Scheduling Core Object Specification") konform sein.
 
-Damit ist es z. B. sehr einfach möglich, einen zentralen Anwesenheitskalender im Internet zu pflegen, IP Symcon steuert damit automatisch Heizung, Alarmanlage und Anwesenheitssimulation.
+Damit ist es z. B. sehr einfach möglich, einen zentralen Anwesenheitskalender im Internet zu pflegen, Symcon steuert damit automatisch Heizung, Alarmanlage und Anwesenheitssimulation.
 
 Auch die Visualisierungen von Einträgen in öffentlichen Kalendern (z. B. Müllabfuhrtermine, Kinoprogramm, ...) im Webfront können ohne viel Skript-Programmierung realisiert werden. Z.B. können Abfuhrtermine immer bereits 1 Tag vorher angezeigt werden.
 
@@ -30,7 +30,7 @@ Kalender werden beim Laden unter Berücksichtigung ihrer jeweiligen Zeitzone in 
 
 Wie Kalenderdaten aus einer oder mehreren **iCalCalendarReader**-Instanzen in einem Calendar-Control im Webfront angezeigt werden können ist im Dokument [Kalender im Webfront anzeigen](docs/Examples/readme.md "Kalender im Webfront anzeigen") beschrieben.
 
-Diese Bibliothek nutzt folgende externe Bibliotheken im Verzeichnis `/lib`:
+Diese Bibliothek nutzt folgende externe Bibliotheken im Verzeichnis `libs`:
 * iCalcreator (Version 2.41.92) `https://github.com/iCalcreator/iCalcreator/tags`
 * RRULE for PHP (Version 3.0.0 - 2026-07-29) `https://github.com/rlanvin/php-rrule`, MIT-Lizenz
 
@@ -141,7 +141,7 @@ Die Statusvariablen können im Objektbaum zur besseren Übersicht nach Belieben 
 
 ![image](docs/Objektbaum_Statusvariablen_umbenannt.png)
 
-### 5. Statusvariablen und Profile
+### 5. Statusvariablen und Darstellungen
 
 Für jede in der Instanz angelegte Meldevariable wird eine Statusvariable mit dem Ident 'NOTIFIER' und einer laufenden Nummer angelegt.
 Die jeweilige Statusvariable zeigt an, ob ein Kalendereintrag unter Berücksichtigung der im Modul angegebenen Zeiten und des angegebenen Filters aktiv ist.
@@ -151,7 +151,7 @@ Es werden keine eigenen Variablenprofile angelegt.
 
 ### 6. WebFront
 
-Die Meldevariablen sind mit Profilen für das WebFront vorbereitet.
+Die Meldevariablen haben die Darstellung „Schalter“ und lassen sich so direkt in der Visualisierung anzeigen.
 
 
 ### 7. PHP-Befehlsreferenz
@@ -165,7 +165,7 @@ Diese Funktion wird intern jede Minute aufgerufen.
 
 `json_string ICCR_UpdateCalendar(integer $InstanceID);`   
 Forciert ein sofortiger Neuladen des Kalenders.
-Diese Funktion wird intern regelmäßig, wie in "Update-freq. (minutes)" konfiguriert, aufgerufen.
+Diese Funktion wird intern regelmäßig, wie im Aktualisierungsintervall konfiguriert, aufgerufen.
 Gibt ein Array mit den zwischengespeicherten und in die lokale Zeitzone übertragenen Kalenderdaten als JSON-kodierten String aus. 
  
 `json_string ICCR_GetNotifierPresenceReason(integer $InstanceID, string $ident);`   
@@ -174,4 +174,4 @@ Ein unbekannter Ident wird als Warnung gemeldet, die die gültigen Idents nennt.
 
 `string ICCR_RunSelfTest(integer $InstanceID);`   
 Prüft die Instanz und gibt das Ergebnis als Text aus, eine Zeile je Prüfung (Quelle, Import, Cache, Meldevariablen) samt nächstem Schritt bei Fehlern; die letzte Zeile lautet `N Fehler, M Warnungen`. Die Texte erscheinen in der Sprache der Symcon-Installation.
-Der Kalender wird dabei gelesen, verändert wird nichts (kein Status, keine Variablen, kein Cache). Der Text ist englisch; im Formular steht dafür der Knopf „Selbsttest ausführen“.
+Der Kalender wird dabei gelesen, verändert wird nichts (kein Status, keine Variablen, kein Cache). Im Formular steht dafür der Knopf „Selbsttest ausführen“.

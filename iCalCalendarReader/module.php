@@ -461,7 +461,7 @@ class iCalCalendarReader extends IPSModuleStrict
                     'type'    => 'NumberSpinner',
                     'name'    => self::ICCR_PROPERTY_UPDATE_FREQUENCY,
                     'caption' => 'Update Interval',
-                    'suffix'  => 'Minutes'
+                    'suffix'  => ' minutes'
                 ],
                 [
                     'type'    => 'CheckBox',
