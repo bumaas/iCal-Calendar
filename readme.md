@@ -14,21 +14,21 @@ Diese Bibliothek beinhaltet ein Modul zur Einspeisung von Kalenderinformationen 
 3. [Software-Installation](#3-software-installation)
 4. [Einrichten der Instanzen in Symcon](#4-einrichten-der-instanzen-in-symcon)
 5. [Statusvariablen und Darstellungen](#5-statusvariablen-und-darstellungen)
-6. [WebFront](#6-webfront)
+6. [Visualisierung](#6-visualisierung)
 7. [PHP-Befehlsreferenz](#7-php-befehlsreferenz)
 
 ### 1. Funktionsumfang
 
-Das Modul dient dem Einlesen von Kalenderdaten in Symcon (getestet mit Google Calendar, ownCloud Calendar, Synology Calendar, iCloud und Office 365). Zum einen können die eingebundenen Kalender auf einfache Weise im Webfront angezeigt werden, zum anderen können eingetragene Termine zum Setzen von Statusvariablen ausgewertet werden.
+Das Modul dient dem Einlesen von Kalenderdaten in Symcon (getestet mit Google Calendar, ownCloud Calendar, Synology Calendar, iCloud und Office 365). Zum einen können die eingebundenen Kalender auf einfache Weise in der Visualisierung angezeigt werden, zum anderen können eingetragene Termine zum Setzen von Statusvariablen ausgewertet werden.
 Die eingelesenen Daten müssen [rfc5545](https://tools.ietf.org/html/rfc5545 "Internet Calendaring and Scheduling Core Object Specification") konform sein.
 
 Damit ist es z. B. sehr einfach möglich, einen zentralen Anwesenheitskalender im Internet zu pflegen, Symcon steuert damit automatisch Heizung, Alarmanlage und Anwesenheitssimulation.
 
-Auch die Visualisierungen von Einträgen in öffentlichen Kalendern (z. B. Müllabfuhrtermine, Kinoprogramm, ...) im Webfront können ohne viel Skript-Programmierung realisiert werden. Z.B. können Abfuhrtermine immer bereits 1 Tag vorher angezeigt werden.
+Auch die Visualisierungen von Einträgen in öffentlichen Kalendern (z. B. Müllabfuhrtermine, Kinoprogramm, ...) in der Visualisierung lassen sich ohne viel Skript-Programmierung realisieren. Z.B. können Abfuhrtermine immer bereits 1 Tag vorher angezeigt werden.
 
 Kalender werden beim Laden unter Berücksichtigung ihrer jeweiligen Zeitzone in die lokale Zeitzone umgerechnet, sich wiederholende Termine werden als mehrere Einzeltermine abgespeichert.
 
-Wie Kalenderdaten aus einer oder mehreren **iCalCalendarReader**-Instanzen in einem Calendar-Control im Webfront angezeigt werden können ist im Dokument [Kalender im Webfront anzeigen](docs/Examples/readme.md "Kalender im Webfront anzeigen") beschrieben.
+Wie Kalenderdaten aus einer oder mehreren **iCalCalendarReader**-Instanzen in einem Calendar-Control im WebFront angezeigt werden können, ist im Dokument [Kalender im WebFront anzeigen](docs/Examples/readme.md "Kalender im WebFront anzeigen") beschrieben.
 
 Diese Bibliothek nutzt folgende externe Bibliotheken im Verzeichnis `libs`:
 * iCalcreator (Version 2.41.92) `https://github.com/iCalcreator/iCalcreator/tags`
@@ -149,7 +149,7 @@ Die jeweilige Statusvariable zeigt an, ob ein Kalendereintrag unter Berücksicht
 Es werden keine eigenen Variablenprofile angelegt.
 
 
-### 6. WebFront
+### 6. Visualisierung
 
 Die Meldevariablen haben die Darstellung „Schalter“ und lassen sich so direkt in der Visualisierung anzeigen.
 
