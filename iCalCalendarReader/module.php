@@ -421,14 +421,14 @@ class iCalCalendarReader extends IPSModuleStrict
                     'name'    => self::ICCR_PROPERTY_NOTIFIER_PRENOTIFY,
                     'width'   => '100px',
                     'add'     => 0,
-                    'edit'    => ['type' => 'NumberSpinner', 'suffix' => ' minutes']
+                    'edit'    => ['type' => 'NumberSpinner', 'suffix' => 'minutes']
                 ],
                 [
                     'caption' => 'Postnotify',
                     'name'    => self::ICCR_PROPERTY_NOTIFIER_POSTNOTIFY,
                     'width'   => '100px',
                     'add'     => 0,
-                    'edit'    => ['type' => 'NumberSpinner', 'suffix' => ' minutes']
+                    'edit'    => ['type' => 'NumberSpinner', 'suffix' => 'minutes']
                 ]
             ],
             'values' => $this->getNotifierListValues()
@@ -461,7 +461,7 @@ class iCalCalendarReader extends IPSModuleStrict
                     'type'    => 'NumberSpinner',
                     'name'    => self::ICCR_PROPERTY_UPDATE_FREQUENCY,
                     'caption' => 'Update Interval',
-                    'suffix'  => ' minutes'
+                    'suffix'  => 'minutes'
                 ],
                 [
                     'type'    => 'CheckBox',

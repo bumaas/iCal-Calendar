@@ -83,4 +83,35 @@ pruefe($label === null || ($label['visible'] ?? true) === false, 'kein sichtbare
 $farbig = array_filter(element($form['elements'], 'Notifiers')['values'] ?? [], static fn (array $z): bool => isset($z['rowColor']));
 pruefe($farbig === [], 'keine Zeile markiert');
 
+// --- 3. Einheiten hinter den Zahlenfeldern (Code-Review 02.11.2026, Befund 4)
+// Die Konsole setzt den Abstand selbst ("Sichtbare Beschriftung/Einheit hinter dem
+// Eingabefeld", Doku-Beispiel "suffix": "seconds"). Leerraum am Rand wäre doppelter Abstand und
+// ein locale-Schlüssel, den ein trimmender Editor still verliert. check_locale.php sieht das
+// Code-Formular nicht, deshalb prüft dieser Test die Übersetzung mit.
+echo "\nSuffixe der Zahlenfelder\n";
+
+/** alle suffix-Werte des Formulars, auch in Listenspalten */
+function suffixe(array $knoten): array
+{
+    $gefunden = [];
+    foreach ($knoten as $schluessel => $wert) {
+        if ($schluessel === 'suffix' && is_string($wert)) {
+            $gefunden[] = $wert;
+        } elseif (is_array($wert)) {
+            $gefunden = [...$gefunden, ...suffixe($wert)];
+        }
+    }
+    return $gefunden;
+}
+
+$locale = json_decode((string) file_get_contents(dirname(__DIR__) . '/iCalCalendarReader/locale.json'), true, 512, JSON_THROW_ON_ERROR);
+$de     = $locale['translations']['de'] ?? [];
+$alle   = array_values(array_unique(suffixe(formular($m))));
+echo '      | ' . implode(' | ', array_map(static fn (string $s): string => '"' . $s . '"', $alle)) . "\n";
+pruefe(count($alle) >= 2, 'Formular enthält Suffixe (' . count($alle) . ')');
+foreach ($alle as $s) {
+    pruefe($s === trim($s), 'Suffix "' . $s . '" ohne Leerraum am Rand');
+    pruefe(isset($de[$s]) && $de[$s] === trim($de[$s]) && $de[$s] !== $s, 'Suffix "' . $s . '" übersetzt (' . ($de[$s] ?? '-') . ')');
+}
+
 ergebnis();

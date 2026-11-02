@@ -12,7 +12,8 @@ GUID `{5127CDDC-2859-4223-A870-4D26AC83622C}`).
   der Formular-Aktionen, je öffentliche Funktion. **Hinweis-Captions in einfachen Anführungszeichen
   schreiben** — `symcon-mcp-check` liest doppelt gequotete Strings nicht und meldet die Funktion
   sonst als unerwähnt. `check_locale.php` sieht das Code-Formular nicht: neue Captions von Hand in
-  `locale.json` übersetzen.
+  `locale.json` übersetzen. Einheiten (`suffix`) ohne Leerraum am Rand schreiben, den Abstand
+  setzt die Konsole; Leerraum und Übersetzung aller Suffixe prüft `tests/check-form.php`.
   **Status immer über `setInstanceStatus()` setzen, nie direkt `SetStatus()`:** Es meldet jeden
   Wechsel in eine Störung einmal als Warnung (Text aus `problemMessage()`, Ursache aus
   `$errorDetail`) und die Behebung als Meldung; was gemeldet ist, steht im Attribut
