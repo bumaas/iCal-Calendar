@@ -85,6 +85,7 @@ class iCalCalendarReader extends IPSModuleStrict
 
     private const DEBUG_MAX_BYTES    = 300; // längere Debug-Daten werden gekürzt
     private const IMPORT_DEBUG_LINES = 20;  // Debug-Zeilen des Importers je Abruf
+    private const IMPORT_MEMORY_LIMIT_MB = 256; // Speichergrenze für den Import, siehe raiseMemoryLimitForImport()
 
     private const TIMER_TRIGGERNOTIFICATIONS = 'TriggerCalendarNotifications';
     private const TIMER_UPDATECALENDAR       = 'UpdateCalendar';
@@ -101,9 +102,31 @@ class iCalCalendarReader extends IPSModuleStrict
      */
     public function __construct($InstanceID)
     {
-        ini_set('memory_limit', '256M');
-
         parent::__construct($InstanceID);
+    }
+
+    /*
+        Das Parsen braucht viel Speicher: ein 1-MB-Kalender rund 85 MB, unabhängig vom
+        Cache-Fenster. Das liegt über den 64 MB einer SymBox. Deshalb hebt das Modul die Grenze
+        direkt vor jedem Import an, nicht schon beim Laden der Instanz, und senkt eine höhere
+        oder unbegrenzte Grenze nie ab.
+     */
+    private function raiseMemoryLimitForImport(): void
+    {
+        $current = trim((string) ini_get('memory_limit'));
+        if ($current === '-1') {
+            return;
+        }
+        $bytes = (int) $current;
+        $bytes *= match (strtoupper(substr($current, -1))) {
+            'G'     => 1024 ** 3,
+            'M'     => 1024 ** 2,
+            'K'     => 1024,
+            default => 1,
+        };
+        if ($bytes < self::IMPORT_MEMORY_LIMIT_MB * 1024 ** 2) {
+            ini_set('memory_limit', self::IMPORT_MEMORY_LIMIT_MB . 'M');
+        }
     }
 
     public function Create():void
@@ -1038,6 +1061,7 @@ class iCalCalendarReader extends IPSModuleStrict
 
         // Der Importer meldet je Termin und je Vorkommen eine Zeile; der Debug-Puffer der Anlage
         // ist aber für alle Module gemeinsam. Deshalb nur die ersten Zeilen, dann das Ergebnis.
+        $this->raiseMemoryLimitForImport();
         $importProblems = [];
         $debugLines     = 0;
         $MyImporter     = new iCalImporter(
@@ -1356,17 +1380,27 @@ class iCalCalendarReader extends IPSModuleStrict
         }
 
         // Quelle lesen - wie beim regulären Abruf, aber ohne Status und Cache zu setzen
+        // Quelle wie ReadCalendar wählen: Ein unbrauchbares Medienobjekt (gelöscht, kein Dokument,
+        // keine Datei) ist mit gültiger URL nur eine Warnung, denn der Betrieb liest dann die URL.
         $content = '';
         $mediaId = $this->ReadPropertyInteger(self::ICCR_PROPERTY_ICAL_MEDIA_ID);
-        if ($mediaId !== 0) {
-            if (!IPS_MediaExists($mediaId) || IPS_GetMedia($mediaId)['MediaType'] !== MEDIATYPE_DOCUMENT) {
+        if ($mediaId !== 0 && !$this->CheckCalendarMediaID()) {
+            if (!$this->CheckCalendarURLSyntax()) {
                 $add(
                     'error',
-                    sprintf($this->Translate('Media object #%d does not exist or is not a document'), $mediaId),
+                    sprintf($this->Translate('Media object #%d does not exist, is not a document or contains no file'), $mediaId),
                     $this->Translate('Select a media object of type document, or clear the field to use the URL.')
                 );
                 return $summary();
             }
+            $add(
+                'warn',
+                sprintf($this->Translate('Media object #%d does not exist, is not a document or contains no file, the calendar URL is read instead'), $mediaId),
+                $this->Translate('Select a usable media object, or clear the field if the URL is meant.')
+            );
+            $mediaId = 0;
+        }
+        if ($mediaId !== 0) {
             if ($this->LoadCalendarFile($content) !== IS_ACTIVE) {
                 $add(
                     'error',
@@ -1401,6 +1435,7 @@ class iCalCalendarReader extends IPSModuleStrict
         $importProblems = [];
         $daysBack       = $this->ReadPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHEBACK);
         $daysAhead      = $this->ReadPropertyInteger(self::ICCR_PROPERTY_DAYSTOCACHE);
+        $this->raiseMemoryLimitForImport();
         try {
             $importer = new iCalImporter(
                 $daysBack,

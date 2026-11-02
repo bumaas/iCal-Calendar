@@ -56,6 +56,28 @@ function kalenderDokument(string $name): int
     return $mid;
 }
 
+/**
+ * Selbsttest bei unbrauchbarem Medienobjekt und gültiger URL: Der Betrieb liest die URL
+ * (Status 102), also ist das kein Fehler, sondern eine Warnung, die den Rückfall nennt.
+ * Danach prüft der Selbsttest die URL und den Import wie im Normalfall.
+ */
+function selbsttestMitUrl(iCalCalendarReaderHarness $m, int $mid, string $art): void
+{
+    $text    = '';
+    $abbruch = ohneAbbruch(static function () use ($m, &$text): void {
+        $text = $m->RunSelfTest();
+    });
+    foreach (explode("\n", $text) as $zeile) {
+        echo '      | ' . $zeile . "\n";
+    }
+    pruefe($abbruch === '', 'RunSelfTest bricht nicht ab ' . $abbruch);
+    pruefe(str_contains($text, '0 errors, 1 warnings'), "Selbsttest bei $art Medienobjekt und URL: kein Fehler, eine Warnung");
+    $warnung = array_values(array_filter(explode("\n", $text), static fn (string $z): bool => str_starts_with($z, '⚠')))[0] ?? '';
+    pruefe(str_contains($warnung, '#' . $mid) && str_contains($warnung, 'URL'), 'Warnung nennt das Medienobjekt und den Rückfall auf die URL');
+    pruefe(str_contains($text, 'Source: URL readable'), 'Selbsttest liest die URL wie der Betrieb');
+    pruefe(str_contains($text, 'Import: '), 'Import wird geprüft');
+}
+
 $m  = neueInstanz();
 $id = $m->instanzId();
 IPS_SetProperty($id, 'Notifiers', json_encode([notifier('NOTIFIER1', 'Restmüll')], JSON_THROW_ON_ERROR));
@@ -118,6 +140,17 @@ pruefe($m->urlAbrufe === $abrufe + 1, 'Kalender von der URL gelesen');
 pruefe(IPS_GetObject($id)['ObjectSummary'] === 'https://kalender.example/test.ics', 'Zusammenfassung zeigt die URL');
 $abbruch = ohneAbbruch(static fn () => $m->UpdateCalendar());
 pruefe($abbruch === '' && status($id) === IS_ACTIVE, 'Abruf-Timer liest weiter die URL ' . $abbruch);
+selbsttestMitUrl($m, $mid, 'gelöschtem');
+
+// --- leeres Dokument, gültige URL: auch hier liest der Betrieb die URL
+echo "\nLeeres Dokument, gültige URL\n";
+$leerMitUrl = IPS_CreateMedia(MEDIATYPE_DOCUMENT);
+IPS_SetName($leerMitUrl, 'Leeres Dokument');
+IPS_SetProperty($id, 'iCalMediaID', $leerMitUrl);
+IPS_ApplyChanges($id);
+neueLogs($m);
+pruefe(status($id) === IS_ACTIVE, 'Status 102 (' . status($id) . ')');
+selbsttestMitUrl($m, $leerMitUrl, 'leerem');
 
 // --- leeres Dokument (noch keine Datei hinterlegt)
 echo "\nLeeres Dokument, keine URL\n";

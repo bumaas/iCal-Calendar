@@ -95,9 +95,14 @@ Kalender ginge verloren) — deshalb muss regulateTimezones alle TZIDs auflösen
   - Medienobjekte legt der Test selbst an (`IPS_CreateMedia`, `IPS_SetMediaContent`; der
     Stub kann sie seit `31f2e04`). `php tests/check-media.php` — Kalender aus einem Dokument,
     gelöschtes und leeres Medienobjekt bei ApplyChanges, Abruf-Timer und Selbsttest (kein
-    Abbruch, ohne URL Status 201, mit URL gilt die URL). **Medienobjekte nur nach
-    `IPS_MediaExists` lesen**, die Quelle wählt `CheckCalendarMediaID()` für Status und Abruf
-    gleich.
+    Abbruch, ohne URL Status 201, mit URL gilt die URL und der Selbsttest warnt nur).
+    **Medienobjekte nur nach `IPS_MediaExists` lesen**, die Quelle wählt
+    `CheckCalendarMediaID()` für Status, Abruf und Selbsttest gleich.
+  - `php tests/check-memory.php` — Speichergrenze: **nie im Konstruktor anheben**, sondern
+    über `raiseMemoryLimitForImport()` direkt vor dem Import (Abruf und Selbsttest), eine
+    höhere oder unbegrenzte Grenze bleibt. Das Parsen eines 1-MB-Kalenders braucht rund 85 MB,
+    unabhängig vom Cache-Fenster (gemessen 02.11.2026 an `icloud-ausnahmen`), mehr als die
+    64 MB einer SymBox.
   - `php tests/check-notifier.php` — Status, Timer, Kalenderabruf, Notifier (Text, Regex,
     ungültiger Ausdruck, Vorlauf), Entfernen samt Referenzschutz, Störung und Erholung,
     deaktivierte Instanz. Termine liegen relativ zu jetzt.
