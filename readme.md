@@ -7,6 +7,8 @@ iCal Calendar in Symcon lesen und verarbeiten
 Diese Bibliothek beinhaltet ein Modul zur Einspeisung von Kalenderinformationen im iCal-Format in Symcon:
 * **iCal Calendar Reader**
 
+[English version](README.en.md)
+
 **Inhaltverzeichnis**
 
 1. [Funktionsumfang](#1-funktionsumfang)
@@ -24,7 +26,7 @@ Die eingelesenen Daten müssen [rfc5545](https://tools.ietf.org/html/rfc5545 "In
 
 Damit ist es z. B. sehr einfach möglich, einen zentralen Anwesenheitskalender im Internet zu pflegen, Symcon steuert damit automatisch Heizung, Alarmanlage und Anwesenheitssimulation.
 
-Auch die Visualisierungen von Einträgen in öffentlichen Kalendern (z. B. Müllabfuhrtermine, Kinoprogramm, ...) in der Visualisierung lassen sich ohne viel Skript-Programmierung realisieren. Z.B. können Abfuhrtermine immer bereits 1 Tag vorher angezeigt werden.
+Auch Einträge in öffentlichen Kalendern (z. B. Müllabfuhrtermine, Kinoprogramm, ...) lassen sich ohne viel Skript-Programmierung anzeigen. Z.B. können Abfuhrtermine immer bereits 1 Tag vorher angezeigt werden.
 
 Kalender werden beim Laden unter Berücksichtigung ihrer jeweiligen Zeitzone in die lokale Zeitzone umgerechnet, sich wiederholende Termine werden als mehrere Einzeltermine abgespeichert.
 
@@ -102,6 +104,8 @@ Für den Fall, dass eine vorliegende Kalenderdatei mit Terminen (z. B. eine iCa
 
 
 Sobald eine URL bzw. eine Media-ID angegeben und gespeichert wurde, beginnt die Synchronisierung. Bei jedem Übernehmen der Einstellungen wird der Kalender sofort gelesen und alle Meldevariablen werden aktualisiert – auch bei einem Aktualisierungsintervall von 0.
+
+Wird das Medienobjekt später gelöscht oder enthält es keine Datei, liest die Instanz stattdessen die Kalender-URL. Ohne URL geht sie in den Status 201 und meldet den Konfigurationsfehler im Log.
 
 Ist die Liste der Meldevariablen ungültig (z. B. per Skript als doppelt kodierter JSON-Text gesetzt), geht die Instanz in den Status 208 und meldet im Log, wie die Liste richtig aussieht; vorhandene Meldevariablen bleiben dabei erhalten.
 
